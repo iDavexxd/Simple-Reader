@@ -1,12 +1,12 @@
 package app.simplereader.interfaces;
 
-import javafx.scene.Scene;
+import javafx.scene.Parent;
 
 /**
  *
  * @author david
  */
 public interface Navigable {
-    Scene getScene();
+    Parent getParent();
     String getName();
 }

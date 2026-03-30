@@ -8,8 +8,8 @@ import app.simplereader.manga.Manga;
 import app.simplereader.manga.MangaLoader;
 import java.util.List;
 import javafx.geometry.Insets;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
@@ -53,12 +53,12 @@ public class ScnMainMenu implements Navigable{
     }
     
     @Override
-    public Scene getScene(){
+    public Parent getParent(){
         List<Manga> mangas = MangaLoader.loadMangas();
         FlowPane flwpane = new FlowPane();
         flwpane.setHgap(10);
         flwpane.setVgap(10);
-        flwpane.setPrefWrapLength(AppConfig.WIDTH);
+        flwpane.setPrefWrapLength(AppConfig.get().WIDTH);
         flwpane.setPadding(new Insets(15));
         
         for(Manga manga : mangas){
@@ -67,7 +67,7 @@ public class ScnMainMenu implements Navigable{
         ScrollPane scroll = new ScrollPane(flwpane); 
         BorderPane panel = new BorderPane(scroll);
         
-        return new Scene(panel,AppConfig.WIDTH,AppConfig.HEIGHT);
+        return panel;
     }
     @Override
     public String getName(){

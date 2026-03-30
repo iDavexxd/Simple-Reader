@@ -1,6 +1,8 @@
 package app.simplereader;
 
 import app.simplereader.interfaces.Navigable;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
@@ -10,15 +12,22 @@ import javafx.stage.Stage;
 public class Navegador {
     
     private final Stage stage;
-        
+    private final StackPane RootPane;
+    
     public Navegador(Stage stage) {
         this.stage = stage;
+        this.RootPane = new StackPane();
+        Scene mainScene = new Scene(RootPane, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        stage.setScene(mainScene);
     }
     
     
     public void goTo(Navigable s){
-        stage.setTitle(AppConfig.TITTLE+ " - "+s.getName());
-        stage.setScene(s.getScene());
+        RootPane.getChildren().setAll(s.getParent());
+        stage.setTitle(AppConfig.get().APP_TITLE+ " - "+s.getName());
+        if (AppConfig.get().fullscreen && !stage.isFullScreen()) {
+        stage.setFullScreen(true);
+        }
         Logger.info("Scene --> "+s.getName());
     }
 }
