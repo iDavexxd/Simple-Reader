@@ -25,7 +25,7 @@ public class Navegador {
     public void goTo(Navigable s){
         RootPane.getChildren().setAll(s.getParent());
         stage.setTitle(AppConfig.get().APP_TITLE+ " - "+s.getName());
-        if (AppConfig.get().fullscreen && !stage.isFullScreen()) {
+        if (AppConfig.get().readerfullscreen && !stage.isFullScreen()) {
         stage.setFullScreen(true);
         }
         Logger.info("Scene --> "+s.getName());

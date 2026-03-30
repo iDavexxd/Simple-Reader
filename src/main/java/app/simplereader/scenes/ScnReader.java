@@ -11,14 +11,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 /**
@@ -51,6 +54,43 @@ public class ScnReader implements Navigable{
         visor.setFitHeight(AppConfig.get().HEIGHT);
         visor.setFitWidth(AppConfig.get().WIDTH);
         visor.setPreserveRatio(true);
+        visor.setSmooth(true);
+        visor.setFitWidth(0);
+        visor.setFitHeight(0);
+        
+        visor.setScaleX(1.0);
+        visor.setScaleY(1.0);
+        StackPane visorpanel = new StackPane(visor);
+        ScrollPane scrollVisor = new ScrollPane();
+        scrollVisor.setContent(visorpanel);
+        
+        scrollVisor.setPannable(true);
+        scrollVisor.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollVisor.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollVisor.setStyle("-fx-background-color: transparent; -fx-background: #1e1e1e;"); // Fondo oscuro
+        
+        scrollVisor.setFitToWidth(true); 
+        scrollVisor.setFitToHeight(true);
+        
+        scrollVisor.setOnScroll(event -> {
+            if (event.isControlDown()) {
+                double deltaY = event.getDeltaY();
+                // Factor de sensibilidad (ajusta este 0.001 a tu gusto)
+                double zoomFactor = Math.exp(deltaY * 0.001); 
+
+                double newScaleX = visor.getScaleX() * zoomFactor;
+                double newScaleY = visor.getScaleY() * zoomFactor;
+
+                // Límites razonables
+                if (newScaleX > 0.1 && newScaleX < 10) {
+                    visor.setScaleX(newScaleX);
+                    visor.setScaleY(newScaleY);
+                }
+                event.consume();
+            }
+        });
+        visor.setFitWidth(scrollVisor.getWidth() - 10); 
+        visor.setFitHeight(scrollVisor.getHeight() - 10);
         imagenes = loadImages();
         if (!imagenes.isEmpty()) {
             LoadImage();
@@ -66,6 +106,7 @@ public class ScnReader implements Navigable{
         btnNext.setOnAction(e -> {
             if (indiceactual < imagenes.size() - 1) { indiceactual++; }
             LoadImage();
+            resetZoom();
             relbl(lblPage);
             Logger.info("Now in: "+imagenes.get(indiceactual).getName());
         });
@@ -74,6 +115,7 @@ public class ScnReader implements Navigable{
                 indiceactual--;
             }
             LoadImage();
+            resetZoom();
             relbl(lblPage);
             Logger.info("Now in: "+imagenes.get(indiceactual).getName());
         });
@@ -82,6 +124,7 @@ public class ScnReader implements Navigable{
             for(int i=0;i < imagenes.size();i++) {
                 Logger.info("Loaded image: "+ imagenes.get(i).getPath());
             }
+            resetZoom();
             relbl(lblPage);
         });
         btnBackToMenu.setOnAction(e -> {
@@ -124,13 +167,11 @@ public class ScnReader implements Navigable{
         //Desaparecer los botones
         btnBackCh.setDisable(chapternum == 0);
         btnNextCh.setDisable(chapternum >= manga.getChapters().size() - 1);
-        /*
-        btnBack.setDisable(indiceactual == 0);
-        btnNext.setDisable(indiceactual >= chapter.getPages().size());
-        */
+                       
         //Todo
         BorderPane layout = new BorderPane();
-        layout.setCenter(visor);
+        
+        layout.setCenter(scrollVisor);
         layout.setLeft(leftpanel);
         layout.setRight(rightpanel);
         leftpanel.setAlignment(Pos.CENTER);
@@ -139,6 +180,13 @@ public class ScnReader implements Navigable{
         toppanel.setAlignment(Pos.CENTER);
         
         return layout;
+    }
+    
+    public void resetZoom() {
+        if(visor != null) {
+            visor.setScaleX(1.0);
+            visor.setScaleY(1.0);
+        }
     }
     
     @Override
