@@ -7,6 +7,7 @@ import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Manga;
 import app.simplereader.manga.MangaLoader;
 import java.util.List;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -36,7 +37,7 @@ public class ScnMainMenu implements Navigable{
         if(manga.getCover() != null){
             Image icon = new Image(manga.getCover().toURI().toString());
             coverView.setImage(icon);
-            Logger.info(manga.getCover().getName()+" - Loaded");
+            Logger.info(manga.getTitle()+" - "+manga.getCover().getName()+" --> Loaded");
         }else{
             coverView.setStyle("-fx-background-color: #cccccc;");
         }
@@ -45,6 +46,7 @@ public class ScnMainMenu implements Navigable{
         Label title = new Label(manga.getTitle());
         VBox iconManga = new VBox(5, coverView,title);
         iconManga.setOnMouseClicked(e -> {
+            nav.goTo(new ScnMangaMenu(nav,manga));
             Logger.info("Cliqueaste: "+manga.getTitle());
         });
         return iconManga;
@@ -57,6 +59,8 @@ public class ScnMainMenu implements Navigable{
         flwpane.setHgap(10);
         flwpane.setVgap(10);
         flwpane.setPrefWrapLength(AppConfig.WIDTH);
+        flwpane.setPadding(new Insets(15));
+        
         for(Manga manga : mangas){
             flwpane.getChildren().add(crearIcon(manga));
         }

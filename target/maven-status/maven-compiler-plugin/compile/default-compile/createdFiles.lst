@@ -7,4 +7,5 @@ app/simplereader/manga/Manga.class
 app/simplereader/interfaces/Navigable.class
 app/simplereader/scenes/ScnReader.class
 app/simplereader/manga/MangaLoader.class
+app/simplereader/scenes/ScnMangaMenu.class
 app/simplereader/AppConfig.class
