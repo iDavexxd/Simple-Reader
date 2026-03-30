@@ -67,7 +67,6 @@ public class ScnReader implements Navigable{
         scrollVisor.setPannable(true);
         scrollVisor.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollVisor.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollVisor.setStyle("-fx-background-color: transparent; -fx-background: #1e1e1e;"); // Fondo oscuro
         
         scrollVisor.setFitToWidth(true); 
         scrollVisor.setFitToHeight(true);
