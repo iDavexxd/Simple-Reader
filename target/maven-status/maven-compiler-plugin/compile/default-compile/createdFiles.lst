@@ -1,2 +1,10 @@
-app/simplereader/SimpleReader.class
+app/simplereader/scenes/ScnMainMenu.class
+app/simplereader/manga/Chapter.class
 app/simplereader/Logger.class
+app/simplereader/Navegador.class
+app/simplereader/SimpleReader.class
+app/simplereader/manga/Manga.class
+app/simplereader/interfaces/Navigable.class
+app/simplereader/scenes/ScnReader.class
+app/simplereader/manga/MangaLoader.class
+app/simplereader/AppConfig.class
