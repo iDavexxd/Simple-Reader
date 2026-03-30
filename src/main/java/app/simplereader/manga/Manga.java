@@ -36,6 +36,7 @@ public class Manga {
         //crear json
         openJson();
         loadChapters();
+        loadCover();
     }
     
     private void loadChapters() {
@@ -96,6 +97,26 @@ public class Manga {
     }
     public File getFolder() {
         return folder;
+    }
+    
+    private void loadCover(){
+        File cover = new File(folder, "cover.jpg");
+    
+        if (!cover.exists()) {
+            cover = new File(folder, "cover.png");
+        }
+
+        if (!cover.exists()) {
+            cover = new File(folder, "cover.jpeg");
+        }
+
+        if (!cover.exists()) {
+            Logger.warning("No hay cover en: " + title);
+            return;
+        }
+
+        this.cover = cover;
+        Logger.info(this.getTitle()+" - Loaded Cover: " + cover.getName());
     }
     
     public void setCover(File cover) {

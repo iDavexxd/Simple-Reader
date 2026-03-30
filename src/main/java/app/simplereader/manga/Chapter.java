@@ -41,6 +41,7 @@ public class Chapter {
             Logger.info("Loaded: "+archivo.getName());
         }
     }
+    
     public String getChName() {
         return chName;
     }

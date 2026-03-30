@@ -13,12 +13,14 @@ import java.util.List;
 public class MangaLoader {
     
     public static List<Manga> loadMangas() {
+        //Leer carpeta mangas
         String home = System.getProperty("user.home");
         File mainfolder = new File(home + "/Documents/SimpleReader/mangas");
         if (!mainfolder.exists()) {
             mainfolder.mkdirs();
             Logger.info("Carpeta creada: " + mainfolder.getPath());
         }
+        //Leer las subscarpetas con los mangas
         File[] mangas = mainfolder.listFiles((dir, nombre) -> 
             new File(dir, nombre).isDirectory()
         );
@@ -26,7 +28,7 @@ public class MangaLoader {
             Logger.info("No hay mangas!!");
             return new ArrayList<>();
         }
-        
+        //Organizar los mangas.
         Arrays.sort(mangas);
         List<Manga> lista = new ArrayList<>();
         for (File subcarpeta : mangas) {

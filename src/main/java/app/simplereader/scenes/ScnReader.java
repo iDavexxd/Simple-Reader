@@ -36,8 +36,8 @@ public class ScnReader implements Navigable{
     @Override
     public Scene getScene(){
         visor = new ImageView();
-        visor.setFitHeight(720);
-        visor.setFitWidth(1280);
+        visor.setFitHeight(AppConfig.HEIGHT);
+        visor.setFitWidth(AppConfig.WIDTH);
         visor.setPreserveRatio(true);
         
         imagenes = loadImages();

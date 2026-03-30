@@ -1,11 +1,21 @@
 package app.simplereader.scenes;
 
 import app.simplereader.AppConfig;
+import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
+import app.simplereader.manga.Manga;
+import app.simplereader.manga.MangaLoader;
+import java.util.List;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
 
 /**
  *
@@ -16,15 +26,44 @@ public class ScnMainMenu implements Navigable{
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
     }
+    
+    public VBox crearIcon(Manga manga){
+        ImageView coverView = new ImageView();
+        coverView.setFitWidth(150);
+        coverView.setFitHeight(200);
+        coverView.setPreserveRatio(true);
+        
+        if(manga.getCover() != null){
+            Image icon = new Image(manga.getCover().toURI().toString());
+            coverView.setImage(icon);
+            Logger.info(manga.getCover().getName()+" - Loaded");
+        }else{
+            coverView.setStyle("-fx-background-color: #cccccc;");
+        }
+        
+        
+        Label title = new Label(manga.getTitle());
+        VBox iconManga = new VBox(5, coverView,title);
+        iconManga.setOnMouseClicked(e -> {
+            Logger.info("Cliqueaste: "+manga.getTitle());
+        });
+        return iconManga;
+    }
+    
     @Override
     public Scene getScene(){
-        Button btnReader = new Button("Leer");
-        btnReader.setOnAction(e -> {
-            nav.goTo(new ScnReader(nav));
-        });
-        BorderPane layout = new BorderPane();
-        layout.setBottom(btnReader);
-        return new Scene(layout,AppConfig.WIDTH,AppConfig.HEIGHT);
+        List<Manga> mangas = MangaLoader.loadMangas();
+        FlowPane flwpane = new FlowPane();
+        flwpane.setHgap(10);
+        flwpane.setVgap(10);
+        flwpane.setPrefWrapLength(AppConfig.WIDTH);
+        for(Manga manga : mangas){
+            flwpane.getChildren().add(crearIcon(manga));
+        }
+        ScrollPane scroll = new ScrollPane(flwpane); 
+        BorderPane panel = new BorderPane(scroll);
+        
+        return new Scene(panel,AppConfig.WIDTH,AppConfig.HEIGHT);
     }
     @Override
     public String getName(){
