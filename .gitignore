@@ -1,0 +1,20 @@
+# Compilados de Maven
+target/
+
+# Archivos de NetBeans
+nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+.nb-gradle/
+
+# Otros IDEs (por si acaso)
+.idea/
+*.iml
+.settings/
+.project/
+.classpath/
+
+# Log y archivos temporales
+*.log
+.DS_Store
