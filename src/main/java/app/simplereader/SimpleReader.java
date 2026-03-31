@@ -18,8 +18,10 @@ public class SimpleReader extends Application{
     public void start(Stage stage) {
         Navegador nav = new Navegador(stage);
         nav.goTo(new ScnMainMenu(nav));
-        
-        stage.setResizable(false);
+        if (AppConfig.get().readerfullscreen && !stage.isFullScreen()) {
+        stage.setFullScreen(true);
+        }
+        stage.setResizable(true);
         stage.setOnCloseRequest(e -> Platform.exit());
         stage.show();
     }
