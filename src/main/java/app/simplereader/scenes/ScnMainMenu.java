@@ -110,6 +110,12 @@ public class ScnMainMenu implements Navigable{
         
         Button btnImportar = new Button("Importar Manga");
         Button btnReload = new Button("");
+        
+        btnReload.setOnAction(e -> {
+            mangas = null;
+            reloadMangas();
+            nav.goTo(new ScnMainMenu(nav));
+        });
         btnImportar.getStyleClass().add("menu-button");
         btnReload.getStyleClass().add("menu-button");
         int lmsize = 20;
