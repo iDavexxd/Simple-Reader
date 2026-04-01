@@ -1,13 +1,11 @@
 package app.simplereader.scenes;
 
-import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Chapter;
 import app.simplereader.manga.Manga;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -24,6 +22,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+/**
+ *
+ * @author david
+ */
 public class ScnReader implements Navigable {
 
     private final Navegador nav;
@@ -67,17 +69,43 @@ public class ScnReader implements Navigable {
         scrollVisor.addEventFilter(ScrollEvent.ANY, event -> {
             if (event.isControlDown()) {
                 double deltaY = event.getDeltaY();
-                double zoomFactor = (deltaY > 0) ? 1.1 : 1 / 1.1;
-
                 if (deltaY == 0) return;
 
+                double zoomFactor = (deltaY > 0) ? 1.1 : 1 / 1.1;
                 double newScaleX = visor.getScaleX() * zoomFactor;
-                double newScaleY = visor.getScaleY() * zoomFactor;
 
-                if (newScaleX > 0.1 && newScaleX < 10.0) {
-                    visor.setScaleX(newScaleX);
-                    visor.setScaleY(newScaleY);
+                if (newScaleX <= 0.1 || newScaleX >= 10.0) {
+                    event.consume();
+                    return;
                 }
+
+                double mouseX = event.getX();
+                double mouseY = event.getY();
+
+                double scrollH = scrollVisor.getHvalue();
+                double scrollV = scrollVisor.getVvalue();
+
+                double contentW = visor.getBoundsInParent().getWidth();
+                double contentH = visor.getBoundsInParent().getHeight();
+
+                visor.setScaleX(newScaleX);
+                visor.setScaleY(newScaleX);
+
+                double newContentW = visor.getBoundsInParent().getWidth();
+                double newContentH = visor.getBoundsInParent().getHeight();
+
+                // Ajustar scroll para que el zoom sea hacia el cursor (no funciona)
+                double viewW = scrollVisor.getViewportBounds().getWidth();
+                double viewH = scrollVisor.getViewportBounds().getHeight();
+
+                double newScrollH = (scrollH * (contentW - viewW) + mouseX * (zoomFactor - 1))
+                                    / (newContentW - viewW);
+                double newScrollV = (scrollV * (contentH - viewH) + mouseY * (zoomFactor - 1))
+                                    / (newContentH - viewH);
+
+                scrollVisor.setHvalue(Math.max(0, Math.min(1, newScrollH)));
+                scrollVisor.setVvalue(Math.max(0, Math.min(1, newScrollV)));
+
                 event.consume();
             }
         });

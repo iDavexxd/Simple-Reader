@@ -1,0 +1,44 @@
+/* 
+    Created on : 31/03/2026, 3:43:26 p. m.
+    Author     : david
+*/
+
+.root{
+    -fx-background-color: #012622;
+}
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent; /* Esta línea es clave en JavaFX */
+    -fx-border-color: transparent;
+}
+
+/* La parte interna donde se desliza el contenido */
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+/* El contenedor de los mangas */
+.tile-pane {
+    -fx-background-color: transparent;
+}
+
+.side-menu {
+    -fx-background-color: #e98a15; /* Un color oscuro sólido */
+    -fx-padding: 20;
+    -fx-spacing: 15;
+    /* Esto añade una sombra a la derecha para dar profundidad */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 5, 0);
+}
+.manga-title {
+    -fx-font-family: "Roboto Slab";
+    -fx-font-weight: bold;
+    -fx-text-fill: #ece5f0;
+    -fx-font-size: 18px;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-max-width: 200;
+}
+
+.manga-icon{
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.7), 20, 0.3, 0, 0);
+}

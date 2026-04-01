@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import javafx.stage.Screen;
+import javafx.geometry.Rectangle2D;
 
 /**
  *
@@ -29,6 +31,7 @@ public class AppConfig {
         }
         return instance;
     }
+    
     private static AppConfig load() {
         File file = new File(CONFIG_FILE);
         if (!file.getParentFile().exists()) {
@@ -38,11 +41,32 @@ public class AppConfig {
             try (FileReader reader = new FileReader(file)) {
                 return new Gson().fromJson(reader, AppConfig.class);
             } catch (IOException e) {
-                System.err.println("Error leyendo config.json");
+                Logger.error("Error leyendo config.json");
             }
         }
+
+        // Si no existe el archivo, calculamos según el monitor
         AppConfig defaultConf = new AppConfig();
-        defaultConf.save(); // Crea el archivo si no existe
+        Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
+
+        // 70% del ancho y alto disponible
+        double targetWidth = bounds.getWidth() * 0.7;
+        double targetHeight = bounds.getHeight() * 0.7;
+
+        // Solo aplicamos el mínimo de 1280 si la pantalla es lo suficientemente grande
+        if (bounds.getWidth() > 1280) {
+            defaultConf.WIDTH = (int) Math.max(targetWidth, 1280);
+        } else {
+            defaultConf.WIDTH = (int) (bounds.getWidth() * 0.9); // 90% en pantallas pequeñas
+        }
+
+        if (bounds.getHeight() > 720) {
+            defaultConf.HEIGHT = (int) Math.max(targetHeight, 720);
+        } else {
+            defaultConf.HEIGHT = (int) (bounds.getHeight() * 0.9);
+        }
+
+        defaultConf.save();
         return defaultConf;
     }
     
