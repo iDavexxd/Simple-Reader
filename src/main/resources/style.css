@@ -25,7 +25,7 @@
 .side-menu {
     -fx-background-color: #ECE5F0; /* Un color oscuro sólido */
     -fx-padding: 20;
-    -fx-spacing: 15;
+    -fx-spacing: 2;
     /* Esto añade una sombra a la derecha para dar profundidad */
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 5, 0);
 }

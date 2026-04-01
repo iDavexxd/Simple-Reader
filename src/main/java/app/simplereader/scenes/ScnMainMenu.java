@@ -16,6 +16,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
@@ -81,7 +82,7 @@ public class ScnMainMenu implements Navigable{
     @SuppressWarnings("empty-statement")
     public Parent getParent(){
         if(mangas == null){            
-            mangas = MangaLoader.loadMangas();;
+            mangas = MangaLoader.loadMangas();
         }
         
         int columns = 5;
@@ -97,40 +98,42 @@ public class ScnMainMenu implements Navigable{
         tilepane.setPrefColumns(columns);
         
         
-        
         for(Manga manga : mangas){
             VBox iconManga = crearIcon(manga);
             tilepane.getChildren().add(iconManga);
+            
         }
+        
         
         ScrollPane scroll = new ScrollPane(tilepane); 
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        VBox lateralmenu = new VBox();
         
-        Button btnImportar = new Button("Importar Manga");
+        Button btnImportar = new Button("");
         Button btnReload = new Button("");
         
-        btnReload.setOnAction(e -> {
+        btnReload.setOnAction(e -> {            
             mangas = null;
-            reloadMangas();
-            nav.goTo(new ScnMainMenu(nav));
+            nav.goTo(new ScnMainMenu(nav)); 
         });
-        btnImportar.getStyleClass().add("menu-button");
-        btnReload.getStyleClass().add("menu-button");
-        int lmsize = 20;
-        
+        AnchorPane lateralmenu = new AnchorPane();
         lateralmenu.getStyleClass().add("side-menu");
-        lateralmenu.getChildren().add(btnImportar);
-        lateralmenu.getChildren().add(btnReload);
-        btnImportar.setAlignment(Pos.CENTER);
-        btnReload.setAlignment(Pos.BOTTOM_CENTER);
-        lateralmenu.setPrefWidth(lmsize);
-        lateralmenu.setMaxWidth(lmsize);        
+        lateralmenu.setPrefWidth(45);
+        lateralmenu.setMinWidth(45);
+        lateralmenu.setMaxWidth(45);
+
+        // Anclamos Importar al techo
+        AnchorPane.setTopAnchor(btnImportar, 10.0);
+        AnchorPane.setLeftAnchor(btnImportar, 0.0);
+        AnchorPane.setRightAnchor(btnImportar, 0.0);
+
+        // Anclamos Reload al suelo
+        AnchorPane.setBottomAnchor(btnReload, 10.0);
+        AnchorPane.setLeftAnchor(btnReload, 0.0);
+        AnchorPane.setRightAnchor(btnReload, 0.0);
+
+        lateralmenu.getChildren().addAll(btnImportar, btnReload);      
                    
-        
-        
-        
         
         scroll.setFitToWidth(true);
         
@@ -169,11 +172,6 @@ public class ScnMainMenu implements Navigable{
         return panel;
     }
     
-    private void reloadMangas(){
-        List<Manga> newmangas = MangaLoader.loadMangas();
-        mangas.clear();
-        mangas = newmangas;
-    }
     
     @Override
     public String getName(){
