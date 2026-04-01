@@ -1,6 +1,5 @@
 package app.simplereader.scenes;
 
-import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
@@ -10,15 +9,15 @@ import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
@@ -67,6 +66,8 @@ public class ScnMainMenu implements Navigable{
         title.setMaxHeight(52); 
         title.maxWidthProperty().bind(coverView.fitWidthProperty());
         title.getStyleClass().add("manga-title");
+         // Permite que el label crezca
+        title.setAlignment(Pos.CENTER_LEFT);
        
         VBox iconManga = new VBox(5, coverView,title);
         iconManga.setAlignment(Pos.TOP_CENTER);
@@ -108,7 +109,7 @@ public class ScnMainMenu implements Navigable{
                 VBox iconManga = crearIcon(manga);
                 tilepane.getChildren().add(iconManga);
             } else {
-                Logger.info(manga.getTitle()+" - no tiene una cover.");
+                Logger.warning(manga.getTitle()+" - no tiene una cover.");
             }
         }
         
@@ -133,14 +134,14 @@ public class ScnMainMenu implements Navigable{
         lateralmenu.setMaxWidth(45);
 
         // Anclamos Importar al techo
-        AnchorPane.setTopAnchor(btnImportar, 10.0);
-        AnchorPane.setLeftAnchor(btnImportar, 0.0);
-        AnchorPane.setRightAnchor(btnImportar, 0.0);
-
-        // Anclamos Reload al suelo
-        AnchorPane.setBottomAnchor(btnReload, 10.0);
+        AnchorPane.setTopAnchor(btnReload, 10.0);
         AnchorPane.setLeftAnchor(btnReload, 0.0);
         AnchorPane.setRightAnchor(btnReload, 0.0);
+
+        // Anclamos Reload al suelo
+        AnchorPane.setBottomAnchor(btnImportar, 10.0);
+        AnchorPane.setLeftAnchor(btnImportar, 0.0);
+        AnchorPane.setRightAnchor(btnImportar, 0.0);
 
         lateralmenu.getChildren().addAll(btnImportar, btnReload);      
                    
@@ -165,12 +166,12 @@ public class ScnMainMenu implements Navigable{
             double tileHeight = tileWidth * 1.5;
 
             tilepane.setPrefTileWidth(tileWidth);
-            tilepane.setPrefTileHeight(tileHeight + 39); // Bajé de 40 a 25 para que no haya tanto hueco abajo
+            tilepane.setPrefTileHeight(tileHeight + 45); // Bajé de 40 a 25 para que no haya tanto hueco abajo
 
             for (javafx.scene.Node node : tilepane.getChildren()) {
                 if (node instanceof VBox vbox) {
                     vbox.setPrefWidth(tileWidth);
-                    vbox.setPrefHeight(tileHeight + 40);
+                    vbox.setPrefHeight(tileHeight + 45);
 
                     // 🔹 Buscamos la ImageView dentro del VBox para redimensionarla
                     if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof ImageView iv) {

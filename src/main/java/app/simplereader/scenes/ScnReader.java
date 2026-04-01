@@ -259,7 +259,7 @@ public class ScnReader implements Navigable {
 
     @Override
     public String getName() {
-        return manga.getTitle() + chapter.getChName();
+        return manga.getTitle() +" - "+ chapter.getChName();
     }
     
 }

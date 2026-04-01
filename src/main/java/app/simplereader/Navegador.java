@@ -11,6 +11,9 @@ import javafx.stage.Stage;
  */
 public class Navegador {
     
+    private static String actualScene;
+        
+    
     private final Stage stage;
     private final StackPane RootPane;
     
@@ -28,14 +31,15 @@ public class Navegador {
         {
                 Logger.error("No se pudo cargar el archivo css: "+e.getMessage());
         }
+        
         stage.setScene(mainScene);
     }
     
     
     public void goTo(Navigable s){
+        actualScene = s.getName();
         RootPane.getChildren().setAll(s.getParent());
-        stage.setTitle(AppConfig.get().APP_TITLE+ " - "+s.getName());        
+        stage.setTitle(AppConfig.get().APP_TITLE+ " - "+actualScene);        
         Logger.info("Scene --> "+s.getName());
-        
     }
 }
