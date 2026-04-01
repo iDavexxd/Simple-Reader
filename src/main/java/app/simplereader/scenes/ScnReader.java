@@ -136,12 +136,15 @@ public class ScnReader implements Navigable {
             LoadImage();
             relbl();
         });
-        btnBackToMenu.setOnAction(e -> nav.goTo(new ScnMangaMenu(nav, manga)));
+        btnBackToMenu.setOnAction(e -> {
+            clearImages();
+            nav.goTo(new ScnMangaMenu(nav, manga));
+        });
 
         btnNextCh.setOnAction(e -> {
             if (this.chapternum < this.manga.getChapters().size() - 1) {
                 Chapter next = this.manga.getChapters().get(this.chapternum + 1);
-                if(next.hasPages()){
+                if(!next.getPages().isEmpty()){
                     nav.goTo(new ScnReader(nav, this.manga, next, chapternum + 1));
                 }else{
                     Logger.noPagesAlert(next);
@@ -152,7 +155,7 @@ public class ScnReader implements Navigable {
         btnBackCh.setOnAction(e -> {
             if (this.chapternum > 0) {
                 Chapter last = this.manga.getChapters().get(this.chapternum - 1);
-                if(last.hasPages()){
+                if(!last.getPages().isEmpty()){
                     nav.goTo(new ScnReader(nav, this.manga, last, chapternum - 1));
                 }else{
                     Logger.noPagesAlert(last);
@@ -248,9 +251,15 @@ public class ScnReader implements Navigable {
     public List<File> loadImages() {
         return chapter.getPages();
     }
+    
+    private void clearImages(){
+        if(imagenes != null) imagenes.clear();
+        if(visor != null) visor = null;
+    }
 
     @Override
     public String getName() {
-        return manga.getTitle() + " - Chapter " + (chapternum + 1);
+        return manga.getTitle() + chapter.getChName();
     }
+    
 }

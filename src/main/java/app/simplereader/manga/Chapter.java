@@ -19,11 +19,12 @@ public class Chapter {
     public Chapter(File folder) {
         this.folder = folder;
         this.chName = folder.getName();
-        // cargar paginas al crear un capitulo.
-        loadPages();
     }
     
     private void loadPages() {
+        if(this.pages != null){
+            pages.clear();
+        }
         // Filtrar imagenes.
         File[] images = folder.listFiles((dir, nombre) ->
             nombre.endsWith(".jpg") ||
@@ -70,7 +71,7 @@ public class Chapter {
             return s1.length() - s2.length();
         });
         for (File archivo : images) {
-            pages.add(archivo);
+            this.pages.add(archivo);
             Logger.info("Loaded: "+archivo.getName());
         }
     }
@@ -154,6 +155,7 @@ public class Chapter {
     }
 
     public List<File> getPages() {
+        loadPages();
         return pages;
     }
 

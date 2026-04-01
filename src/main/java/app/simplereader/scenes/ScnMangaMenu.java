@@ -62,7 +62,7 @@ public class ScnMangaMenu implements Navigable{
             int indice = listaCaps.getSelectionModel().getSelectedIndex();
             if(indice >= 0) {
                 Chapter selChapter = manga.getChapters().get(indice);
-                if(selChapter.hasPages()){
+                if(!selChapter.getPages().isEmpty()){
                     Logger.info("Selected: "+selChapter.getChName());
                     nav.goTo(new ScnReader(nav,manga,selChapter,indice));
                 } else {

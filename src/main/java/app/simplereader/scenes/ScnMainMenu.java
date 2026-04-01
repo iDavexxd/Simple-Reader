@@ -30,6 +30,8 @@ import javafx.scene.shape.Rectangle;
 public class ScnMainMenu implements Navigable{
     private final Navegador nav;    
     private static List<Manga> mangas;
+    private static BorderPane rootCache;
+    
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
     }
@@ -41,7 +43,7 @@ public class ScnMainMenu implements Navigable{
         
         //verificar si el manga sí tenia cover
         if(manga.getCover() != null){
-            Image icon = new Image(manga.getCover().toURI().toString());
+            Image icon = new Image(manga.getCover().toURI().toString(), true);
             coverView.setImage(icon);
             Logger.info(manga.getTitle()+" - "+manga.getCover().getName()+" --> Loaded");
         }else{
@@ -84,6 +86,9 @@ public class ScnMainMenu implements Navigable{
         if(mangas == null){            
             mangas = MangaLoader.loadMangas();
         }
+        if(rootCache != null){
+            return rootCache;
+        }
         
         int columns = 5;
         double hgap = 15;
@@ -99,9 +104,12 @@ public class ScnMainMenu implements Navigable{
         
         
         for(Manga manga : mangas){
-            VBox iconManga = crearIcon(manga);
-            tilepane.getChildren().add(iconManga);
-            
+            if(manga.getCover() != null){
+                VBox iconManga = crearIcon(manga);
+                tilepane.getChildren().add(iconManga);
+            } else {
+                Logger.info(manga.getTitle()+" - no tiene una cover.");
+            }
         }
         
         
@@ -112,7 +120,9 @@ public class ScnMainMenu implements Navigable{
         Button btnImportar = new Button("");
         Button btnReload = new Button("");
         
-        btnReload.setOnAction(e -> {            
+        btnReload.setOnAction(e -> {       
+            Logger.info("- Starting mangas reload.");
+            rootCache = null;
             mangas = null;
             nav.goTo(new ScnMainMenu(nav)); 
         });
@@ -169,7 +179,8 @@ public class ScnMainMenu implements Navigable{
                 }
             }
         });
-        return panel;
+        rootCache = panel;
+        return rootCache;
     }
     
     
