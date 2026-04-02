@@ -1,8 +1,6 @@
 package app.simplereader;
 
 import app.simplereader.interfaces.Navigable;
-import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
@@ -15,31 +13,41 @@ public class Navegador {
         
     
     private final Stage stage;
-    private final StackPane RootPane;
+    private String css;
+    private Navegador instance;
+
+    public Navegador getInstance() {
+        return instance;
+    }
     
     public Navegador(Stage stage) {
         this.stage = stage;
-        this.RootPane = new StackPane();
-        Scene mainScene = new Scene(RootPane, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+
         try 
         {
-            String css = getClass().getResource("/style.css").toExternalForm();
-            mainScene.getStylesheets().add(css);
+            css = getClass().getResource("/style.css").toExternalForm();
             Logger.info("Loaded syle.css");
         } 
         catch (Exception e) 
         {
                 Logger.error("No se pudo cargar el archivo css: "+e.getMessage());
         }
-        
-        stage.setScene(mainScene);
     }
     
     
     public void goTo(Navigable s){
-        actualScene = s.getName();
-        RootPane.getChildren().setAll(s.getParent());
-        stage.setTitle(AppConfig.get().APP_TITLE+ " - "+actualScene);        
+        actualScene = s.getName();        
+        stage.setTitle(AppConfig.get().APP_TITLE+ " - "+actualScene);
+        stage.setScene(s.getScene());
         Logger.info("Scene --> "+s.getName());
     }
+
+    public String getCss() {
+        return css;
+    }
+    
+    public Stage getStage(){
+        return this.stage;
+    }
+    
 }

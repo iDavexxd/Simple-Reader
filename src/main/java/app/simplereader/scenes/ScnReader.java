@@ -1,5 +1,6 @@
 package app.simplereader.scenes;
 
+import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
@@ -10,12 +11,15 @@ import java.util.List;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
-import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -48,7 +52,7 @@ public class ScnReader implements Navigable {
     }
 
     @Override
-    public Parent getParent() {
+    public Scene getScene() {
         this.lblPage = new Label("0/0");
         visor = new ImageView();
         visor.setPreserveRatio(true);
@@ -195,8 +199,67 @@ public class ScnReader implements Navigable {
             LoadImage();
             relbl();
         }
+        nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
+        Scene scene = new Scene(layout,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
+        scene.getStylesheets().add(nav.getCss());
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            KeyCode key = e.getCode();
 
-        return layout;
+            switch(key){
+                case F11 -> {
+                    boolean isFull = nav.getStage().isFullScreen();
+                    nav.getStage().setFullScreen(!isFull);
+                }
+                case ESCAPE -> {
+                    nav.goTo(new ScnMangaMenu(nav,manga));
+                }
+                case RIGHT -> {
+                    if(e.isShiftDown()){
+                        if (this.chapternum < this.manga.getChapters().size() - 1) {
+                            Chapter next = this.manga.getChapters().get(this.chapternum + 1);
+                            if(!next.getPages().isEmpty()){
+                                nav.goTo(new ScnReader(nav, this.manga, next, chapternum + 1));
+                            }else{
+                                Logger.noPagesAlert(next);
+                            }
+                        }
+                    }else {
+                        if (indiceactual < imagenes.size() - 1) {
+                            indiceactual++;
+                            LoadImage();
+                            relbl();
+                        }    
+                    }
+                    
+                    e.consume();
+                }
+                case LEFT -> {
+                    if(e.isShiftDown())
+                    {
+                       if (this.chapternum > 0) {
+                            Chapter last = this.manga.getChapters().get(this.chapternum - 1);
+                            if(!last.getPages().isEmpty()){
+                                nav.goTo(new ScnReader(nav, this.manga, last, chapternum - 1));
+                            }else{
+                                Logger.noPagesAlert(last);
+                            }
+
+                        }   
+                    }
+                    else
+                    {
+                        if (indiceactual > 0) {
+                        indiceactual--;
+                        LoadImage();
+                        relbl();
+                        }
+                        
+                    }
+                 e.consume();    
+                }
+            }
+        });
+        return scene;
     }
 
     public void resetZoom() {
@@ -256,10 +319,15 @@ public class ScnReader implements Navigable {
         if(imagenes != null) imagenes.clear();
         if(visor != null) visor = null;
     }
+    
 
     @Override
     public String getName() {
         return manga.getTitle() +" - "+ chapter.getChName();
+    }
+    @Override
+    public String getParentName(){
+        return "Reader";
     }
     
 }

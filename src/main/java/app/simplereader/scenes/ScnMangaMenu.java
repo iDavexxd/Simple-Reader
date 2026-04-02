@@ -6,13 +6,14 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Chapter;
 import app.simplereader.manga.Manga;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import static javafx.scene.input.KeyCode.F5;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -31,13 +32,13 @@ public class ScnMangaMenu implements Navigable{
     }
     
     @Override
-    public Parent getParent() {
+    public Scene getScene() {
         ImageView cover = new ImageView();
         cover.setFitWidth(250);
         cover.setFitHeight(400);
         cover.setPreserveRatio(true);
         if (manga.getCover() != null) {
-            Image img = new Image(manga.getCover().toURI().toString());
+            Image img = new Image(manga.getCover().toURI().toString(),true);
             cover.setImage(img);
         }        
         Button btnBack = new Button("Back");
@@ -74,7 +75,20 @@ public class ScnMangaMenu implements Navigable{
         BorderPane panel = new BorderPane();
         panel.setTop(toppanel);
         panel.setCenter(listaCaps);
-        return panel;
+        Scene scene = new Scene(panel,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
+        scene.setOnKeyPressed( e -> {
+            KeyCode key = e.getCode();
+            switch (key){
+                case F5 -> {
+                    Logger.info("F5");
+                    nav.goTo(new ScnMangaMenu(nav,this.manga));
+                }
+                case ESCAPE -> {
+                    nav.goTo(new ScnMainMenu(nav));
+                }                
+            }
+        });
+        return scene;
     }
     
     private String getTags() {
@@ -85,6 +99,10 @@ public class ScnMangaMenu implements Navigable{
     @Override
     public String getName() {
         return manga.getTitle();
+    }
+    @Override
+    public String getParentName(){
+        return "MangaMenu";
     }
     
 }

@@ -1,5 +1,6 @@
 package app.simplereader.scenes;
 
+import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
@@ -8,14 +9,13 @@ import app.simplereader.manga.MangaLoader;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.TilePane;
@@ -29,7 +29,7 @@ import javafx.scene.shape.Rectangle;
 public class ScnMainMenu implements Navigable{
     private final Navegador nav;    
     private static List<Manga> mangas;
-    private static BorderPane rootCache;
+    private static Scene rootCache;
     
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
@@ -83,7 +83,7 @@ public class ScnMainMenu implements Navigable{
     
     @Override
     @SuppressWarnings("empty-statement")
-    public Parent getParent(){
+    public Scene getScene(){
         if(mangas == null){            
             mangas = MangaLoader.loadMangas();
         }
@@ -180,13 +180,30 @@ public class ScnMainMenu implements Navigable{
                 }
             }
         });
-        rootCache = panel;
+        
+        
+        rootCache = new Scene(panel,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
+        rootCache.getStylesheets().add(nav.getCss());
+        rootCache.setOnKeyPressed( e -> {
+            KeyCode key = e.getCode();
+            switch (key){
+                case F5 -> {
+                    Logger.info("F5");
+                    mangas = null;
+                    rootCache = null;
+                    nav.goTo(new ScnMainMenu(nav));
+                }
+            }
+        });
         return rootCache;
     }
-    
     
     @Override
     public String getName(){
         return "Menu";
+    }
+    @Override
+    public String getParentName(){
+        return "Main";
     }
 }

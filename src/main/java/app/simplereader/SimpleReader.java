@@ -23,7 +23,7 @@ public class SimpleReader extends Application{
         if (AppConfig.get().readerfullscreen && !stage.isFullScreen()) {
         stage.setFullScreen(true);
         }
-        stage.setResizable(false);
+        stage.setResizable(true);
         stage.setOnCloseRequest(e -> Platform.exit());
         stage.show();
     }
