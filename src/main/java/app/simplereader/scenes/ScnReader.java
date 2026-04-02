@@ -33,8 +33,8 @@ import javafx.scene.layout.VBox;
 public class ScnReader implements Navigable {
 
     private final Navegador nav;
-    private final Chapter chapter;
-    private final int chapternum;
+    private Chapter chapter;
+    private int chapternum;
     private final Manga manga;
 
     private Label lblPage;
@@ -42,6 +42,7 @@ public class ScnReader implements Navigable {
     private ScrollPane scrollVisor;
     private List<File> imagenes;
     private int indiceactual = 0;
+    private BorderPane layout;
 
     public ScnReader(Navegador nav, Manga manga, Chapter chapter, int indice) {
         this.nav = nav;
@@ -53,6 +54,86 @@ public class ScnReader implements Navigable {
 
     @Override
     public Scene getScene() {
+        if(layout == null) layout = getPane();
+        
+        
+        nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
+        Scene scene = new Scene(layout,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
+        scene.getStylesheets().add(nav.getCss());
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            KeyCode key = e.getCode();
+
+            switch(key){
+                case F11 -> {
+                    boolean isFull = nav.getStage().isFullScreen();
+                    nav.getStage().setFullScreen(!isFull);
+                }
+                case ESCAPE -> {
+                    nav.goTo(new ScnMangaMenu(nav,manga));
+                }
+                case RIGHT -> {
+                    if(e.isShiftDown()){
+                        if (this.chapternum < this.manga.getChapters().size() - 1) {
+                            Chapter next = this.manga.getChapters().get(this.chapternum + 1);
+                            if(!next.getPages().isEmpty()){
+                                loadChapter(next, chapternum + 1);
+                            }else{
+                                Logger.noPagesAlert(next);
+                            }
+                        }
+                    }else {
+                        if (indiceactual < imagenes.size() - 1) {
+                            indiceactual++;
+                            LoadImage();
+                            relbl();
+                        }    
+                    }
+                    
+                    e.consume();
+                }
+                case LEFT -> {
+                    if(e.isShiftDown())
+                    {
+                       if (this.chapternum > 0) {
+                            Chapter last = this.manga.getChapters().get(this.chapternum - 1);
+                            if(!last.getPages().isEmpty()){
+                                loadChapter(last, chapternum - 1);
+                            }else{
+                                Logger.noPagesAlert(last);
+                            }
+
+                        }   
+                    }
+                    else
+                    {
+                        if (indiceactual > 0) {
+                        indiceactual--;
+                        LoadImage();
+                        relbl();
+                        }
+                        
+                    }
+                 e.consume();    
+                }
+            }
+        });
+        return scene;
+    }
+    
+    private void loadChapter(Chapter chapter, int index){
+        this.chapter = chapter;
+        this.chapternum = index;
+        this.indiceactual = 0;
+        this.imagenes = chapter.getPages();
+        this.lblPage.setText("0/0");
+        
+        if (!imagenes.isEmpty()) {
+            LoadImage();
+            relbl();
+        }
+        nav.getStage().setTitle(this.getName());
+    }
+    private BorderPane getPane(){
         this.lblPage = new Label("0/0");
         visor = new ImageView();
         visor.setPreserveRatio(true);
@@ -149,7 +230,7 @@ public class ScnReader implements Navigable {
             if (this.chapternum < this.manga.getChapters().size() - 1) {
                 Chapter next = this.manga.getChapters().get(this.chapternum + 1);
                 if(!next.getPages().isEmpty()){
-                    nav.goTo(new ScnReader(nav, this.manga, next, chapternum + 1));
+                    loadChapter(next, chapternum + 1);
                 }else{
                     Logger.noPagesAlert(next);
                 }
@@ -160,16 +241,13 @@ public class ScnReader implements Navigable {
             if (this.chapternum > 0) {
                 Chapter last = this.manga.getChapters().get(this.chapternum - 1);
                 if(!last.getPages().isEmpty()){
-                    nav.goTo(new ScnReader(nav, this.manga, last, chapternum - 1));
+                    loadChapter(last, chapternum - 1);
                 }else{
                     Logger.noPagesAlert(last);
                 }
                 
             }
         });
-        
-        btnBackCh.setDisable(chapternum == 0);
-        btnNextCh.setDisable(chapternum >= manga.getChapters().size() - 1);
 
         VBox leftpanel = new VBox(10, btnBack, btnBackCh);
         VBox rightpanel = new VBox(10, btnNext, btnNextCh);
@@ -199,67 +277,7 @@ public class ScnReader implements Navigable {
             LoadImage();
             relbl();
         }
-        nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
-        Scene scene = new Scene(layout,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
-        scene.getStylesheets().add(nav.getCss());
-        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            KeyCode key = e.getCode();
-
-            switch(key){
-                case F11 -> {
-                    boolean isFull = nav.getStage().isFullScreen();
-                    nav.getStage().setFullScreen(!isFull);
-                }
-                case ESCAPE -> {
-                    nav.goTo(new ScnMangaMenu(nav,manga));
-                }
-                case RIGHT -> {
-                    if(e.isShiftDown()){
-                        if (this.chapternum < this.manga.getChapters().size() - 1) {
-                            Chapter next = this.manga.getChapters().get(this.chapternum + 1);
-                            if(!next.getPages().isEmpty()){
-                                nav.goTo(new ScnReader(nav, this.manga, next, chapternum + 1));
-                            }else{
-                                Logger.noPagesAlert(next);
-                            }
-                        }
-                    }else {
-                        if (indiceactual < imagenes.size() - 1) {
-                            indiceactual++;
-                            LoadImage();
-                            relbl();
-                        }    
-                    }
-                    
-                    e.consume();
-                }
-                case LEFT -> {
-                    if(e.isShiftDown())
-                    {
-                       if (this.chapternum > 0) {
-                            Chapter last = this.manga.getChapters().get(this.chapternum - 1);
-                            if(!last.getPages().isEmpty()){
-                                nav.goTo(new ScnReader(nav, this.manga, last, chapternum - 1));
-                            }else{
-                                Logger.noPagesAlert(last);
-                            }
-
-                        }   
-                    }
-                    else
-                    {
-                        if (indiceactual > 0) {
-                        indiceactual--;
-                        LoadImage();
-                        relbl();
-                        }
-                        
-                    }
-                 e.consume();    
-                }
-            }
-        });
-        return scene;
+        return layout;
     }
 
     public void resetZoom() {
