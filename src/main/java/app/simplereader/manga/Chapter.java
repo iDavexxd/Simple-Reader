@@ -94,6 +94,8 @@ public class Chapter {
     }
 
     private void loadFromZip() {
+        
+        if(zipPages != null) zipPages.clear();
         try (ZipFile zip = new ZipFile(folder)) {
             zip.stream()
                 .filter(entry -> !entry.isDirectory() && isImage(entry.getName()))
@@ -170,6 +172,7 @@ public class Chapter {
     }
     
     public Boolean hasPages(){
+        loadPages();
         if (type == ChapterType.FOLDER) {
             return !pages.isEmpty();
         } else {

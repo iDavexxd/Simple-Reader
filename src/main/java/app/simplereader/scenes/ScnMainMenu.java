@@ -214,9 +214,7 @@ public class ScnMainMenu implements Navigable{
         }
         reloadMangas();
     }
-    private void importZip(){
-        
-    }
+    
     private void copytoMangaFolder(File source){
         String home = System.getProperty("user.home");
         

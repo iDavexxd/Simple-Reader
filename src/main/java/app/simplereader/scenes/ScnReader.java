@@ -372,6 +372,7 @@ public class ScnReader implements Navigable {
     
     private void clearImages(){
         if(imagenes != null) imagenes.clear();
+        if(zipImagenes != null) zipImagenes.clear();
         if(visor != null) visor = null;
     }
     

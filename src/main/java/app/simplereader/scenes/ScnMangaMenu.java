@@ -14,9 +14,10 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F5;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.BorderPane; 
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 
 /**
  *
@@ -37,6 +38,14 @@ public class ScnMangaMenu implements Navigable{
         cover.setFitWidth(250);
         cover.setFitHeight(400);
         cover.setPreserveRatio(true);
+        Rectangle recorte = new Rectangle();
+        recorte.setArcWidth(30);
+        recorte.setArcHeight(30);
+        
+        recorte.widthProperty().bind(cover.fitWidthProperty());
+        recorte.heightProperty().bind(cover.layoutBoundsProperty().map(bounds -> bounds.getHeight()));
+        
+        cover.setClip(recorte);
         if (manga.getCover() != null) {
             Image img = new Image(manga.getCover().toURI().toString(),true);
             cover.setImage(img);

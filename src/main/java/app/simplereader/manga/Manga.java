@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.zip.ZipFile;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  *
@@ -36,7 +37,7 @@ public class Manga {
         this.tags = new ArrayList<>();
         this.chapters = new ArrayList<>();
         //crear json
-        openJson();
+        openYml();
         loadChapters();
         loadCover();
     }
@@ -109,47 +110,60 @@ public class Manga {
         return ChapterType.UNKNOWN;
     }
     
-    private void openJson(){
-        File jsonfile = new File(folder, "info.json");
-        if(!jsonfile.exists()){
-            createJson(jsonfile);
-        }else{
-            readJson(jsonfile);
-        }       
+    private void openYml(){
+        File yamlFile = new File(folder, "info.yaml");
+        if (!yamlFile.exists()) {
+            createYml(yamlFile);
+        } else {
+            readYaml(yamlFile);
+        }   
     }
     
-    private void createJson(File jsonfile) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(this); 
-    
-        try {
-            FileWriter writer = new FileWriter(jsonfile);
-            writer.write(json);
-            writer.close();
-            Logger.info("manga.json creado: " + jsonfile.getPath());
-        } catch (IOException e) {
-            Logger.error("No se pudo crear manga.json: " + e.getMessage());
-        }        
+    private void createYml(File ymlfile) {
+        MangaData data = new MangaData();
+        data.title = this.title;
+        data.author = this.author;
+        data.description = List.of(this.description);
+        data.tags = this.tags;
+        
+        org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
+        options.setPrettyFlow(true);
+        options.setDefaultFlowStyle(org.yaml.snakeyaml.DumperOptions.FlowStyle.BLOCK);
+
+        org.yaml.snakeyaml.representer.Representer representer = new org.yaml.snakeyaml.representer.Representer(options);
+        representer.addClassTag(MangaData.class, org.yaml.snakeyaml.nodes.Tag.MAP); // ← esta línea
+
+        Yaml yaml = new Yaml(representer, options);
+        try(FileWriter writer = new FileWriter(ymlfile))
+        {
+            yaml.dump(data,writer);
+            Logger.info(this.getTitle()+" - Loaded YAML: "+ymlfile.getPath());
+        } catch(IOException e){
+            Logger.error(this.getTitle()+" - Error al cargar YAML.");
+        }
     }
-    private void readJson(File jsonfile){
+    private void readYaml(File ymlfile){
+        Yaml yaml = new Yaml(new org.yaml.snakeyaml.constructor.Constructor(
+            MangaData.class,
+            new org.yaml.snakeyaml.LoaderOptions()
+        ));
+
         try
         {
-            Gson gson = new Gson();
-            java.io.FileReader reader = new java.io.FileReader(jsonfile);
-            Manga datos = gson.fromJson(reader, Manga.class);
+            java.io.FileReader reader = new java.io.FileReader(ymlfile);
+            MangaData data = yaml.loadAs(reader, MangaData.class);
+            this.author = data.author;
+            this.title = data.title;
+            this.description = data.description != null
+            ? String.join("\n", data.description)
+            : "";
+            this.tags = data.tags != null ? data.tags : new ArrayList<>();
+            Logger.info("YAML leído: " + title);
             reader.close();
-
-            // sobrescribir los datos con los del JSON
-            this.title = datos.title;
-            this.author = datos.author;
-            this.description = datos.description;
-            this.tags = datos.tags != null ? datos.tags : new ArrayList<>();
-
-            Logger.info("JSON leído: " + title);
         } 
         catch (IOException e)
         {
-            Logger.error("No se pudo leer info.json: " + e.getMessage());
+            Logger.error("No se pudo leer info.yaml: " + e.getMessage());
         }    
     }
     public File getFolder() {
