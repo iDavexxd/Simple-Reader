@@ -5,9 +5,13 @@ import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Chapter;
+import app.simplereader.manga.ChapterType;
 import app.simplereader.manga.Manga;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.zip.ZipFile;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -43,7 +47,7 @@ public class ScnReader implements Navigable {
     private List<File> imagenes;
     private int indiceactual = 0;
     private BorderPane layout;
-
+    private List<String> zipImagenes;   
     public ScnReader(Navegador nav, Manga manga, Chapter chapter, int indice) {
         this.nav = nav;
         this.chapter = chapter;
@@ -75,14 +79,14 @@ public class ScnReader implements Navigable {
                     if(e.isShiftDown()){
                         if (this.chapternum < this.manga.getChapters().size() - 1) {
                             Chapter next = this.manga.getChapters().get(this.chapternum + 1);
-                            if(!next.getPages().isEmpty()){
+                            if(next.hasPages()){
                                 loadChapter(next, chapternum + 1);
                             }else{
                                 Logger.noPagesAlert(next);
                             }
                         }
                     }else {
-                        if (indiceactual < imagenes.size() - 1) {
+                        if (indiceactual < totalPages() - 1) {
                             indiceactual++;
                             LoadImage();
                             relbl();
@@ -96,7 +100,7 @@ public class ScnReader implements Navigable {
                     {
                        if (this.chapternum > 0) {
                             Chapter last = this.manga.getChapters().get(this.chapternum - 1);
-                            if(!last.getPages().isEmpty()){
+                            if(last.hasPages()){
                                 loadChapter(last, chapternum - 1);
                             }else{
                                 Logger.noPagesAlert(last);
@@ -124,10 +128,10 @@ public class ScnReader implements Navigable {
         this.chapter = chapter;
         this.chapternum = index;
         this.indiceactual = 0;
-        this.imagenes = chapter.getPages();
+        this.imagenes = loadImages();
         this.lblPage.setText("0/0");
         
-        if (!imagenes.isEmpty()) {
+        if (totalPages() > 0) {
             LoadImage();
             relbl();
         }
@@ -203,7 +207,7 @@ public class ScnReader implements Navigable {
         Button btnBackToMenu = new Button("Menu");
 
         btnNext.setOnAction(e -> {
-            if (indiceactual < imagenes.size() - 1) {
+            if (indiceactual < totalPages() - 1) {
                 indiceactual++;
                 LoadImage();
                 relbl();
@@ -229,7 +233,7 @@ public class ScnReader implements Navigable {
         btnNextCh.setOnAction(e -> {
             if (this.chapternum < this.manga.getChapters().size() - 1) {
                 Chapter next = this.manga.getChapters().get(this.chapternum + 1);
-                if(!next.getPages().isEmpty()){
+                if(next.hasPages()){
                     loadChapter(next, chapternum + 1);
                 }else{
                     Logger.noPagesAlert(next);
@@ -240,7 +244,7 @@ public class ScnReader implements Navigable {
         btnBackCh.setOnAction(e -> {
             if (this.chapternum > 0) {
                 Chapter last = this.manga.getChapters().get(this.chapternum - 1);
-                if(!last.getPages().isEmpty()){
+                if(last.hasPages()){
                     loadChapter(last, chapternum - 1);
                 }else{
                     Logger.noPagesAlert(last);
@@ -273,10 +277,14 @@ public class ScnReader implements Navigable {
         });
 
         imagenes = loadImages();
-        if (!imagenes.isEmpty()) {
+            
+        if (imagenes != null && !imagenes.isEmpty()) {
             LoadImage();
             relbl();
-        }
+        } else if (chapter.getType() != ChapterType.FOLDER) {
+            LoadImage(); // para zip carga igual
+            relbl();
+}
         return layout;
     }
 
@@ -286,16 +294,31 @@ public class ScnReader implements Navigable {
             visor.setScaleY(1.0);
         }
     }
+    
 
     public void LoadImage() {
-        File archivo = imagenes.get(indiceactual);
-        Image img = new Image(archivo.toURI().toString());
+        Image img;
+
+        if (chapter.getType() == ChapterType.FOLDER) {
+            // igual que antes
+            File archivo = imagenes.get(indiceactual);
+            img = new Image(archivo.toURI().toString());
+            Logger.info(archivo.getName() + " - Loaded.");
+        } else {
+            // para ZIP/CBZ usamos el inputstream
+            try (InputStream is = chapter.getInputStream(indiceactual)) {
+                img = new Image(is);
+                Logger.info(zipImagenes.get(indiceactual) + " - Loaded.");
+            } catch (IOException e) {
+                Logger.error("Error cargando imagen: " + e.getMessage());
+                return;
+            }
+        }
         visor.setImage(img);
         resetZoom();
         
         // Usamos Platform.runLater para asegurar que el ScrollPane ya sabe su tamaño
         Platform.runLater(this::fitImageToScreen);
-        Logger.info(archivo.getName() + " - Loaded.");
     }
 
     private void fitImageToScreen() {
@@ -324,13 +347,27 @@ public class ScnReader implements Navigable {
     
 
     private void relbl() {
-        if (lblPage != null && imagenes != null) {
-            lblPage.setText((indiceactual + 1) + " / " + imagenes.size());
+        if (lblPage != null) {
+            int total = chapter.getType() == ChapterType.FOLDER 
+                ? imagenes.size() 
+                : zipImagenes.size();
+            lblPage.setText((indiceactual + 1) + " / " + total);
         }
+    }
+    private int totalPages() {
+        return chapter.getType() == ChapterType.FOLDER 
+            ? imagenes.size() 
+            : zipImagenes.size();
     }
 
     public List<File> loadImages() {
-        return chapter.getPages();
+        if(chapter.getType() == ChapterType.FOLDER){
+            return chapter.getPages();
+        }else{
+            zipImagenes = chapter.getZipPages();
+            return null;
+        }
+        
     }
     
     private void clearImages(){

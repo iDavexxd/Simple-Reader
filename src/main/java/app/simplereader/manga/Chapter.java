@@ -2,9 +2,13 @@ package app.simplereader.manga;
 
 import app.simplereader.Logger;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.zip.ZipFile;
 
 /**
  *
@@ -14,14 +18,27 @@ public class Chapter {
     private int chNum;
     private final File folder;
     private List<File> pages = new ArrayList<>();
+    private List<String> zipPages = new ArrayList<>();
     private String chName = "Chapter";
-    
-    public Chapter(File folder) {
+    private ChapterType type;
+    public Chapter(File folder, ChapterType type) {
         this.folder = folder;
         this.chName = folder.getName();
+        this.type = type;
     }
     
     private void loadPages() {
+        switch(type){
+            case FOLDER -> {
+                loadFromFolder();
+            }
+            case ZIP, CBZ -> {
+                loadFromZip();
+            }
+        }
+    }
+    
+    private void loadFromFolder(){
         if(this.pages != null){
             pages.clear();
         }
@@ -75,6 +92,28 @@ public class Chapter {
             Logger.info("Loaded: "+archivo.getName());
         }
     }
+
+    private void loadFromZip() {
+        try (ZipFile zip = new ZipFile(folder)) {
+            zip.stream()
+                .filter(entry -> !entry.isDirectory() && isImage(entry.getName()))
+                .sorted(Comparator.comparing(java.util.zip.ZipEntry::getName))
+                .forEach(entry -> {
+                    zipPages.add(entry.getName()); // guarda en zipPages ✅
+                    Logger.info("Loaded: " + entry.getName());
+                });
+        } catch (IOException e) {
+            Logger.error("No se pudo leer zip: " + folder.getName());
+        }
+    }
+    private boolean isImage(String filename) {
+        String lower = filename.toLowerCase();
+        return lower.endsWith(".jpg") ||
+               lower.endsWith(".jpeg") ||
+               lower.endsWith(".png") ||
+               lower.endsWith(".webp");
+    }
+
     
     public List<File> reloadPages(){
         //Filtrar imagenes
@@ -131,7 +170,16 @@ public class Chapter {
     }
     
     public Boolean hasPages(){
-        return !this.pages.isEmpty();
+        if (type == ChapterType.FOLDER) {
+            return !pages.isEmpty();
+        } else {
+            return !zipPages.isEmpty();
+        }
+    }
+    public InputStream getInputStream(int index) throws IOException {
+        ZipFile zip = new ZipFile(folder);
+        java.util.zip.ZipEntry entry = zip.getEntry(zipPages.get(index)); // acceso directo ✅
+        return zip.getInputStream(entry);
     }
     
     public String getChName() {
@@ -158,9 +206,18 @@ public class Chapter {
         loadPages();
         return pages;
     }
+    
+    public List<String> getZipPages(){
+        loadPages();
+        return zipPages;
+    }
 
     public File getFolder() {
         return folder;
+    }
+
+    public ChapterType getType() {
+        return type;
     }
     
     

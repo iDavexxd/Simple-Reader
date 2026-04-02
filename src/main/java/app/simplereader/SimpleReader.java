@@ -20,9 +20,6 @@ public class SimpleReader extends Application{
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoSlab-Bold.ttf"), 14);
         Navegador nav = new Navegador(stage);
         nav.goTo(new ScnMainMenu(nav));
-        if (AppConfig.get().readerfullscreen && !stage.isFullScreen()) {
-        stage.setFullScreen(true);
-        }
         stage.setResizable(true);
         stage.setOnCloseRequest(e -> Platform.exit());
         stage.show();

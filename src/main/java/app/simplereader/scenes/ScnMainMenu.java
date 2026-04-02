@@ -6,6 +6,12 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Manga;
 import app.simplereader.manga.MangaLoader;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,6 +27,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.DirectoryChooser;
 
 /**
  *
@@ -75,7 +82,6 @@ public class ScnMainMenu implements Navigable{
         //evento al hacer clic
         iconManga.setOnMouseClicked(e -> {
             nav.goTo(new ScnMangaMenu(nav,manga));
-            Logger.info("Cliqueaste: "+manga.getTitle());
         });
         iconManga.getStyleClass().add("manga-icon");
         return iconManga;
@@ -123,9 +129,7 @@ public class ScnMainMenu implements Navigable{
         
         btnReload.setOnAction(e -> {       
             Logger.info("- Starting mangas reload.");
-            rootCache = null;
-            mangas = null;
-            nav.goTo(new ScnMainMenu(nav)); 
+            reloadMangas(); 
         });
         AnchorPane lateralmenu = new AnchorPane();
         lateralmenu.getStyleClass().add("side-menu");
@@ -189,15 +193,70 @@ public class ScnMainMenu implements Navigable{
             switch (key){
                 case F5 -> {
                     Logger.info("F5");
-                    mangas = null;
-                    rootCache = null;
-                    nav.goTo(new ScnMainMenu(nav));
+                    reloadMangas();
+                }
+                case F12 ->{
+                    importFolder();
                 }
             }
         });
         return rootCache;
     }
-    
+    private void importFolder(){
+        DirectoryChooser dirChooser = new DirectoryChooser();
+        dirChooser.setTitle("Importar manga");
+        
+        File selectedDirectory = dirChooser.showDialog(nav.getStage());
+        
+        if(selectedDirectory != null){
+            Logger.info("Carpeta seleccionada: " + selectedDirectory.getAbsolutePath());
+            copytoMangaFolder(selectedDirectory);
+        }
+        reloadMangas();
+    }
+    private void importZip(){
+        
+    }
+    private void copytoMangaFolder(File source){
+        String home = System.getProperty("user.home");
+        
+        Path mangafolder = Paths.get(home + "/Documents/SimpleReader/mangas");
+        Path sourcePath = source.toPath();
+        Path targetPath = mangafolder.resolve(source.getName());
+        
+        try {
+            if (source.isDirectory()) {
+                // Copiar directorio (requiere Java 8+)
+                // Usamos walk para copiar el contenido recursivamente
+                Files.walk(sourcePath).forEach(sourceItem -> {
+                    Path destination = targetPath.resolve(sourcePath.relativize(sourceItem));
+                    try {
+                        Files.copy(sourceItem, destination, StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) {
+                        Logger.info("Error copiando el archivo: " + sourceItem);
+                        e.printStackTrace();
+                    }
+                });
+                Logger.info("Carpeta importada exitosamente a: " + targetPath);
+            } else {
+                // Copiar archivo simple (.zip o .cbz)
+                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                Logger.info("Archivo importado exitosamente a: " + targetPath);
+            }
+
+            // ¡IMPORTANTE! Aquí debes llamar al método que recarga la lista de mangas en tu menú principal
+            // Por ejemplo: reloadMangaList(); 
+
+        } catch (IOException e) {
+            Logger.info("Error al importar: " + e.getMessage());
+        }
+        
+    }
+    private void reloadMangas(){
+        mangas = null;
+        rootCache = null;
+        nav.goTo(new ScnMainMenu(nav));
+    }
     @Override
     public String getName(){
         return "Menu";

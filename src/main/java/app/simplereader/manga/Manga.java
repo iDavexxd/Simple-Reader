@@ -9,11 +9,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipFile;
 
 /**
  *
  * @author david
  */
+
 public class Manga {
     
     private String title;
@@ -41,7 +43,13 @@ public class Manga {
     
     private void loadChapters() {
         //filtrar carpetas
-        File[] folders = folder.listFiles(File::isDirectory);
+        File[] folders = folder.listFiles(file -> 
+            file.isDirectory() || 
+            file.getName().toLowerCase().endsWith(".cbz") ||
+            (file.getName().toLowerCase().endsWith(".zip") && isValidZipCbz(file))
+        );
+        
+        
         if(folders == null || folders.length == 0) {
             Logger.warning("No hay capitulos en:" + title);
             return;
@@ -81,8 +89,24 @@ public class Manga {
             return s1.length() - s2.length();
         });
         for(File subfolder:folders){
-            chapters.add(new Chapter(subfolder));
+            ChapterType type = detectChapterType(subfolder);
+            chapters.add(new Chapter(subfolder,type));
+            Logger.info("Loaded chapter type: "+type);
         }
+    }
+    private Boolean isValidZipCbz(File file){
+        try (ZipFile zipFile = new ZipFile(file)) {
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    private ChapterType detectChapterType(File file) {
+        if (file.isDirectory()) return ChapterType.FOLDER;
+        String name = file.getName().toLowerCase();
+        if (name.endsWith(".cbz")) return ChapterType.CBZ;
+        if (name.endsWith(".zip") && isValidZipCbz(file)) return ChapterType.ZIP;
+        return ChapterType.UNKNOWN;
     }
     
     private void openJson(){

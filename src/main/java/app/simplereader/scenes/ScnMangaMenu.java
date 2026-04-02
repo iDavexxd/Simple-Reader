@@ -63,7 +63,7 @@ public class ScnMangaMenu implements Navigable{
             int indice = listaCaps.getSelectionModel().getSelectedIndex();
             if(indice >= 0) {
                 Chapter selChapter = manga.getChapters().get(indice);
-                if(!selChapter.getPages().isEmpty()){
+                if(selChapter.hasPages()){
                     Logger.info("Selected: "+selChapter.getChName());
                     nav.goTo(new ScnReader(nav,manga,selChapter,indice));
                 } else {
@@ -90,6 +90,8 @@ public class ScnMangaMenu implements Navigable{
         });
         return scene;
     }
+    
+    
     
     private String getTags() {
         if (manga.getTags().isEmpty()) return "";

@@ -17,7 +17,6 @@ public class AppConfig {
     public int WIDTH = 1280;
     public int HEIGHT = 720;
     public String APP_TITLE = "Simple Reader";
-    public Boolean readerfullscreen = false;
     
     public static AppConfig instance;
     private static final String CONFIG_FILE = System.getProperty("user.home") 
