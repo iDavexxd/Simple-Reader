@@ -9,6 +9,6 @@ import java.util.List;
 public class MangaData {
     public String title;
     public String author;
-    public List<String> description;
+    public String description;
     public List<String> tags;
 }

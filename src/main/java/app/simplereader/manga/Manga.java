@@ -123,7 +123,7 @@ public class Manga {
         MangaData data = new MangaData();
         data.title = this.title;
         data.author = this.author;
-        data.description = List.of(this.description);
+        data.description = this.description;
         data.tags = this.tags;
         
         org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
@@ -161,7 +161,7 @@ public class Manga {
             Logger.info("YAML leído: " + title);
             reader.close();
         } 
-        catch (IOException e)
+        catch (Exception e)
         {
             Logger.error("No se pudo leer info.yaml: " + e.getMessage());
         }    
