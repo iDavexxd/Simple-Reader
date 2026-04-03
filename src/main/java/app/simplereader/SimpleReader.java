@@ -18,6 +18,13 @@ public class SimpleReader extends Application{
     public void start(Stage stage) {
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoSlab-Regular.ttf"), 14);
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoSlab-Bold.ttf"), 14);
+        javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/Lato-Regular.ttf"), 14);
+        javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/Lato-Bold.ttf"), 14);
+        javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoMono-Regular.ttf"), 14);
+        javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoMono-Bold.ttf"), 14);
+
+
+        
         Navegador nav = new Navegador(stage);
         nav.goTo(new ScnMainMenu(nav));
         stage.setResizable(true);

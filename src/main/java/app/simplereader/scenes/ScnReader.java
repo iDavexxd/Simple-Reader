@@ -121,6 +121,8 @@ public class ScnReader implements Navigable {
                 }
             }
         });
+        
+        
         return scene;
     }
     
@@ -285,6 +287,7 @@ public class ScnReader implements Navigable {
             LoadImage(); // para zip carga igual
             relbl();
 }
+        layout.getStyleClass().add("reader");
         return layout;
     }
 

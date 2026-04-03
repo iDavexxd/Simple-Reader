@@ -58,8 +58,8 @@ public class ScnMainMenu implements Navigable{
          
         //Crear clip
         Rectangle recorte = new Rectangle();
-        recorte.setArcWidth(30);
-        recorte.setArcHeight(30);
+        recorte.setArcWidth(20);
+        recorte.setArcHeight(20);
         
         recorte.widthProperty().bind(coverView.fitWidthProperty());
         recorte.heightProperty().bind(coverView.layoutBoundsProperty().map(bounds -> bounds.getHeight()));

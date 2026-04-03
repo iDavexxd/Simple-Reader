@@ -6,28 +6,28 @@
 .root{
     -fx-background-color: #012622;
 }
+
+.reader{
+    -fx-background-color: #000000;
+}
 .scroll-pane {
     -fx-background-color: transparent;
-    -fx-background: transparent; /* Esta línea es clave en JavaFX */
+    -fx-background: transparent;
     -fx-border-color: transparent;
 }
 
-/* La parte interna donde se desliza el contenido */
 .scroll-pane .viewport {
     -fx-background-color: transparent;
 }
 
-/* El contenedor de los mangas */
 .tile-pane {
     -fx-background-color: transparent;
 }
 
 .side-menu {
-    -fx-background-color: #ECE5F0; /* Un color oscuro sólido */
+    -fx-background-color: #ECE5F0;
     -fx-padding: 20;
     -fx-spacing: 2;
-    /* Esto añade una sombra a la derecha para dar profundidad */
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 5, 0);
 }
 .manga-title {
     -fx-font-family: "Roboto Slab";
@@ -40,5 +40,89 @@
 }
 
 .manga-icon{
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.7), 20, 0.3, 0, 0);
+}
+
+.manga-info{
+    -fx-font-family: "Lato";
+    -fx-padding: 20;
+}
+
+.manga-info .label {    
+    -fx-text-fill: #ece5f0;
+}
+.manga-info-title{
+    -fx-font-size: 48px;
+    -fx-font-weight: bold;
+    -fx-font-family: "Roboto Slab";
+
+}
+.manga-info-description{
+    -fx-font-size: 16px;
+}
+.manga-info-author{
+    -fx-font-family: "Lato";
+    -fx-font-weight: bold;
+    -fx-font-size: 24px;
+}
+.manga-info-tags {
+    -fx-text-fill: #ece5f0 !important;
+    -fx-background-color: #01332e;
+    -fx-background-radius: 10;
+    -fx-font-family: "Roboto Mono";
+    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+    -fx-padding: 4 10 4 10;
+}
+
+.chapter-list {
+    -fx-font-family: "Lato";
+    -fx-background-color: #012622;
+    -fx-border-color: transparent;
+}
+.chapter-list .scroll-bar:vertical {
+    -fx-background-color: #012622;
+    -fx-pref-width: 8px;
+}
+
+/* El "thumb" es la parte que se arrastra */
+.chapter-list .scroll-bar:vertical .thumb {
+    -fx-background-color: #ECE5F0;
+    -fx-background-radius: 10;
+}
+
+.chapter-list .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #ECE5F0;
+}
+
+/* Ocultar los botones de arriba/abajo */
+.chapter-list .scroll-bar:vertical .increment-button,
+.chapter-list .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-opacity: 0;
+}
+
+/* El track (fondo por donde se desliza el thumb) */
+.chapter-list .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.chapter-list .list-cell {
+    -fx-background-color: #012622;
+    -fx-text-fill: #ece5f0;
+}
+
+.chapter-list .list-cell:hover {
+    -fx-background-color: #ECE5F0;
+    -fx-text-fill: #012622;
+    -fx-background-radius: 10;
+}
+.chapter-list .list-cell:empty:hover {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+.chapter-list .list-cell:selected {
+    -fx-background-color: #ECE5F0;
+    -fx-background-radius: 10;
 }
