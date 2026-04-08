@@ -6,6 +6,8 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Chapter;
 import app.simplereader.manga.Manga;
+import app.simplereader.scenes.others.SideMenu;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -15,11 +17,12 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F5;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane; 
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.SVGPath;
 
 /**
  *
@@ -52,10 +55,27 @@ public class ScnMangaMenu implements Navigable{
             Image img = new Image(manga.getCover().toURI().toString(),true);
             cover.setImage(img);
         }        
-        Button btnBack = new Button("Back");
+        
+        SVGPath icnBack = new SVGPath();
+        icnBack.setContent("m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z");
+        icnBack.getStyleClass().add("back-icon");
+        double scale = 24.0 / 960.0;
+        icnBack.setScaleX(scale);
+        icnBack.setScaleY(scale);
+        
+        Group icon_back_group = new Group(icnBack);
+        StackPane icon_back = new StackPane(icon_back_group);
+        icon_back.setPrefSize(24, 24);
+        icon_back.setMaxSize(24, 24);
+        
+        
+        Button btnBack = new Button("",icon_back);
         btnBack.setOnAction(e -> {
             nav.goTo(new ScnMainMenu(nav));
         });
+        btnBack.setMinSize(24, 24);
+        btnBack.setMaxSize(24,24);
+        
         VBox buttons = new VBox(btnBack);
         Label title = new Label(manga.getTitle());
         title.getStyleClass().add("manga-info-title");
@@ -95,17 +115,11 @@ public class ScnMangaMenu implements Navigable{
         coverlista.getStyleClass().add("manga-info");
         VBox.setVgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
         
-        AnchorPane lateralmenu = new AnchorPane();
-        lateralmenu.getStyleClass().add("side-menu");
-        lateralmenu.setPrefWidth(45);
-        lateralmenu.setMinWidth(45);
-        lateralmenu.setMaxWidth(45);
-        lateralmenu.getChildren().add(buttons);
-        
-        AnchorPane.setTopAnchor(buttons, 10.0);
+        SideMenu lateralmenu = new SideMenu();
+        lateralmenu.addTop(buttons);
         
         BorderPane panel = new BorderPane();
-        panel.setLeft(lateralmenu);
+        panel.setLeft(lateralmenu.getPane());
         
         panel.setCenter(coverlista);
        

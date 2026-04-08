@@ -4,7 +4,7 @@
 */
 
 .root{
-    -fx-background-color: #012622;
+    -fx-background-color: #01201D;
 }
 
 .reader{
@@ -25,7 +25,8 @@
 }
 
 .side-menu {
-    -fx-background-color: #ECE5F0;
+    -fx-background-color: #012622;
+    -fx-border-width: 0 1 0 0;
     -fx-padding: 20;
     -fx-spacing: 2;
 }
@@ -44,7 +45,7 @@
 
 .manga-info{
     -fx-font-family: "Lato";
-    -fx-padding: 20;
+    -fx-padding: 17;
 }
 
 .manga-info .label {    
@@ -77,6 +78,7 @@
 .chapter-list {
     -fx-font-family: "Lato";
     -fx-background-color: #012622;
+    -fx-background-radius:8px;
     -fx-border-color: transparent;
 }
 .chapter-list .scroll-bar:vertical {
@@ -126,3 +128,28 @@
     -fx-background-color: #ECE5F0;
     -fx-background-radius: 10;
 }
+
+
+/*
+    botones que me recuerdo
+*/
+
+.reload-icon{
+    -fx-fill: #ECE5F0;
+}
+
+.importar-icon{
+    -fx-fill: #ECE5F0;
+}
+.back-icon{
+    -fx-fill: #ECE5F0;
+}
+
+
+.button{
+    -fx-background-color: #012622;
+    -fx-background-radius: 5;
+}
+
+
+

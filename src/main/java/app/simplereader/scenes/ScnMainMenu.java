@@ -6,6 +6,7 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.Manga;
 import app.simplereader.manga.MangaLoader;
+import app.simplereader.scenes.others.SideMenu;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,6 +16,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -22,11 +24,12 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.DirectoryChooser;
 
 /**
@@ -124,37 +127,50 @@ public class ScnMainMenu implements Navigable{
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         
-        Button btnImportar = new Button("");
-        Button btnReload = new Button("");
+        SVGPath icnReload = new SVGPath();
+        icnReload.setContent("M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z");
+        icnReload.getStyleClass().add("reload-icon");
+        double scale = 24.0 / 960.0;
+        icnReload.setScaleX(scale);
+        icnReload.setScaleY(scale);
+        
+        Group icon_reload_group = new Group(icnReload);
+        StackPane icon_container = new StackPane(icon_reload_group);
+        icon_container.setPrefSize(24, 24);
+        icon_container.setMaxSize(24, 24);
+        
+        SVGPath icnImportar = new SVGPath();
+        icnImportar.setContent("M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z");
+        icnImportar.getStyleClass().add("importar-icon");
+        icnImportar.setScaleX(scale);
+        icnImportar.setScaleY(scale);
+        
+        Group icon_importar_group = new Group(icnImportar);
+        StackPane icon_container_importar = new StackPane(icon_importar_group);
+        
+        Button btnImportar = new Button("",icon_container_importar);
+        Button btnReload = new Button("",icon_container);
+        btnReload.setMinSize(24, 24);
+        btnReload.setMaxSize(24,24);
+        btnImportar.setMinSize(24, 24);
+        btnImportar.setMaxSize(24, 24);
         
         btnReload.setOnAction(e -> {       
             Logger.info("- Starting mangas reload.");
             reloadMangas(); 
         });
-        AnchorPane lateralmenu = new AnchorPane();
-        lateralmenu.getStyleClass().add("side-menu");
-        lateralmenu.setPrefWidth(45);
-        lateralmenu.setMinWidth(45);
-        lateralmenu.setMaxWidth(45);
-
-        // Anclamos Importar al techo
-        AnchorPane.setTopAnchor(btnReload, 10.0);
-        AnchorPane.setLeftAnchor(btnReload, 0.0);
-        AnchorPane.setRightAnchor(btnReload, 0.0);
-
-        // Anclamos Reload al suelo
-        AnchorPane.setBottomAnchor(btnImportar, 10.0);
-        AnchorPane.setLeftAnchor(btnImportar, 0.0);
-        AnchorPane.setRightAnchor(btnImportar, 0.0);
-
-        lateralmenu.getChildren().addAll(btnImportar, btnReload);      
+        btnImportar.setOnAction(e -> {
+            importFolder();
+        });
                    
         
         scroll.setFitToWidth(true);
+        SideMenu lateralmenu = new SideMenu();
+        lateralmenu.addTop(btnReload).addBottom(btnImportar);
         
         BorderPane panel = new BorderPane();
         panel.setCenter(scroll);
-        panel.setLeft(lateralmenu);
+        panel.setLeft(lateralmenu.getPane());
         scroll.widthProperty().addListener((obs, oldVal, newVal) -> {
             double totalWidth = newVal.doubleValue();
 
