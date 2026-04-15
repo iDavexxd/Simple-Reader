@@ -4,7 +4,7 @@ import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.Manga;
+import app.simplereader.manga.LocalManga;
 import app.simplereader.manga.MangaLoader;
 import app.simplereader.scenes.others.SideMenu;
 import java.io.File;
@@ -38,14 +38,14 @@ import javafx.stage.DirectoryChooser;
  */
 public class ScnMainMenu implements Navigable{
     private final Navegador nav;    
-    private static List<Manga> mangas;
+    private static List<LocalManga> mangas;
     private static Scene rootCache;
     
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
     }
     
-    public VBox crearIcon(Manga manga){
+    public VBox crearIcon(LocalManga manga){
         // ImageView del cover del manga
         ImageView coverView = new ImageView();
         coverView.setPreserveRatio(true);
@@ -113,7 +113,7 @@ public class ScnMainMenu implements Navigable{
         tilepane.setPrefColumns(columns);
         
         
-        for(Manga manga : mangas){
+        for(LocalManga manga : mangas){
             if(manga.getCover() != null){
                 VBox iconManga = crearIcon(manga);
                 tilepane.getChildren().add(iconManga);

@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class MangaLoader {
     
-    public static List<Manga> loadMangas() {
+    public static List<LocalManga> loadMangas() {
         //Leer carpeta mangas
         String home = System.getProperty("user.home");
         File mainfolder = new File(home + "/Documents/SimpleReader/mangas");
@@ -30,9 +30,9 @@ public class MangaLoader {
         }
         //Organizar los mangas.
         Arrays.sort(mangas);
-        List<Manga> lista = new ArrayList<>();
+        List<LocalManga> lista = new ArrayList<>();
         for (File subcarpeta : mangas) {
-            lista.add(new Manga(subcarpeta, subcarpeta.getName(), "", ""));
+            lista.add(new LocalManga(subcarpeta, subcarpeta.getName(), "", ""));
         }
         return lista;        
     }    

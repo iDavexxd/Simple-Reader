@@ -1,6 +1,7 @@
-package app.simplereader.manga;
+package app.simplereader.manga.chapter;
 
 import app.simplereader.Logger;
+import app.simplereader.manga.ChapterType;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,17 +15,18 @@ import java.util.zip.ZipFile;
  *
  * @author david
  */
-public class Chapter {
+public class LocalChapter {
     private int chNum;
     private final File folder;
     private List<File> pages = new ArrayList<>();
     private List<String> zipPages = new ArrayList<>();
     private String chName = "Chapter";
     private ChapterType type;
-    public Chapter(File folder, ChapterType type) {
+    public LocalChapter(File folder, ChapterType type, Integer chNum) {
         this.folder = folder;
         this.chName = folder.getName();
         this.type = type;
+        this.chNum = chNum;
     }
     
     private void loadPages() {

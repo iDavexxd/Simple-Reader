@@ -3,15 +3,20 @@ package app.simplereader.scenes;
 import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
+import app.simplereader.interfaces.Chapter;
 import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.Chapter;
+import app.simplereader.manga.chapter.LocalChapter;
 import app.simplereader.manga.ChapterType;
-import app.simplereader.manga.Manga;
+import app.simplereader.manga.LocalManga;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.zip.ZipFile;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -39,33 +44,41 @@ public class ScnReader implements Navigable {
     private final Navegador nav;
     private Chapter chapter;
     private int chapternum;
-    private final Manga manga;
+    private final LocalManga manga;
 
     private Label lblPage;
     private ImageView visor;
     private ScrollPane scrollVisor;
-    private List<File> imagenes;
     private int indiceactual = 0;
     private BorderPane layout;
-    private List<String> zipImagenes;   
-    public ScnReader(Navegador nav, Manga manga, Chapter chapter, int indice) {
+    
+    private final Map<Integer, Image> cache = java.util.Collections.synchronizedMap(new HashMap<>());
+    private final ExecutorService preloader = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "preloader");
+        t.setDaemon(true); // Se cierra solo cuando cierra la app
+        return t;
+    });
+    
+    public ScnReader(Navegador nav, LocalManga manga, Chapter chapter, int indice) {
         this.nav = nav;
         this.chapter = chapter;
         this.chapternum = indice;
         this.manga = manga;
-        Logger.info("Loaded " + chapter.getChName() + " " + chapternum);
+        Logger.info("Loaded " + chapter.getName() + " " + chapternum);
     }
 
     @Override
     public Scene getScene() {
+        // Scene del lector, con sus cosas.
         if(layout == null) layout = getPane();
         
         
         nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
         Scene scene = new Scene(layout,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
         scene.getStylesheets().add(nav.getCss());
+        // Listener de las teclas
         scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            KeyCode key = e.getCode();
+        KeyCode key = e.getCode();
 
             switch(key){
                 case F11 -> {
@@ -73,6 +86,8 @@ public class ScnReader implements Navigable {
                     nav.getStage().setFullScreen(!isFull);
                 }
                 case ESCAPE -> {
+                    cache.clear();
+                    preloader.shutdownNow();
                     nav.goTo(new ScnMangaMenu(nav,manga));
                 }
                 case RIGHT -> {
@@ -119,6 +134,7 @@ public class ScnReader implements Navigable {
                     }
                  e.consume();    
                 }
+
             }
         });
         
@@ -130,15 +146,17 @@ public class ScnReader implements Navigable {
         this.chapter = chapter;
         this.chapternum = index;
         this.indiceactual = 0;
-        this.imagenes = loadImages();
+        
         this.lblPage.setText("0/0");
         
         if (totalPages() > 0) {
             LoadImage();
             relbl();
         }
+        cache.clear();
         nav.getStage().setTitle(this.getName());
     }
+    
     private BorderPane getPane(){
         this.lblPage = new Label("0/0");
         visor = new ImageView();
@@ -200,7 +218,7 @@ public class ScnReader implements Navigable {
                 event.consume();
             }
         });
-
+                
         Button btnNext = new Button("->");
         Button btnBack = new Button("<-");
         Button btnNextCh = new Button("Next");
@@ -223,12 +241,12 @@ public class ScnReader implements Navigable {
             }
         });
         btnReload.setOnAction(e -> {
-            imagenes = chapter.reloadPages();
             LoadImage();
             relbl();
         });
         btnBackToMenu.setOnAction(e -> {
-            clearImages();
+            cache.clear();
+            preloader.shutdownNow();
             nav.goTo(new ScnMangaMenu(nav, manga));
         });
 
@@ -278,15 +296,11 @@ public class ScnReader implements Navigable {
             }
         });
 
-        imagenes = loadImages();
-            
-        if (imagenes != null && !imagenes.isEmpty()) {
+        if (chapter.hasPages()) {
             LoadImage();
             relbl();
-        } else if (chapter.getType() != ChapterType.FOLDER) {
-            LoadImage(); // para zip carga igual
-            relbl();
-}
+        }
+        
         layout.getStyleClass().add("reader");
         return layout;
     }
@@ -300,30 +314,80 @@ public class ScnReader implements Navigable {
     
 
     public void LoadImage() {
-        Image img;
+        try {
+            visor.setImage(null);
+            Image img = getPage(indiceactual);
 
-        if (chapter.getType() == ChapterType.FOLDER) {
-            // igual que antes
-            File archivo = imagenes.get(indiceactual);
-            img = new Image(archivo.toURI().toString());
-            Logger.info(archivo.getName() + " - Loaded.");
-        } else {
-            // para ZIP/CBZ usamos el inputstream
-            try (InputStream is = chapter.getInputStream(indiceactual)) {
-                img = new Image(is);
-                Logger.info(zipImagenes.get(indiceactual) + " - Loaded.");
-            } catch (IOException e) {
-                Logger.error("Error cargando imagen: " + e.getMessage());
-                return;
+            // Si todavía está cargando (vino de preload), esperar con listener
+            if (img.isBackgroundLoading() && img.getProgress() < 1.0) {
+                img.progressProperty().addListener((obs, oldVal, newVal) -> {
+                    if (newVal.doubleValue() >= 1.0 && !img.isError()) {
+                        Platform.runLater(() -> {
+                            visor.setImage(img);
+                            fitImageToScreen();
+                            resetZoom();
+                        });
+                    }
+                });
+            } else {
+                visor.setImage(img);
             }
-        }
-        visor.setImage(img);
-        resetZoom();
-        
-        // Usamos Platform.runLater para asegurar que el ScrollPane ya sabe su tamaño
-        Platform.runLater(this::fitImageToScreen);
-    }
 
+            preloadAroundCurrent();
+            cleanCache();
+            fitImageToScreen();
+            resetZoom();
+
+            Logger.info("Page " + indiceactual + " loaded.");
+        } catch (Exception e) {
+            Logger.error("Error cargando imagen: " + e.getMessage());
+        }
+    }
+    
+    private Image getPage(int index){
+        if(cache.containsKey(index)) return cache.get(index);
+        
+        Image img = chapter.getPage(index);
+        cache.put(index, img);
+        return img;
+    }
+    
+    private void cleanCache(){
+        int range = 1;
+        
+        System.gc();
+        cache.keySet().removeIf(i -> Math.abs(i - indiceactual) > range);
+    }
+    
+    private void preload(int index) {
+        if (index < 0 || index >= totalPages()) return;
+        if (cache.containsKey(index)) return;
+
+        preloader.submit(() -> {
+            try {
+                Image img = chapter.getPage(index);
+                // Esperar a que la imagen termine de cargar
+                if (img.isBackgroundLoading()) {
+                    // Bloquear el hilo del preloader hasta que cargue
+                    while (img.getProgress() < 1.0 && !img.isError()) {
+                        Thread.sleep(10);
+                    }
+                }
+                if (!img.isError()) {
+                    cache.put(index, img);
+                    Logger.info("Preloaded page: " + index);
+                }
+            } catch (Exception e) {
+                Logger.error("Error precargando página " + index + ": " + e.getMessage());
+            }
+        });
+    }
+    
+    private void preloadAroundCurrent() {
+        preload(indiceactual + 1);
+        preload(indiceactual - 1);
+    }
+    
     private void fitImageToScreen() {
         if (visor.getImage() == null || scrollVisor == null) return;
 
@@ -351,38 +415,22 @@ public class ScnReader implements Navigable {
 
     private void relbl() {
         if (lblPage != null) {
-            int total = chapter.getType() == ChapterType.FOLDER 
-                ? imagenes.size() 
-                : zipImagenes.size();
-            lblPage.setText((indiceactual + 1) + " / " + total);
+            lblPage.setText((indiceactual + 1) + " / " + chapter.getPageCount());
         }
-    }
-    private int totalPages() {
-        return chapter.getType() == ChapterType.FOLDER 
-            ? imagenes.size() 
-            : zipImagenes.size();
-    }
-
-    public List<File> loadImages() {
-        if(chapter.getType() == ChapterType.FOLDER){
-            return chapter.getPages();
-        }else{
-            zipImagenes = chapter.getZipPages();
-            return null;
-        }
-        
     }
     
-    private void clearImages(){
-        if(imagenes != null) imagenes.clear();
-        if(zipImagenes != null) zipImagenes.clear();
-        if(visor != null) visor = null;
+    private int totalPages() {
+        return chapter.getPageCount();
     }
+
+    
+    
+
     
 
     @Override
     public String getName() {
-        return manga.getTitle() +" - "+ chapter.getChName();
+        return manga.getTitle() +" - "+ chapter.getName();
     }
     @Override
     public String getParentName(){

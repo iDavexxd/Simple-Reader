@@ -3,9 +3,10 @@ package app.simplereader.scenes;
 import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
+import app.simplereader.interfaces.Chapter;
 import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.Chapter;
-import app.simplereader.manga.Manga;
+import app.simplereader.manga.chapter.LocalChapter;
+import app.simplereader.manga.LocalManga;
 import app.simplereader.scenes.others.SideMenu;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -29,10 +30,10 @@ import javafx.scene.shape.SVGPath;
  * @author david
  */
 public class ScnMangaMenu implements Navigable{
-    private final Manga manga;
+    private final LocalManga manga;
     private final Navegador nav;
     
-    public ScnMangaMenu(Navegador nav,Manga manga){
+    public ScnMangaMenu(Navegador nav,LocalManga manga){
         this.manga = manga;
         this.nav = nav;
     }
@@ -57,7 +58,7 @@ public class ScnMangaMenu implements Navigable{
         }        
         
         SVGPath icnBack = new SVGPath();
-        icnBack.setContent("m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z");
+        icnBack.setContent("M640-80 240-480l400-400 71 71-329 329 329 329-71 71Z");
         icnBack.getStyleClass().add("back-icon");
         double scale = 24.0 / 960.0;
         icnBack.setScaleX(scale);
@@ -93,17 +94,17 @@ public class ScnMangaMenu implements Navigable{
         datos.setTop(datosmanga);
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20,cover,datos);
-        //panel con to
+        //panel con to'
         ListView<String> listaCaps = new ListView<>();
         for (Chapter cap : manga.getChapters()) {
-            listaCaps.getItems().add(cap.getChName());
+            listaCaps.getItems().add(cap.getName());
         }
         listaCaps.setOnMouseClicked(e -> {
             int indice = listaCaps.getSelectionModel().getSelectedIndex();
             if(indice >= 0) {
                 Chapter selChapter = manga.getChapters().get(indice);
                 if(selChapter.hasPages()){
-                    Logger.info("Selected: "+selChapter.getChName());
+                    Logger.info("Selected: "+selChapter.getName());
                     nav.goTo(new ScnReader(nav,manga,selChapter,indice));
                 } else {
                     Logger.noPagesAlert(selChapter);
@@ -131,7 +132,7 @@ public class ScnMangaMenu implements Navigable{
                 case F5 -> {
                     Logger.info("F5");
                     nav.goTo(new ScnMangaMenu(nav, this.manga));
-                    e.consume(); // Evita que el evento siga propagándose
+                    e.consume();
                 }
                 case ESCAPE -> {
                     nav.goTo(new ScnMainMenu(nav));

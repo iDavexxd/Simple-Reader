@@ -1,6 +1,11 @@
 package app.simplereader.manga;
 
+import app.simplereader.manga.chapter.LocalChapter;
 import app.simplereader.Logger;
+import app.simplereader.Sorter;
+import app.simplereader.interfaces.Chapter;
+import app.simplereader.manga.chapter.FolderChapter;
+import app.simplereader.manga.chapter.ZipChapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.File;
@@ -17,7 +22,7 @@ import org.yaml.snakeyaml.Yaml;
  * @author david
  */
 
-public class Manga {
+public class LocalManga {
     
     private String title;
     private String author;
@@ -29,7 +34,7 @@ public class Manga {
     private List<String> tags;
     private transient List<Chapter> chapters;
     
-    public Manga(File folder,String title, String author, String description){
+    public LocalManga(File folder,String title, String author, String description){
         this.folder = folder;
         this.title = title;
         this.author = author;
@@ -50,52 +55,38 @@ public class Manga {
             (file.getName().toLowerCase().endsWith(".zip") && isValidZipCbz(file))
         );
         
-        
+        // Si no hay capitulos terminar to'
         if(folders == null || folders.length == 0) {
             Logger.warning("No hay capitulos en:" + title);
             return;
         }
-        Arrays.sort(folders, (f1, f2) -> {
-            String s1 = f1.getName().toLowerCase();
-            String s2 = f2.getName().toLowerCase();
+        //sortea
+        Arrays.sort(folders, (f1, f2) ->
+            Sorter.compare(f1.getName(), f2.getName())
+        );
+        int i =0;
+        // Lo que carga los capitulos a la lista
+        for(File subfolder : folders){
+            i++;
+            ChapterType type = detectChapterType(subfolder);
 
-            int i = 0, j = 0;
-            while (i < s1.length() && j < s2.length()) {
-                char c1 = s1.charAt(i);
-                char c2 = s2.charAt(j);
+            Chapter chapter = null;
 
-                // Si ambos encuentran un número, comparamos el bloque numérico completo
-                if (Character.isDigit(c1) && Character.isDigit(c2)) {
-                    StringBuilder num1 = new StringBuilder();
-                    StringBuilder num2 = new StringBuilder();
-
-                    while (i < s1.length() && Character.isDigit(s1.charAt(i))) {
-                        num1.append(s1.charAt(i++));
-                    }
-                    while (j < s2.length() && Character.isDigit(s2.charAt(j))) {
-                        num2.append(s2.charAt(j++));
-                    }
-
-                    long v1 = Long.parseLong(num1.toString());
-                    long v2 = Long.parseLong(num2.toString());
-
-                    if (v1 != v2) return Long.compare(v1, v2);
-                } else {
-                    // Si son letras, comparamos normal
-                    if (c1 != c2) return c1 - c2;
-                    i++;
-                    j++;
+            switch(type){
+                case FOLDER -> chapter = new FolderChapter(subfolder);
+                case ZIP, CBZ -> chapter = new ZipChapter(subfolder);
+                default -> {
+                    Logger.warning("Tipo desconocido: " + subfolder.getName());
+                    continue;
                 }
             }
-            return s1.length() - s2.length();
-        });
-        for(File subfolder:folders){
-            ChapterType type = detectChapterType(subfolder);
-            chapters.add(new Chapter(subfolder,type));
-            Logger.info("Loaded chapter type: "+type);
+
+            chapters.add(chapter);
+            Logger.info("Loaded chapter: " + i);
         }
     }
     private Boolean isValidZipCbz(File file){
+        // saber si el zip es válido o no
         try (ZipFile zipFile = new ZipFile(file)) {
             return true;
         } catch (Exception e) {
@@ -113,8 +104,10 @@ public class Manga {
     private void openYml(){
         File yamlFile = new File(folder, "info.yaml");
         if (!yamlFile.exists()) {
+            // si no existe lo crea
             createYml(yamlFile);
         } else {
+            // si existe lo lee
             readYaml(yamlFile);
         }   
     }
@@ -189,8 +182,8 @@ public class Manga {
         this.cover = cover;
         Logger.info(this.getTitle()+" - Loaded Cover: " + cover.getName());
     }
-    
-    public void setCover(File cover) {
+    // No uso esto aun, lo dejo por si sirve
+    private void setCover(File cover) {
         if (cover == null) {
         Logger.warning("Cover es null");
         return;

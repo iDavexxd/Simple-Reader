@@ -1,6 +1,6 @@
 package app.simplereader;
 
-import app.simplereader.manga.Chapter;
+import app.simplereader.interfaces.Chapter;
 import javafx.scene.control.Alert;
 
 /**
@@ -23,7 +23,7 @@ public class Logger {
         Alert alerta = new Alert(Alert.AlertType.WARNING);
         alerta.setTitle("Capítulo vacío");
         alerta.setHeaderText(null); // Esto quita el encabezado gris si no lo necesitas
-        alerta.setContentText("El capítulo '" + selChapter.getChName() + "' no contiene imágenes válidas.");
+        alerta.setContentText("El capítulo '" + selChapter.getName() + "' no contiene imágenes válidas.");
         alerta.showAndWait(); // Muestra la ventana y detiene el código hasta que se cierre
     }
 }
