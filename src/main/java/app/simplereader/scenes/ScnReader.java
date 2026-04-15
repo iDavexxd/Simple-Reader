@@ -4,6 +4,7 @@ import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Chapter;
+import app.simplereader.interfaces.Manga;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.chapter.LocalChapter;
 import app.simplereader.manga.ChapterType;
@@ -44,7 +45,7 @@ public class ScnReader implements Navigable {
     private final Navegador nav;
     private Chapter chapter;
     private int chapternum;
-    private final LocalManga manga;
+    private final Manga manga;
 
     private Label lblPage;
     private ImageView visor;
@@ -59,7 +60,7 @@ public class ScnReader implements Navigable {
         return t;
     });
     
-    public ScnReader(Navegador nav, LocalManga manga, Chapter chapter, int indice) {
+    public ScnReader(Navegador nav, Manga manga, Chapter chapter, int indice) {
         this.nav = nav;
         this.chapter = chapter;
         this.chapternum = indice;

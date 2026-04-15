@@ -1,13 +1,11 @@
 package app.simplereader.manga;
 
-import app.simplereader.manga.chapter.LocalChapter;
 import app.simplereader.Logger;
 import app.simplereader.Sorter;
 import app.simplereader.interfaces.Chapter;
+import app.simplereader.interfaces.Manga;
 import app.simplereader.manga.chapter.FolderChapter;
 import app.simplereader.manga.chapter.ZipChapter;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,13 +20,13 @@ import org.yaml.snakeyaml.Yaml;
  * @author david
  */
 
-public class LocalManga {
+public class LocalManga implements Manga{
     
     private String title;
     private String author;
     private String description;
     private transient File cover;
-    private transient File folder;
+    private final transient File folder;
 
     
     private List<String> tags;
@@ -198,10 +196,12 @@ public class LocalManga {
 
     }
     
-    public File getCover() {
-        return cover;
+    @Override
+    public String getCover() {
+        if(cover == null) return null;
+        return cover.toURI().toString();
     }
-    
+    @Override
     public String getTitle() {
         return title;
     }
@@ -209,7 +209,7 @@ public class LocalManga {
     public void setTitle(String Title) {
         this.title = Title;
     }
-
+    @Override
     public String getAuthor() {
         return author;
     }
@@ -217,7 +217,7 @@ public class LocalManga {
     public void setAuthor(String Author) {
         this.author = Author;
     }
-
+    @Override
     public String getDescription() {
         return description;
     }
@@ -225,7 +225,7 @@ public class LocalManga {
     public void setDescription(String Description) {
         this.description = Description;
     }
-
+    @Override
     public List<String> getTags() {
         return tags;
     }
@@ -233,7 +233,7 @@ public class LocalManga {
     public void setTags(List<String> tags) {
         this.tags = tags;
     }
-
+    @Override
     public List<Chapter> getChapters() {
         return chapters;
     }

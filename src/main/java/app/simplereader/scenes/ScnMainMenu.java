@@ -3,6 +3,7 @@ package app.simplereader.scenes;
 import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
+import app.simplereader.interfaces.Manga;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.LocalManga;
 import app.simplereader.manga.MangaLoader;
@@ -38,23 +39,23 @@ import javafx.stage.DirectoryChooser;
  */
 public class ScnMainMenu implements Navigable{
     private final Navegador nav;    
-    private static List<LocalManga> mangas;
+    private static List<Manga> mangas;
     private static Scene rootCache;
     
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
     }
     
-    public VBox crearIcon(LocalManga manga){
+    public VBox crearIcon(Manga manga){
         // ImageView del cover del manga
         ImageView coverView = new ImageView();
         coverView.setPreserveRatio(true);
         
         //verificar si el manga sí tenia cover
         if(manga.getCover() != null){
-            Image icon = new Image(manga.getCover().toURI().toString(), true);
+            Image icon = new Image(manga.getCover(), true);
             coverView.setImage(icon);
-            Logger.info(manga.getTitle()+" - "+manga.getCover().getName()+" --> Loaded");
+            Logger.info(manga.getTitle()+" - "+manga.getCover()+" --> Loaded");
         }else{
             coverView.setStyle("-fx-background-color: #cccccc;");
         }
@@ -113,7 +114,7 @@ public class ScnMainMenu implements Navigable{
         tilepane.setPrefColumns(columns);
         
         
-        for(LocalManga manga : mangas){
+        for(Manga manga : mangas){
             if(manga.getCover() != null){
                 VBox iconManga = crearIcon(manga);
                 tilepane.getChildren().add(iconManga);

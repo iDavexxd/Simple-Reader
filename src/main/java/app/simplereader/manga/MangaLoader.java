@@ -1,6 +1,7 @@
 package app.simplereader.manga;
 
 import app.simplereader.Logger;
+import app.simplereader.interfaces.Manga;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,7 +13,7 @@ import java.util.List;
  */
 public class MangaLoader {
     
-    public static List<LocalManga> loadMangas() {
+    public static List<Manga> loadMangas() {
         //Leer carpeta mangas
         String home = System.getProperty("user.home");
         File mainfolder = new File(home + "/Documents/SimpleReader/mangas");
@@ -30,7 +31,7 @@ public class MangaLoader {
         }
         //Organizar los mangas.
         Arrays.sort(mangas);
-        List<LocalManga> lista = new ArrayList<>();
+        List<Manga> lista = new ArrayList<>();
         for (File subcarpeta : mangas) {
             lista.add(new LocalManga(subcarpeta, subcarpeta.getName(), "", ""));
         }

@@ -4,8 +4,8 @@ import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Chapter;
+import app.simplereader.interfaces.Manga;
 import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.chapter.LocalChapter;
 import app.simplereader.manga.LocalManga;
 import app.simplereader.scenes.others.SideMenu;
 import javafx.scene.Group;
@@ -30,10 +30,10 @@ import javafx.scene.shape.SVGPath;
  * @author david
  */
 public class ScnMangaMenu implements Navigable{
-    private final LocalManga manga;
+    private final Manga manga;
     private final Navegador nav;
     
-    public ScnMangaMenu(Navegador nav,LocalManga manga){
+    public ScnMangaMenu(Navegador nav,Manga manga){
         this.manga = manga;
         this.nav = nav;
     }
@@ -53,7 +53,7 @@ public class ScnMangaMenu implements Navigable{
         
         cover.setClip(recorte);
         if (manga.getCover() != null) {
-            Image img = new Image(manga.getCover().toURI().toString(),true);
+            Image img = new Image(manga.getCover(),true);
             cover.setImage(img);
         }        
         
