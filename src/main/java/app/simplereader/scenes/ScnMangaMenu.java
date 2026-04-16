@@ -59,7 +59,7 @@ public class ScnMangaMenu implements Navigable{
         
         SVGPath icnBack = new SVGPath();
         icnBack.setContent("M640-80 240-480l400-400 71 71-329 329 329 329-71 71Z");
-        icnBack.getStyleClass().add("back-icon");
+        icnBack.getStyleClass().add("icon");
         double scale = 24.0 / 960.0;
         icnBack.setScaleX(scale);
         icnBack.setScaleY(scale);

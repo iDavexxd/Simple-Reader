@@ -1,15 +1,29 @@
 /* 
-    Created on : 31/03/2026, 3:43:26 p. m.
-    Author     : david
+    Tema global (variables)
+*/
+.root{
+    -fx-main-bg: #01201D;
+    -fx-secondary-bg: #012622;
+    -fx-third-bg: #01332e;
+    
+    -fx-accent: #ECE5F0;
+    -fx-reader-bg: #01201D;
+    -fx-tag-bg: #01332e;
+
+    -fx-background-color: -fx-main-bg;
+}
+/*
+    -fx-main-bg: #01201D;
+    -fx-secondary-bg: #012622;
+    -fx-accent: #ECE5F0;
+    -fx-reader-bg: #000000;
+    -fx-tag-bg: #01332e;
 */
 
-.root{
-    -fx-background-color: #01201D;
-}
+/* =========================
+   GENERALES
+========================= */
 
-.reader{
-    -fx-background-color: #000000;
-}
 .scroll-pane {
     -fx-background-color: transparent;
     -fx-background: transparent;
@@ -24,23 +38,29 @@
     -fx-background-color: transparent;
 }
 
+/* =========================
+   MENÚ LATERAL
+========================= */
+
 .side-menu {
-    -fx-background-color: #012622;
+    -fx-background-color: -fx-secondary-bg;
     -fx-border-width: 0 1 0 0;
     -fx-padding: 20;
     -fx-spacing: 2;
 }
+
+/* =========================
+   MANGA INFO
+========================= */
+
 .manga-title {
     -fx-font-family: "Roboto Slab";
     -fx-font-weight: bold;
-    -fx-text-fill: #ece5f0;
+    -fx-text-fill: -fx-accent;
     -fx-font-size: 18px;
     -fx-wrap-text: true;
     -fx-text-alignment: center;
     -fx-max-width: 200;
-}
-
-.manga-icon{
 }
 
 .manga-info{
@@ -49,25 +69,28 @@
 }
 
 .manga-info .label {    
-    -fx-text-fill: #ece5f0;
+    -fx-text-fill: -fx-accent;
 }
+
 .manga-info-title{
     -fx-font-size: 48px;
     -fx-font-weight: bold;
     -fx-font-family: "Roboto Slab";
-
 }
+
 .manga-info-description{
     -fx-font-size: 16px;
 }
+
 .manga-info-author{
     -fx-font-family: "Lato";
     -fx-font-weight: bold;
     -fx-font-size: 24px;
 }
+
 .manga-info-tags {
-    -fx-text-fill: #ece5f0 !important;
-    -fx-background-color: #01332e;
+    -fx-text-fill: -fx-accent !important;
+    -fx-background-color: -fx-tag-bg;
     -fx-background-radius: 10;
     -fx-font-family: "Roboto Mono";
     -fx-font-weight: bold;
@@ -75,28 +98,31 @@
     -fx-padding: 4 10 4 10;
 }
 
+/* =========================
+   LISTA DE CAPÍTULOS
+========================= */
+
 .chapter-list {
     -fx-font-family: "Lato";
-    -fx-background-color: #012622;
-    -fx-background-radius:8px;
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: 8px;
     -fx-border-color: transparent;
 }
+
 .chapter-list .scroll-bar:vertical {
-    -fx-background-color: #012622;
+    -fx-background-color: -fx-secondary-bg;
     -fx-pref-width: 8px;
 }
 
-/* El "thumb" es la parte que se arrastra */
 .chapter-list .scroll-bar:vertical .thumb {
-    -fx-background-color: #ECE5F0;
+    -fx-background-color: -fx-accent;
     -fx-background-radius: 10;
 }
 
 .chapter-list .scroll-bar:vertical .thumb:hover {
-    -fx-background-color: #ECE5F0;
+    -fx-background-color: -fx-accent;
 }
 
-/* Ocultar los botones de arriba/abajo */
 .chapter-list .scroll-bar:vertical .increment-button,
 .chapter-list .scroll-bar:vertical .decrement-button {
     -fx-pref-height: 0;
@@ -104,52 +130,81 @@
     -fx-opacity: 0;
 }
 
-/* El track (fondo por donde se desliza el thumb) */
 .chapter-list .scroll-bar:vertical .track {
     -fx-background-color: transparent;
 }
 
 .chapter-list .list-cell {
-    -fx-background-color: #012622;
-    -fx-text-fill: #ece5f0;
+    -fx-background-color: -fx-secondary-bg;
+    -fx-text-fill: -fx-accent;
 }
 
 .chapter-list .list-cell:hover {
-    -fx-background-color: #ECE5F0;
-    -fx-text-fill: #012622;
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: -fx-secondary-bg;
     -fx-background-radius: 10;
 }
+
 .chapter-list .list-cell:empty:hover {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
 }
 
 .chapter-list .list-cell:selected {
-    -fx-background-color: #ECE5F0;
+    -fx-background-color: -fx-accent;
     -fx-background-radius: 10;
 }
 
+/* =========================
+   ICONOS Y BOTONES
+========================= */
 
-/*
-    botones que me recuerdo
-*/
-
-.reload-icon{
-    -fx-fill: #ECE5F0;
+.icon {
+    -fx-fill: -fx-accent;
 }
-
-.importar-icon{
-    -fx-fill: #ECE5F0;
-}
-.back-icon{
-    -fx-fill: #ECE5F0;
-}
-
 
 .button{
     -fx-background-color: transparent;
-    -fx-background-radius: 5;
+    -fx-background-radius: 8;
 }
 
+.button:hover{
+    -fx-background-color: -fx-third-bg;
+    -fx-transition: fill 0.2s;
+}
+/* 
+   LECTOR
+*/
 
+.reader{
+    -fx-background-color: -fx-reader-bg;
+}
 
+.reader-menu{
+    -fx-padding: 20px;
+    -fx-background-color: -fx-secondary-bg;
+}
+
+.reader-menu .label{
+    -fx-font-family: "Roboto Slab";
+    -fx-font-size: 24px;
+    -fx-text-fill: -fx-accent;
+}
+
+.reader-combobox{
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: 10;
+}
+
+.reader-button{
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: 10;
+}
+
+.fullscreen{
+    -fx-background-color: black;
+}
+
+.vbox-padding {
+    -fx-padding: 10 0 10 0;
+}
