@@ -15,4 +15,5 @@ public interface Chapter {
     Image getPage(int index);
     boolean hasPages();
     String getName();
+    int getNum();
 }

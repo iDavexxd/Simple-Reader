@@ -80,4 +80,9 @@ public class FolderChapter implements Chapter{
         return name;
     }
     
+    @Override
+    public int getNum() {
+        return 0; // o algo que ya tengas
+    }
+    
 }

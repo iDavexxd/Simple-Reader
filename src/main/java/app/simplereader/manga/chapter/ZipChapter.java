@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import javafx.scene.image.Image;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
 
 /**
  *
@@ -20,8 +22,9 @@ import javafx.scene.image.Image;
  */
 public class ZipChapter implements Chapter{
     
+    private Integer number;
     private final File zipFile;
-    private final String name;
+    private String name;
     private List<String> pages;
     public ZipChapter(File zipFile){
         this.zipFile = zipFile;
@@ -49,6 +52,25 @@ public class ZipChapter implements Chapter{
             Logger.error("Error leyendo zip: " + zipFile.getName());
         }
     }
+    private void loadMetadata() {
+        try (ZipFile zip = new ZipFile(zipFile)) {
+            ZipEntry entry = zip.getEntry("ComicInfo.xml");
+            if (entry == null) return;
+
+            try (InputStream is = zip.getInputStream(entry)) {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                Document doc = factory.newDocumentBuilder().parse(is);
+
+                String num = doc.getElementsByTagName("Number").item(0).getTextContent();
+                String title = doc.getElementsByTagName("Title").item(0).getTextContent();
+                this.number = Integer.parseInt(num.trim());
+                this.name = title;
+            }
+        } catch (Exception e) {
+            Logger.warning("No se pudo leer ComicInfo.xml");
+        }
+    }
+    
     private boolean isImage(String filename) {
         String lower = filename.toLowerCase();
         return lower.endsWith(".jpg") ||
@@ -97,7 +119,15 @@ public class ZipChapter implements Chapter{
 
     @Override
     public String getName() {
-        return this.name;
+        if (name == null || number == null) {
+            loadMetadata();
+        }
+        return name;
+    }
+    @Override
+    public int getNum() {
+        if (number == null) loadMetadata();
+        return number != null ? number : -1;
     }
     
 }

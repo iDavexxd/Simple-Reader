@@ -58,12 +58,11 @@ public class ScnMainMenu implements Navigable{
         }else{
             coverView.setStyle("-fx-background-color: #cccccc;");
         }
-         
+        
         //Crear clip
         Rectangle recorte = new Rectangle();
         recorte.setArcWidth(20);
         recorte.setArcHeight(20);
-        
         recorte.widthProperty().bind(coverView.fitWidthProperty());
         recorte.heightProperty().bind(coverView.layoutBoundsProperty().map(bounds -> bounds.getHeight()));
         

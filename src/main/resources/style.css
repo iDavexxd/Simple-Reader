@@ -2,9 +2,10 @@
     Tema global (variables)
 */
 .root{
-    -fx-main-bg: #01201D;
-    -fx-secondary-bg: #012622;
-    -fx-third-bg: #01332e;
+    -fx-main-bg: #1A1D23;
+    -fx-secondary-bg: #2E4053;
+    -fx-third-bg: #2E4053;
+    -fx-fourth-bg: #012D2A;  
     
     -fx-accent: #ECE5F0;
     -fx-reader-bg: #01201D;
@@ -43,7 +44,8 @@
 ========================= */
 
 .side-menu {
-    -fx-background-color: -fx-secondary-bg;
+    -fx-background-color: -fx-main-bg;
+    -fx-border-color: -fx-accent;
     -fx-border-width: 0 1 0 0;
     -fx-padding: 20;
     -fx-spacing: 2;
@@ -180,20 +182,132 @@
     -fx-background-color: -fx-reader-bg;
 }
 
-.reader-menu{
-    -fx-padding: 20px;
-    -fx-background-color: -fx-secondary-bg;
+.reader-menu {
+    -fx-padding: 9;
+    -fx-background-color: -fx-main-bg;
+
+    -fx-border-color: -fx-third-bg;
+    -fx-border-width: 0 2 0 0; /* top right bottom left */
 }
 
-.reader-menu .label{
+.reader-menu-title{
     -fx-font-family: "Roboto Slab";
     -fx-font-size: 24px;
     -fx-text-fill: -fx-accent;
+    
+    -fx-padding: 5;
+    -fx-background-color: -fx-main-bg;
+    -fx-background-radius: 5;
+}
+.reader-menu-chname{
+    -fx-font-family: "Roboto Slab";
+    -fx-font-size: 14px;
+    -fx-text-fill: -fx-accent;
+    
+    -fx-padding: 5;
+    -fx-background-color: -fx-main-bg;
+    -fx-background-radius: 5;
+
+}
+
+.reader-btn{
+    -fx-background-color: -fx-third-bg;
+    -fx-background-radius: 10;
 }
 
 .reader-combobox{
-    -fx-background-color: -fx-secondary-bg;
+    -fx-background-color: -fx-fourth-bg;
     -fx-background-radius: 10;
+    -fx-font-family: "Lato";
+    -fx-font-size: 14px;
+    -fx-padding: 8px;
+}
+
+
+
+.reader-combobox:hover{
+    -fx-background-color: -fx-secondary-bg;
+}
+
+/* Estilo del dropdown (lista) */
+.combo-box-popup .list-cell {
+    -fx-background-color: -fx-third-bg;
+    -fx-text-fill: -fx-accent;
+    -fx-padding: 8px;
+    -fx-font-family: "Lato";
+}
+
+/*.reader-combobox .arrow-button {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-shape: "";
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+    -fx-min-width: 0;
+    -fx-padding: 0;
+}*/
+
+.reader-combobox .list-view{
+    -fx-background-color: -fx-third-bg;
+    -fx-background-radius: 5;
+}
+.reader-combobox .list-cell {
+    -fx-text-fill: -fx-accent;
+    -fx-background-radius: 5;
+}
+
+.reader-combobox .button-cell {
+    -fx-text-fill: -fx-accent;
+    -fx-background-color: transparent;
+    -fx-background-radius: 5;
+}
+
+
+.reader-combobox .list-cell:hover {
+    -fx-background-color: -fx-fourth-bg;
+    -fx-background-radius: 5;
+    -fx-text-fill: -fx-accent;
+}
+
+/* SOLO el dropdown */
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: -fx-secondary-bg;
+}
+
+/* Hover solo en dropdown también */
+.combo-box-popup .list-cell:hover {
+    -fx-text-fill: -fx-accent;
+    -fx-background-color: -fx-fourth-bg;
+}
+
+/* Scroll bar del dropdown */
+.reader-combobox .scroll-bar:vertical {
+    fx-padding: 0 0 0 8;
+    -fx-background-radius: 5;
+    -fx-background-color: -fx-third-bg;
+    -fx-pref-width: 8px;
+}
+
+.reader-combobox .scroll-bar:vertical .thumb {
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 10;
+}
+.reader-combobox .scroll-bar:vertical .increment-button,
+.reader-combobox .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-opacity: 0;
+}
+
+/* Botón dropdown */
+.reader-combobox .arrow-button {
+    -fx-background-radius: 10;
+}
+
+.reader-combobox .arrow {
+    -fx-background-color: -fx-accent;
 }
 
 .reader-button{
@@ -202,7 +316,7 @@
 }
 
 .fullscreen{
-    -fx-background-color: black;
+    -fx-background-color: #000000;
 }
 
 .vbox-padding {
