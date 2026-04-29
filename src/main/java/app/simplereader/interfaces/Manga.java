@@ -1,6 +1,8 @@
 package app.simplereader.interfaces;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -13,4 +15,9 @@ public interface Manga {
     List<String> getTags();
     List<Chapter> getChapters();
     String getCover();
+    
+    Set<String> getReadedChapters();
+    HashMap<String,Integer> getChapterLastPage();
+    
+    void saveData();
 }

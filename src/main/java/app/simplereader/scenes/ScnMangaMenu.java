@@ -17,6 +17,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F5;
+import static javafx.scene.input.KeyCode.F7;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane; 
 import javafx.scene.layout.HBox;
@@ -138,6 +139,7 @@ public class ScnMangaMenu implements Navigable{
                     nav.goTo(new ScnMainMenu(nav));
                     e.consume();
                 }
+                
             }
         });
         

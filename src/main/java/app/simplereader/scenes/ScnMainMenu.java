@@ -6,6 +6,7 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Manga;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.manga.MangaLoader;
+import app.simplereader.manga.mdManga;
 import app.simplereader.scenes.others.SideMenu;
 import java.io.File;
 import java.io.IOException;
@@ -21,9 +22,11 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import static javafx.scene.input.KeyCode.F7;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
@@ -31,6 +34,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 /**
  *
@@ -41,6 +46,8 @@ public class ScnMainMenu implements Navigable{
     private static List<Manga> mangas;
     private static Scene rootCache;
     
+    private TilePane tilepane = new TilePane();
+    private ScrollPane scroll;
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
     }
@@ -105,24 +112,17 @@ public class ScnMainMenu implements Navigable{
         double padding = 15;        
         
         
-        TilePane tilepane = new TilePane();
+        
         tilepane.setHgap(hgap);
         tilepane.setVgap(vgap);
         tilepane.setPadding(new Insets(padding));
         tilepane.setPrefColumns(columns);
         
         
-        for(Manga manga : mangas){
-            if(manga.getCover() != null){
-                VBox iconManga = crearIcon(manga);
-                tilepane.getChildren().add(iconManga);
-            } else {
-                Logger.warning(manga.getTitle()+" - no tiene una cover.");
-            }
-        }
+        createTiles();
         
         
-        ScrollPane scroll = new ScrollPane(tilepane); 
+        scroll = new ScrollPane(tilepane); 
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         
@@ -147,6 +147,7 @@ public class ScnMainMenu implements Navigable{
         Group icon_importar_group = new Group(icnImportar);
         StackPane icon_container_importar = new StackPane(icon_importar_group);
         
+        Button btnAdd = new Button("");
         Button btnImportar = new Button("",icon_container_importar);
         Button btnReload = new Button("",icon_container);
         btnReload.setMinSize(24, 24);
@@ -161,43 +162,25 @@ public class ScnMainMenu implements Navigable{
         btnImportar.setOnAction(e -> {
             importFolder();
         });
+        btnAdd.setOnAction(e -> {
+            String id = showInputDialog("Ingresar ID del manga");
+            if (!id.isBlank()) {
+                Manga manga = new mdManga(id);
+                mangas.add(manga);
+                reloadTiles();
+            }
+        });
                    
         
         scroll.setFitToWidth(true);
         SideMenu lateralmenu = new SideMenu();
         lateralmenu.addTop(btnReload).addBottom(btnImportar);
-        
+        lateralmenu.addBottom(btnAdd);
         BorderPane panel = new BorderPane();
         panel.setCenter(scroll);
         panel.setLeft(lateralmenu.getPane());
         scroll.widthProperty().addListener((obs, oldVal, newVal) -> {
-            double totalWidth = newVal.doubleValue();
-
-            // 1. Bajamos un poco el padding visual
-            double espacioPadding = padding * 2; 
-            double espacioGaps = hgap * (columns - 1);
-
-            // 2. Usamos un margen de error pequeño (5px) en lugar de los 25px de antes
-            // Ya que si ocultas la barra, no necesitas reservar tanto espacio.
-            double anchoDisponible = totalWidth - espacioPadding - espacioGaps - 5;
-
-            double tileWidth = anchoDisponible / columns;
-            double tileHeight = tileWidth * 1.5;
-
-            tilepane.setPrefTileWidth(tileWidth);
-            tilepane.setPrefTileHeight(tileHeight + 45); // Bajé de 40 a 25 para que no haya tanto hueco abajo
-
-            for (javafx.scene.Node node : tilepane.getChildren()) {
-                if (node instanceof VBox vbox) {
-                    vbox.setPrefWidth(tileWidth);
-                    vbox.setPrefHeight(tileHeight + 45);
-
-                    // 🔹 Buscamos la ImageView dentro del VBox para redimensionarla
-                    if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof ImageView iv) {
-                        iv.setFitWidth(tileWidth); 
-                    }
-                }
-            }
+            resizeTiles(newVal.doubleValue());
         });
         
         
@@ -212,10 +195,56 @@ public class ScnMainMenu implements Navigable{
                 }
                 case F12 ->{
                     importFolder();
+                }    
+                case F7 -> {
+                    nav.goTo(new TestScene(nav));
                 }
+            
             }
         });
         return rootCache;
+    }
+    private void resizeTiles(double totalWidth) {
+        int columns = 5;
+        double hgap = 15;
+        double vgap = 15;
+        double padding = 15;
+
+        double espacioPadding = padding * 2;
+        double espacioGaps = hgap * (columns - 1);
+        double anchoDisponible = totalWidth - espacioPadding - espacioGaps - 5;
+
+        double tileWidth = anchoDisponible / columns;
+        double tileHeight = tileWidth * 1.5;
+
+        tilepane.setPrefTileWidth(tileWidth);
+        tilepane.setPrefTileHeight(tileHeight + 45);
+
+        for (javafx.scene.Node node : tilepane.getChildren()) {
+            if (node instanceof VBox vbox) {
+                vbox.setPrefWidth(tileWidth);
+                vbox.setPrefHeight(tileHeight + 45);
+                if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof ImageView iv) {
+                    iv.setFitWidth(tileWidth);
+                }
+            }
+        }
+    }
+    private void createTiles(){
+        for(Manga manga : mangas){
+            if(manga.getCover() != null){
+                VBox iconManga = crearIcon(manga);
+                tilepane.getChildren().add(iconManga);
+            } else {
+                Logger.warning(manga.getTitle()+" - no tiene una cover.");
+            }
+        }
+    }
+    
+    private void reloadTiles(){
+        tilepane.getChildren().clear();
+        createTiles();
+        resizeTiles(scroll.getWidth());
     }
     private void importFolder(){
         DirectoryChooser dirChooser = new DirectoryChooser();
@@ -264,6 +293,29 @@ public class ScnMainMenu implements Navigable{
             Logger.info("Error al importar: " + e.getMessage());
         }
         
+    }
+    public static String showInputDialog(String titulo) {
+        Stage dialog = new Stage();
+        dialog.setTitle(titulo);
+        dialog.initModality(Modality.APPLICATION_MODAL); // bloquea la ventana principal
+
+        TextField textField = new TextField();
+        Button btnOk = new Button("OK");
+
+        final String[] resultado = {""};
+
+        btnOk.setOnAction(e -> {
+            resultado[0] = textField.getText();
+            dialog.close();
+        });
+
+        VBox layout = new VBox(10, textField, btnOk);
+        layout.setPadding(new Insets(20));
+
+        dialog.setScene(new Scene(layout, 300, 100));
+        dialog.showAndWait(); // espera a que se cierre
+
+        return resultado[0];
     }
     private void reloadMangas(){
         mangas = null;

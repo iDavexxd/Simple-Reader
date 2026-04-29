@@ -11,7 +11,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipFile;
 import org.yaml.snakeyaml.Yaml;
 
@@ -27,8 +30,9 @@ public class LocalManga implements Manga{
     private String description;
     private transient File cover;
     private final transient File folder;
-
     
+    private final HashMap<String, Integer> lastChapterPage = new HashMap<>();
+    private Set<String> readedChapters = new HashSet<>();
     private List<String> tags;
     private transient List<Chapter> chapters;
     
@@ -71,8 +75,8 @@ public class LocalManga implements Manga{
             Chapter chapter = null;
 
             switch(type){
-                case FOLDER -> chapter = new FolderChapter(subfolder);
-                case ZIP, CBZ -> chapter = new ZipChapter(subfolder);
+                case FOLDER -> chapter = new FolderChapter(this, subfolder);
+                case ZIP, CBZ -> chapter = new ZipChapter(this,subfolder);
                 default -> {
                     Logger.warning("Tipo desconocido: " + subfolder.getName());
                     continue;
@@ -194,6 +198,20 @@ public class LocalManga implements Manga{
             Logger.warning("El archivo no es una imagen válida: " + cover.getName());
         }
 
+    }
+    
+    @Override
+    public void saveData(){
+        //Guardar datos en un json
+    }
+    @Override
+    public Set<String> getReadedChapters(){
+       return this.readedChapters; 
+    }
+    
+    @Override
+    public HashMap<String, Integer> getChapterLastPage(){
+        return lastChapterPage;
     }
     
     @Override

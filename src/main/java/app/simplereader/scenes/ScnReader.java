@@ -252,11 +252,11 @@ public class ScnReader implements Navigable {
             }
 
             if (x < leftZone) {
-                BackPage();
+                if(!inZoom)BackPage();
             } else if (x > rightZone) {
-                NextPage();
+                if(!inZoom)NextPage();
             } else {
-                showMenu();
+                if(!inZoom)showMenu();
             }
         });
 
@@ -491,8 +491,9 @@ public class ScnReader implements Navigable {
     }
     private void GoToPage(int index){
         if (index < 0 || index >= totalPages()) return;
-
+        if(index == totalPages()-1) this.chapter.markAsReaded();
         indiceactual = index;
+        chapter.setLastRead(indiceactual);
         LoadImage();
 
         if (pagina != null) {
@@ -505,8 +506,9 @@ public class ScnReader implements Navigable {
         if (this.chapternum < this.manga.getChapters().size() - 1) {
             Chapter next = this.manga.getChapters().get(this.chapternum + 1);
             if(next.hasPages()){
+                this.chapter.markAsReaded();
                 chnameLabel.setText(next.getName());
-                caps.setValue(next);
+                caps.setValue(next);                
             }else{
                 Logger.noPagesAlert(next);
             }

@@ -4,6 +4,7 @@ import app.simplereader.AppConfig;
 import app.simplereader.Logger;
 import app.simplereader.Sorter;
 import app.simplereader.interfaces.Chapter;
+import app.simplereader.interfaces.Manga;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,10 +20,13 @@ public class FolderChapter implements Chapter{
     private final File folder;
     private final List<File> pages = new ArrayList<>();
     private final String name;
+    private final Manga manga;
+    private int lastRead;
     
-    public FolderChapter(File folder){
+    public FolderChapter(Manga manga,File folder){
         this.folder = folder;
         this.name = folder.getName();
+        this.manga = manga;
     }
     
     private void loadPages(){
@@ -83,6 +87,30 @@ public class FolderChapter implements Chapter{
     @Override
     public int getNum() {
         return 0; // o algo que ya tengas
+    }
+    
+    @Override
+    public boolean isReaded(){
+        return this.manga.getReadedChapters().contains(this.name);
+    }
+    
+    @Override
+    public void markAsReaded(){
+        if(!isReaded()){
+            this.manga.getReadedChapters().add(this.name);
+            Logger.info(this.name+" - Leido.");
+        }
+    }
+    
+    @Override
+    public void setLastRead(int s){
+        this.lastRead = s;
+        this.manga.getChapterLastPage().put(this.getName(), this.lastRead);
+    }
+    
+    @Override
+    public Integer getLastRead(){
+        return lastRead;
     }
     
 }

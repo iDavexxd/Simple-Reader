@@ -16,4 +16,10 @@ public interface Chapter {
     boolean hasPages();
     String getName();
     int getNum();
+    
+    boolean isReaded();
+    void markAsReaded();
+           
+    Integer getLastRead();
+    void setLastRead(int index);
 }

@@ -4,6 +4,7 @@ package app.simplereader.manga.chapter;
 import app.simplereader.Logger;
 import app.simplereader.Sorter;
 import app.simplereader.interfaces.Chapter;
+import app.simplereader.interfaces.Manga;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,11 +27,15 @@ public class ZipChapter implements Chapter{
     private final File zipFile;
     private String name;
     private List<String> pages;
-    public ZipChapter(File zipFile){
+    private final Manga manga;    
+    private int lastRead;
+    
+    public ZipChapter(Manga manga,File zipFile){
         this.zipFile = zipFile;
         String fname = zipFile.getName();
         int dot = fname.lastIndexOf('.');
         this.name = (dot != -1) ? fname.substring(0, dot) : fname;
+        this.manga = manga;
     }
     
     private void loadPages(){
@@ -130,4 +135,28 @@ public class ZipChapter implements Chapter{
         return number != null ? number : -1;
     }
     
+    @Override
+    public boolean isReaded(){
+        return manga.getReadedChapters().contains(this.name);
+    }
+    
+    @Override
+    public void markAsReaded(){
+        if(!isReaded())
+        {
+            manga.getReadedChapters().add(this.name);
+            Logger.info(this.name+" - Leido.");
+        }
+    }
+    
+    @Override
+    public Integer getLastRead(){
+        return lastRead;
+    }
+    
+    @Override
+    public void setLastRead(int s){
+        this.lastRead = s;
+        this.manga.getChapterLastPage().put(this.getName(), this.lastRead); 
+    }
 }
