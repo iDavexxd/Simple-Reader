@@ -147,7 +147,16 @@ public class ScnMainMenu implements Navigable{
         Group icon_importar_group = new Group(icnImportar);
         StackPane icon_container_importar = new StackPane(icon_importar_group);
         
-        Button btnAdd = new Button("");
+        SVGPath icnAdd = new SVGPath();
+        icnAdd.setContent("M440-280h80v-160h160v-80H520v-160h-80v160H280v80h160v160ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z");
+        icnAdd.getStyleClass().add("icon");
+        icnAdd.setScaleX(scale);
+        icnAdd.setScaleY(scale);
+        
+        Group icon_add_group = new Group(icnAdd);
+        StackPane icon_container_add = new StackPane(icon_add_group);
+        
+        Button btnAdd = new Button("",icon_container_add);
         Button btnImportar = new Button("",icon_container_importar);
         Button btnReload = new Button("",icon_container);
         btnReload.setMinSize(24, 24);

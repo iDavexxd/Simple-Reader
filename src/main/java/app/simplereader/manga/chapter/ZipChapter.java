@@ -36,6 +36,9 @@ public class ZipChapter implements Chapter{
         int dot = fname.lastIndexOf('.');
         this.name = (dot != -1) ? fname.substring(0, dot) : fname;
         this.manga = manga;
+        
+        Integer saved = manga.getChapterLastPage().get(this.name);
+        this.lastRead = (saved != null) ? saved : 0;
     }
     
     private void loadPages(){
@@ -145,6 +148,10 @@ public class ZipChapter implements Chapter{
         if(!isReaded())
         {
             manga.getReadedChapters().add(this.name);
+            if(this.manga.getUnreaded().contains(this)){
+                this.manga.getUnreaded().remove(this);
+                this.manga.getReaded().add(this);
+            }
             Logger.info(this.name+" - Leido.");
         }
     }

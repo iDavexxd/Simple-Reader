@@ -6,9 +6,13 @@ import app.simplereader.interfaces.Chapter;
 import app.simplereader.interfaces.Manga;
 import app.simplereader.manga.chapter.FolderChapter;
 import app.simplereader.manga.chapter.ZipChapter;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +39,8 @@ public class LocalManga implements Manga{
     private Set<String> readedChapters = new HashSet<>();
     private List<String> tags;
     private transient List<Chapter> chapters;
+    private transient List<Chapter> chUnreaded = new ArrayList<>();
+    private transient List<Chapter> chReaded = new ArrayList<>();
     
     public LocalManga(File folder,String title, String author, String description){
         this.folder = folder;
@@ -45,6 +51,7 @@ public class LocalManga implements Manga{
         this.chapters = new ArrayList<>();
         //crear json
         openYml();
+        loadData();
         loadChapters();
         loadCover();
     }
@@ -75,8 +82,22 @@ public class LocalManga implements Manga{
             Chapter chapter = null;
 
             switch(type){
-                case FOLDER -> chapter = new FolderChapter(this, subfolder);
-                case ZIP, CBZ -> chapter = new ZipChapter(this,subfolder);
+                case FOLDER -> {
+                    chapter = new FolderChapter(this, subfolder);
+                    if(chapter.isReaded()){
+                        chReaded.add(chapter);
+                    }else{
+                        chUnreaded.add(chapter);
+                    }
+                }
+                case ZIP, CBZ -> {
+                    chapter = new ZipChapter(this,subfolder);
+                    if(chapter.isReaded()){
+                        chReaded.add(chapter);
+                    }else{
+                        chUnreaded.add(chapter);
+                    }
+                }
                 default -> {
                     Logger.warning("Tipo desconocido: " + subfolder.getName());
                     continue;
@@ -201,8 +222,59 @@ public class LocalManga implements Manga{
     }
     
     @Override
-    public void saveData(){
-        //Guardar datos en un json
+    public void saveData() {
+        try {
+            JsonObject json = new JsonObject();
+
+            // Capítulos leídos
+            JsonArray readedArray = new JsonArray();
+            readedChapters.forEach(readedArray::add);
+            json.add("readedChapters", readedArray);
+
+            // Progreso por capítulo
+            JsonObject progressObj = new JsonObject();
+            lastChapterPage.forEach(progressObj::addProperty);
+            json.add("chapterProgress", progressObj);
+
+            // Guardar en la carpeta del manga
+            File progressFile = new File(folder, "progress.json");
+            Files.writeString(progressFile.toPath(), json.toString());
+
+            Logger.info(title + " - Progreso guardado.");
+        } catch (IOException e) {
+            Logger.error(title + " - Error guardando progreso: " + e.getMessage());
+        }
+    }
+    
+    private void loadData() {
+        File progressFile = new File(folder, "progress.json");
+        if (!progressFile.exists()) return;
+
+        try {
+            JsonObject json = JsonParser.parseString(
+                Files.readString(progressFile.toPath())
+            ).getAsJsonObject();
+
+            // Cargar capítulos leídos
+            if (json.has("readedChapters")) {
+                json.getAsJsonArray("readedChapters")
+                    .forEach(el -> readedChapters.add(el.getAsString()));
+            }
+
+            // Cargar progreso por capítulo
+            if (json.has("chapterProgress")) {
+                json.getAsJsonObject("chapterProgress")
+                    .entrySet()
+                    .forEach(entry -> lastChapterPage.put(
+                        entry.getKey(), 
+                        entry.getValue().getAsInt()
+                    ));
+            }
+
+            Logger.info(title + " - Progreso cargado.");
+        } catch (Exception e) {
+            Logger.error(title + " - Error leyendo progreso: " + e.getMessage());
+        }
     }
     @Override
     public Set<String> getReadedChapters(){
@@ -258,6 +330,16 @@ public class LocalManga implements Manga{
 
     public void setChapters(List<Chapter> chapters) {
         this.chapters = chapters;
+    }
+    
+    @Override
+    public List<Chapter> getReaded(){
+        return chReaded;
+    }
+    
+    @Override
+    public List<Chapter> getUnreaded(){
+        return chUnreaded;
     }
         
 }

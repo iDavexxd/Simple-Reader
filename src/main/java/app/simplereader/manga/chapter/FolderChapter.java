@@ -27,6 +27,9 @@ public class FolderChapter implements Chapter{
         this.folder = folder;
         this.name = folder.getName();
         this.manga = manga;
+        
+        Integer saved = manga.getChapterLastPage().get(this.name);
+        this.lastRead = (saved != null) ? saved : 0; 
     }
     
     private void loadPages(){
@@ -98,6 +101,10 @@ public class FolderChapter implements Chapter{
     public void markAsReaded(){
         if(!isReaded()){
             this.manga.getReadedChapters().add(this.name);
+            if(this.manga.getUnreaded().contains(this)){
+                this.manga.getUnreaded().remove(this);
+                this.manga.getReaded().add(this);
+            }
             Logger.info(this.name+" - Leido.");
         }
     }

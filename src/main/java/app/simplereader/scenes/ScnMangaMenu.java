@@ -6,21 +6,22 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Chapter;
 import app.simplereader.interfaces.Manga;
 import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.LocalManga;
 import app.simplereader.scenes.others.SideMenu;
+import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F5;
-import static javafx.scene.input.KeyCode.F7;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane; 
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
@@ -33,7 +34,7 @@ import javafx.scene.shape.SVGPath;
 public class ScnMangaMenu implements Navigable{
     private final Manga manga;
     private final Navegador nav;
-    
+    private boolean isdown = true;
     public ScnMangaMenu(Navegador nav,Manga manga){
         this.manga = manga;
         this.nav = nav;
@@ -69,8 +70,7 @@ public class ScnMangaMenu implements Navigable{
         StackPane icon_back = new StackPane(icon_back_group);
         icon_back.setPrefSize(24, 24);
         icon_back.setMaxSize(24, 24);
-        
-        
+                
         Button btnBack = new Button("",icon_back);
         btnBack.setOnAction(e -> {
             nav.goTo(new ScnMainMenu(nav));
@@ -96,24 +96,122 @@ public class ScnMangaMenu implements Navigable{
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20,cover,datos);
         //panel con to'
-        ListView<String> listaCaps = new ListView<>();
+        ListView<Chapter> listaCaps = new ListView<>();
+        HBox.setHgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
         for (Chapter cap : manga.getChapters()) {
-            listaCaps.getItems().add(cap.getName());
+            listaCaps.getItems().add(cap);
         }
+
         listaCaps.setOnMouseClicked(e -> {
-            int indice = listaCaps.getSelectionModel().getSelectedIndex();
-            if(indice >= 0) {
-                Chapter selChapter = manga.getChapters().get(indice);
-                if(selChapter.hasPages()){
-                    Logger.info("Selected: "+selChapter.getName());
-                    nav.goTo(new ScnReader(nav,manga,selChapter,indice));
+            Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
+            if (selChapter != null) {
+                if (selChapter.hasPages()) {
+                    int indice = manga.getChapters().indexOf(selChapter);
+                    Logger.info("Selected: " + selChapter.getName());
+                    nav.goTo(new ScnReader(nav, manga, selChapter, indice));
                 } else {
                     Logger.noPagesAlert(selChapter);
                 }
             }
         });
+
         listaCaps.getStyleClass().add("chapter-list");
-        VBox coverlista = new VBox(10,top,listaCaps);
+        listaCaps.setCellFactory(lv -> new ListCell<Chapter>() {
+            @Override
+            protected void updateItem(Chapter cap, boolean empty) {
+                super.updateItem(cap, empty);
+                getStyleClass().removeAll("chapter-read", "chapter-unread");
+                if (empty || cap == null) {
+                    setText(null);
+                    getStyleClass().removeAll("chapter-read", "chapter-unread");
+                } else {
+                    setText(cap.getName());
+                    if (cap.isReaded()) {
+                        getStyleClass().add("chapter-read");
+                        getStyleClass().remove("chapter-unread");
+                    } else {
+                        getStyleClass().add("chapter-unread");
+                        getStyleClass().remove("chapter-read");
+                    }
+                }
+            }
+        });
+        
+        SVGPath icnRead = new SVGPath();
+        icnRead.setContent("M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z");
+        icnRead.getStyleClass().add("icon");
+        icnRead.setScaleX(scale);
+        icnRead.setScaleY(scale);
+        
+        Group icon_read_group = new Group(icnRead);
+        StackPane icon_read = new StackPane(icon_read_group);
+        icon_back.setPrefSize(24, 24);
+        icon_back.setMaxSize(24, 24);
+        
+        String down = "M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z";
+        String up = "M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z";
+        
+        SVGPath icnArrow = new SVGPath();
+        
+        icnArrow.setContent(down);
+        icnArrow.getStyleClass().add("icon");
+        icnArrow.setScaleX(scale);
+        icnArrow.setScaleY(scale);
+        
+        Group icon_arrow_group = new Group(icnArrow);
+        StackPane icon_arrow = new StackPane(icon_arrow_group);
+        icon_back.setPrefSize(24, 24);
+        icon_back.setMaxSize(24, 24);
+        
+        VBox botones = new VBox();
+        Button btnKeepReading =  new Button("",icon_read);
+        btnKeepReading.getStyleClass().add("mangamenu-button");
+        btnKeepReading.setOnAction(e -> {
+            Chapter selChapter = manga.getChapters().stream()
+                    .filter(c -> !c.isReaded())
+                    .findFirst()
+                    .orElse(null);
+
+            if (selChapter != null) {
+                if (selChapter.hasPages()) {
+                    int indice = manga.getChapters().indexOf(selChapter);
+                    Logger.info("Selected: " + selChapter.getName());
+                    nav.goTo(new ScnReader(nav, manga, selChapter, indice));
+                } else {
+                    Logger.noPagesAlert(selChapter);
+                }
+            } else {
+                Logger.info("No unread chapters.");
+            }
+        });
+        
+        Button btnInvertir = new Button("",icon_arrow);
+        btnInvertir.getStyleClass().add("mangamenu-button");
+        btnInvertir.setOnAction(e -> {
+            if(isdown){
+                icnArrow.setContent(up);
+                isdown = false;
+            }else{
+                icnArrow.setContent(down);
+                isdown = true;
+            }
+            FXCollections.reverse(listaCaps.getItems());
+        });
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        botones.getChildren().add(btnKeepReading);
+        botones.getChildren().add(spacer);
+        botones.getChildren().add(btnInvertir);
+ 
+        btnKeepReading.setMaxSize(40, 40);
+        btnKeepReading.setMinSize(40, 40);
+        btnInvertir.setMaxSize(40, 40);
+        btnInvertir.setMinSize(40, 40);
+        HBox bottom = new HBox(listaCaps,botones);
+        bottom.setSpacing(5);
+        
+        VBox coverlista = new VBox(10,top,bottom);
+        
         coverlista.getStyleClass().add("manga-info");
         VBox.setVgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
         

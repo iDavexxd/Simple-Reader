@@ -29,6 +29,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
@@ -57,7 +58,7 @@ public class ScnReader implements Navigable {
     private static Label chnameLabel;
     
     private final Map<Integer, Image> cache = java.util.Collections.synchronizedMap(new HashMap<>());
-    private final ExecutorService preloader = Executors.newSingleThreadExecutor(r -> {
+    private final ExecutorService preloader = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "preloader");
         t.setDaemon(true);
         return t;
@@ -68,6 +69,7 @@ public class ScnReader implements Navigable {
         this.chapter = chapter;
         this.chapternum = indice;
         this.manga = manga;
+        this.indiceactual = chapter.isReaded() ? 0 : chapter.getLastRead();
         Logger.info("Loaded " + chapter.getName() + " " + chapternum);
     }
     
@@ -96,6 +98,8 @@ public class ScnReader implements Navigable {
                 case ESCAPE -> {
                     cache.clear();
                     preloader.shutdownNow();
+                    manga.saveData();
+                    nav.getStage().setOnCloseRequest(null);
                     nav.goTo(new ScnMangaMenu(nav,manga));
                 }
                 case RIGHT -> {
@@ -124,13 +128,17 @@ public class ScnReader implements Navigable {
         
         // Listener del fullscreen
         nav.getStage().fullScreenProperty().addListener((obs, oldVal, isFull) -> {
-            if (isFull && !menuVisible) {
+            if (isFull) {
                 layout.getStyleClass().add("fullscreen");
             } else {
                 layout.getStyleClass().remove("fullscreen");
             }
         });
-        
+        nav.getStage().setOnCloseRequest(e -> {
+            cache.clear();
+            preloader.shutdownNow();
+            manga.saveData();
+        });
         
         return scene;
     }
@@ -138,8 +146,8 @@ public class ScnReader implements Navigable {
     private void loadChapter(Chapter chapter, int index){
         this.chapter = chapter;
         this.chapternum = index;
-        this.indiceactual = 0;
         
+        this.indiceactual = chapter.isReaded() ? 0 : chapter.getLastRead();
         
         if (totalPages() > 0) {
             LoadImage();
@@ -151,7 +159,7 @@ public class ScnReader implements Navigable {
             for (int i = 1; i <= chapter.getPageCount(); i++) {
                 pagina.getItems().add(i);
             }
-            pagina.setValue(1);
+            pagina.setValue(indiceactual + 1);
         }
     }
     
@@ -271,16 +279,30 @@ public class ScnReader implements Navigable {
     private Parent getLateralMenu(){
         BorderPane lateralMenu = new BorderPane();
         // Parte de hasta arriba con los botones
-        Button btnCloseMenu = new Button("X");
+        SVGPath icnClose= new SVGPath();
+        icnClose.setContent("m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z");
+        icnClose.getStyleClass().add("icon");
+        double scale = 24.0 / 960.0;
+        icnClose.setScaleX(scale);
+        icnClose.setScaleY(scale);
+        
+        Group icon_close_group = new Group(icnClose);
+        StackPane icon_close = new StackPane(icon_close_group);
+        icon_close.setPrefSize(24, 24);
+        icon_close.setMaxSize(24, 24);
+                       
+        
+        Button btnCloseMenu = new Button("",icon_close);
         btnCloseMenu.getStyleClass().add("reader-button");
         btnCloseMenu.setOnAction(e -> {
             hideMenu();
         });
+        btnCloseMenu.setMinSize(24, 24);
+        btnCloseMenu.setMaxSize(24, 24);
         //Icono volver
         SVGPath icnBack = new SVGPath();
         icnBack.setContent("M640-80 240-480l400-400 71 71-329 329 329 329-71 71Z");
         icnBack.getStyleClass().add("icon");
-        double scale = 24.0 / 960.0;
         icnBack.setScaleX(scale);
         icnBack.setScaleY(scale);
         
@@ -291,11 +313,15 @@ public class ScnReader implements Navigable {
         Button btnBackToMenu = new Button("",icon_back);
         btnBackToMenu.getStyleClass().add("reader-button");
         btnBackToMenu.setOnAction(e -> {
+            manga.saveData();
+            nav.getStage().setOnCloseRequest(null);
             nav.goTo(new ScnMangaMenu(nav,this.manga));
         });
         btnBackToMenu.setMinSize(24, 24);
         btnBackToMenu.setMaxSize(24, 24);
-        HBox topButtons = new HBox(btnBackToMenu,btnCloseMenu);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        HBox topButtons = new HBox(btnBackToMenu,spacer,btnCloseMenu);
         
         // Titulo y capitulo
         Label title = new Label(manga.getTitle());
@@ -315,7 +341,7 @@ public class ScnReader implements Navigable {
         Button btnBack = new Button("",icn_Back());
         btnBack.setMinSize(40,50);
         btnBack.setMaxSize(40,50);
-        btnBack.getStyleClass().add("reader-btn");
+        btnBack.getStyleClass().add("reader-button2");
         pagina = new ComboBox<>();
         pagina.setMinHeight(50);
         for (int i = 1; i <= chapter.getPageCount(); i++) {
@@ -324,7 +350,7 @@ public class ScnReader implements Navigable {
         pagina.setValue(indiceactual + 1);
         pagina.getStyleClass().add("reader-combobox");
         Button btnNext = new Button("",icn_Next());
-        btnNext.getStyleClass().add("reader-btn");
+        btnNext.getStyleClass().add("reader-button2");
         btnNext.setMinSize(40,50);
         btnNext.setMaxSize(40,50);
         HBox paginas = new HBox(btnBack,pagina,btnNext);
@@ -334,7 +360,7 @@ public class ScnReader implements Navigable {
         Button btnBackCh = new Button("",icn_Back());
         btnBackCh.setMinSize(40,50);
         btnBackCh.setMaxSize(40,50);
-        btnBackCh.getStyleClass().add("reader-btn");
+        btnBackCh.getStyleClass().add("reader-button2");
         caps = new ComboBox<>();
         caps.setMinHeight(50);
         for(Chapter cap : manga.getChapters()){
@@ -369,7 +395,7 @@ public class ScnReader implements Navigable {
         caps.getStyleClass().add("reader-combobox");
         
         Button btnNextCh = new Button("",icn_Next());
-        btnNextCh.getStyleClass().add("reader-btn");
+        btnNextCh.getStyleClass().add("reader-button2");
         btnNextCh.setMinSize(40,50);
         btnNextCh.setMaxSize(40,50);
         btnNext.setOnAction(e -> {
@@ -432,6 +458,7 @@ public class ScnReader implements Navigable {
         icon_backCh.setPrefSize(24, 24);
         icon_backCh.setMaxSize(24, 24);
         
+
         return icon_backCh;
     }
     
@@ -493,7 +520,7 @@ public class ScnReader implements Navigable {
         if (index < 0 || index >= totalPages()) return;
         if(index == totalPages()-1) this.chapter.markAsReaded();
         indiceactual = index;
-        chapter.setLastRead(indiceactual);
+        if(!chapter.isReaded())chapter.setLastRead(indiceactual);
         LoadImage();
 
         if (pagina != null) {
@@ -507,6 +534,7 @@ public class ScnReader implements Navigable {
             Chapter next = this.manga.getChapters().get(this.chapternum + 1);
             if(next.hasPages()){
                 this.chapter.markAsReaded();
+                manga.saveData();
                 chnameLabel.setText(next.getName());
                 caps.setValue(next);                
             }else{
@@ -520,6 +548,7 @@ public class ScnReader implements Navigable {
             Chapter last = this.manga.getChapters().get(this.chapternum - 1);
             if(last.hasPages())
             {
+                manga.saveData();
                 chnameLabel.setText(last.getName());
                 caps.setValue(last);
                 pagina.setValue(last.getPageCount());
@@ -579,7 +608,7 @@ public class ScnReader implements Navigable {
     }
     
     private void cleanCache(){
-        int range = 1;
+        int range = 3;
         
         System.gc();
         cache.keySet().removeIf(i -> Math.abs(i - indiceactual) > range);
@@ -611,7 +640,10 @@ public class ScnReader implements Navigable {
     
     private void preloadAroundCurrent() {
         preload(indiceactual + 1);
+        preload(indiceactual + 2);
+        preload(indiceactual + 3);
         preload(indiceactual - 1);
+        preload(indiceactual - 2);
     }
     
     private void fitImageToScreen() {

@@ -19,5 +19,8 @@ public interface Manga {
     Set<String> getReadedChapters();
     HashMap<String,Integer> getChapterLastPage();
     
+    List<Chapter> getReaded();
+    List<Chapter> getUnreaded();
+    
     void saveData();
 }

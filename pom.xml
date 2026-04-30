@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>App.Reader</groupId>
     <artifactId>SimpleReader</artifactId>
-    <version>alpha 1.0</version>
+    <version>alpha 2.0</version>
     <packaging>jar</packaging>
     
     <properties>

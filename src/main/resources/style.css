@@ -4,8 +4,8 @@
 .root{
     -fx-main-bg: #1A1D23;
     -fx-secondary-bg: #2E4053;
-    -fx-third-bg: #2E4053;
-    -fx-fourth-bg: #012D2A;  
+    -fx-third-bg: #1E2B38;
+    -fx-fourth-bg: #1C2B3E;  
     
     -fx-accent: #ECE5F0;
     -fx-reader-bg: #01201D;
@@ -91,8 +91,8 @@
 }
 
 .manga-info-tags {
-    -fx-text-fill: -fx-accent !important;
-    -fx-background-color: -fx-tag-bg;
+    -fx-text-fill: -fx-accent;
+    -fx-background-color: -fx-fourth-bg;
     -fx-background-radius: 10;
     -fx-font-family: "Roboto Mono";
     -fx-font-weight: bold;
@@ -104,27 +104,48 @@
    LISTA DE CAPÍTULOS
 ========================= */
 
+.button.mangamenu-button{
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: 10px;    
+}
+.button.mangamenu-button:hover{
+    -fx-background-color: -fx-third-bg;
+    -fx-background-radius: 10px;    
+}
+
+
 .chapter-list {
     -fx-font-family: "Lato";
-    -fx-background-color: -fx-secondary-bg;
+    -fx-background-color: transparent;
     -fx-background-radius: 8px;
     -fx-border-color: transparent;
 }
 
+/* Ancho base del scrollbar completo */
 .chapter-list .scroll-bar:vertical {
-    -fx-background-color: -fx-secondary-bg;
+    -fx-background-color: transparent;
     -fx-pref-width: 8px;
 }
 
+/* Thumb delgado usando insets laterales */
 .chapter-list .scroll-bar:vertical .thumb {
+    -fx-background-color: -fx-accent;
+    -fx-background-insets: 0 3 0 3; /* top right bottom left — recorta 3px a cada lado */
+    -fx-background-radius: 10;
+}
+
+/* En hover, el scrollbar se ensancha y el thumb ocupa todo el ancho */
+.chapter-list .scroll-bar:vertical:hover {
+    -fx-pref-width: 8px;
+}
+
+.chapter-list .scroll-bar:vertical:hover .thumb {
+    -fx-background-insets: 0 1 0 1;
     -fx-background-color: -fx-accent;
     -fx-background-radius: 10;
 }
 
-.chapter-list .scroll-bar:vertical .thumb:hover {
-    -fx-background-color: -fx-accent;
-}
-
+/* Ocultar botones de incremento/decremento */
 .chapter-list .scroll-bar:vertical .increment-button,
 .chapter-list .scroll-bar:vertical .decrement-button {
     -fx-pref-height: 0;
@@ -137,7 +158,7 @@
 }
 
 .chapter-list .list-cell {
-    -fx-background-color: -fx-secondary-bg;
+    -fx-background-color: -fx-main-bg;
     -fx-text-fill: -fx-accent;
 }
 
@@ -156,7 +177,20 @@
     -fx-background-color: -fx-accent;
     -fx-background-radius: 10;
 }
+.chapter-list .list-cell.chapter-read {
+    -fx-text-fill: rgba(236, 229, 240, 0.35); /* #ECE5F0 al 35% */
+}
 
+.chapter-list .list-cell.chapter-unread {
+    -fx-text-fill: -fx-accent;
+}
+.chapter-list .list-cell.chapter-unread:hover {
+    -fx-text-fill: -fx-secondary-bg;
+}
+
+.chapter-list .list-cell.chapter-read:hover {
+    -fx-text-fill: -fx-secondary-bg;
+}
 /* =========================
    ICONOS Y BOTONES
 ========================= */
@@ -210,9 +244,22 @@
 
 }
 
-.reader-btn{
-    -fx-background-color: -fx-third-bg;
+.button.reader-button{
+    -fx-background-color: transparent;
     -fx-background-radius: 10;
+}
+.button.reader-button:hover{
+    -fx-background-color: -fx-third-bg;
+    -fx-transition: fill 0.2s;
+}
+
+.button.reader-button2{
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: 10;
+}
+.button.reader-button2:hover{
+    -fx-background-color: -fx-third-bg;
+    -fx-transition: fill 0.2s;
 }
 
 .reader-combobox{

@@ -31,6 +31,8 @@ public class mdChapter implements Chapter{
         this.name = name;
         this.Number = Number;
         this.manga = manga;
+        Integer saved = manga.getChapterLastPage().get(this.getName());
+        this.lastRead = (saved != null) ? saved : 0;
     }
     
     private void loadChapterData(){
@@ -115,13 +117,17 @@ public class mdChapter implements Chapter{
     
     @Override
     public boolean isReaded(){
-        return manga.getReadedChapters().contains(this.name);
+        return manga.getReadedChapters().contains(this.getName());
     }
     
     @Override
     public void markAsReaded(){
         if(!isReaded()){
-            manga.getReadedChapters().add(this.name);
+            manga.getReadedChapters().add(this.getName());
+            if(this.manga.getUnreaded().contains(this)){
+                this.manga.getUnreaded().remove(this);
+                this.manga.getReaded().add(this);
+            }
             Logger.info(this.getName()+" - Leido.");
         }
     }
