@@ -2,6 +2,7 @@ package app.simplereader.manga;
 
 import app.simplereader.Logger;
 import app.simplereader.interfaces.Manga;
+import app.simplereader.scenes.ScnMainMenu;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.nio.file.Files;
@@ -15,6 +16,12 @@ import java.util.List;
  * @author david
  */
 public class MangaLoader {
+    
+    private ScnMainMenu mainMenu;
+    
+    public MangaLoader(ScnMainMenu mainMenu){
+        this.mainMenu = mainMenu;
+    }
     
     public static List<Manga> loadMangas() {
         List<Manga> lista = new ArrayList<>();

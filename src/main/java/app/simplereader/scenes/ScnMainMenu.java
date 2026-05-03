@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -52,10 +53,14 @@ public class ScnMainMenu implements Navigable{
         this.nav = nav;
     }
     
+    public TilePane getTilePane(){
+        return tilepane;
+    }
+    
     public VBox crearIcon(Manga manga){
         // ImageView del cover del manga
         ImageView coverView = new ImageView();
-        coverView.setPreserveRatio(true);
+        coverView.setPreserveRatio(false);
         
         //verificar si el manga sí tenia cover
         if(manga.getCover() != null){
@@ -66,26 +71,31 @@ public class ScnMainMenu implements Navigable{
             coverView.setStyle("-fx-background-color: #cccccc;");
         }
         
+        StackPane coverContainer = new StackPane(coverView);
+        coverContainer.setMaxSize(200, Double.MAX_VALUE);
+        coverView.fitWidthProperty().bind(coverContainer.widthProperty());
+        coverView.fitHeightProperty().bind(coverContainer.heightProperty());
+        
         //Crear clip
         Rectangle recorte = new Rectangle();
         recorte.setArcWidth(20);
         recorte.setArcHeight(20);
-        recorte.widthProperty().bind(coverView.fitWidthProperty());
-        recorte.heightProperty().bind(coverView.layoutBoundsProperty().map(bounds -> bounds.getHeight()));
+        recorte.widthProperty().bind(coverContainer.widthProperty());
+        recorte.heightProperty().bind(coverContainer.heightProperty());
         
-        coverView.setClip(recorte);
+        coverContainer.setClip(recorte);
         
         //titulo del manga
         Label title = new Label(manga.getTitle());
         //salto de linea auto
         title.setWrapText(true);
         title.setMaxHeight(52); 
-        title.maxWidthProperty().bind(coverView.fitWidthProperty());
+        title.maxWidthProperty().bind(coverContainer.widthProperty());
         title.getStyleClass().add("manga-title");
          // Permite que el label crezca
         title.setAlignment(Pos.CENTER_LEFT);
        
-        VBox iconManga = new VBox(5, coverView,title);
+        VBox iconManga = new VBox(5, coverContainer,title);
         iconManga.setAlignment(Pos.TOP_CENTER);
         
         //evento al hacer clic
@@ -99,8 +109,36 @@ public class ScnMainMenu implements Navigable{
     @Override
     @SuppressWarnings("empty-statement")
     public Scene getScene(){
-        if(mangas == null){            
-            mangas = MangaLoader.loadMangas();
+        if (mangas == null) {
+            // Muestra un estado de carga mientras espera
+//            Label lblCargando = new Label("Cargando mangas...");
+//            lblCargando.getStyleClass().add("loading-label");
+//            tilepane.getChildren().add(lblCargando);
+
+            Task<List<Manga>> tareaCargar = new Task<>() {
+                @Override
+                protected List<Manga> call() {
+                    return MangaLoader.loadMangas(); // Se ejecuta en hilo de fondo
+                }
+            };
+
+            tareaCargar.setOnSucceeded(e -> {
+                // Esto se ejecuta de vuelta en el Application Thread
+                mangas = tareaCargar.getValue();
+                tilepane.getChildren().clear();
+                createTiles();
+                resizeTiles(scroll.getWidth());
+            });
+
+            tareaCargar.setOnFailed(e -> {
+                Logger.error("Error cargando mangas: " + tareaCargar.getException().getMessage());
+                tilepane.getChildren().clear();
+                tilepane.getChildren().add(new Label("Error al cargar mangas."));
+            });
+
+            Thread hilo = new Thread(tareaCargar);
+            hilo.setDaemon(true);
+            hilo.start();
         }
         if(rootCache != null){
             return rootCache;
@@ -119,7 +157,6 @@ public class ScnMainMenu implements Navigable{
         tilepane.setPrefColumns(columns);
         
         
-        createTiles();
         
         
         scroll = new ScrollPane(tilepane); 
@@ -175,8 +212,8 @@ public class ScnMainMenu implements Navigable{
             String id = showInputDialog("Ingresar ID del manga");
             if (!id.isBlank()) {
                 Manga manga = new mdManga(id);
-                mangas.add(manga);
-                reloadTiles();
+                manga.saveData();
+                reloadMangas();
             }
         });
                    
@@ -215,16 +252,10 @@ public class ScnMainMenu implements Navigable{
     }
     private void resizeTiles(double totalWidth) {
         int columns = 5;
-        double hgap = 15;
-        double vgap = 15;
-        double padding = 15;
+        double hgap = 15, vgap = 15, padding = 15;
 
-        double espacioPadding = padding * 2;
-        double espacioGaps = hgap * (columns - 1);
-        double anchoDisponible = totalWidth - espacioPadding - espacioGaps - 5;
-
-        double tileWidth = anchoDisponible / columns;
-        double tileHeight = tileWidth * 1.5;
+        double tileWidth = (totalWidth - padding * 2 - hgap * (columns - 1) - 5) / columns;
+        double tileHeight = tileWidth * 1.5; // ratio 2:3 típico de portadas
 
         tilepane.setPrefTileWidth(tileWidth);
         tilepane.setPrefTileHeight(tileHeight + 45);
@@ -233,8 +264,11 @@ public class ScnMainMenu implements Navigable{
             if (node instanceof VBox vbox) {
                 vbox.setPrefWidth(tileWidth);
                 vbox.setPrefHeight(tileHeight + 45);
-                if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof ImageView iv) {
-                    iv.setFitWidth(tileWidth);
+
+                // Ahora buscamos el StackPane, no el ImageView
+                if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof StackPane container) {
+                    container.setPrefWidth(tileWidth);
+                    container.setPrefHeight(tileHeight); // ← aquí limitas el alto de la imagen
                 }
             }
         }
@@ -250,11 +284,7 @@ public class ScnMainMenu implements Navigable{
         }
     }
     
-    private void reloadTiles(){
-        tilepane.getChildren().clear();
-        createTiles();
-        resizeTiles(scroll.getWidth());
-    }
+    
     private void importFolder(){
         DirectoryChooser dirChooser = new DirectoryChooser();
         dirChooser.setTitle("Importar manga");
