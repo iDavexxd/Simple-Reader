@@ -34,6 +34,7 @@ import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -46,63 +47,134 @@ public class ScnMainMenu implements Navigable{
     private final Navegador nav;    
     private static List<Manga> mangas;
     private static Scene rootCache;
+    private final MangaLoader MangaLaoder;
     
-    private TilePane tilepane = new TilePane();
-    private ScrollPane scroll;
+    
+    private static TilePane tilepane = new TilePane();
+    private static ScrollPane scroll;
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
+        this.MangaLaoder = new MangaLoader(this);
+        nav.getStage().setResizable(false);
     }
     
     public TilePane getTilePane(){
         return tilepane;
     }
     
+    public ScrollPane getScroll(){
+        return scroll;
+    }
+    
     public VBox crearIcon(Manga manga){
-        // ImageView del cover del manga
         ImageView coverView = new ImageView();
-        coverView.setPreserveRatio(false);
-        
-        //verificar si el manga sí tenia cover
+        coverView.setPreserveRatio(true);
+        coverView.setManaged(false);
+
+        StackPane coverContainer = new StackPane(coverView);
+        coverContainer.setMaxSize(250, Double.MAX_VALUE);
+
         if(manga.getCover() != null){
+
             Image icon = new Image(manga.getCover(), true);
             coverView.setImage(icon);
+
+            icon.progressProperty().addListener((obs, old, progress) -> {
+
+                if(progress.doubleValue() >= 1.0){
+
+                    double imageRatio = icon.getWidth() / icon.getHeight();
+
+                    // ratio del contenedor (2:3)
+                    double containerRatio = 2.0 / 3.0;
+
+                    // Limpiar bindings anteriores
+                    coverView.fitWidthProperty().unbind();
+                    coverView.fitHeightProperty().unbind();
+
+                    if(imageRatio < containerRatio){
+
+                        // Imagen muy angosta
+                        // llenar ancho y recortar arriba/abajo
+                        coverView.fitWidthProperty().bind(
+                            coverContainer.widthProperty()
+                        );
+
+                    } else {
+
+                        // Imagen normal o ancha
+                        // llenar alto y recortar lados
+                        coverView.fitHeightProperty().bind(
+                            coverContainer.heightProperty()
+                        );
+                    }
+
+                    // Centrar imagen
+                    coverView.layoutXProperty().bind(
+                        javafx.beans.binding.Bindings.createDoubleBinding(
+                            () -> (
+                                coverContainer.getWidth()
+                                - coverView.getBoundsInLocal().getWidth()
+                            ) / 2.0,
+                            coverContainer.widthProperty(),
+                            coverView.boundsInLocalProperty()
+                        )
+                    );
+
+                    coverView.layoutYProperty().bind(
+                        javafx.beans.binding.Bindings.createDoubleBinding(
+                            () -> (
+                                coverContainer.getHeight()
+                                - coverView.getBoundsInLocal().getHeight()
+                            ) / 2.0,
+                            coverContainer.heightProperty(),
+                            coverView.boundsInLocalProperty()
+                        )
+                    );
+                }
+            });
+
             Logger.info(manga.getTitle()+" - "+manga.getCover()+" --> Loaded");
-        }else{
-            coverView.setStyle("-fx-background-color: #cccccc;");
         }
-        
-        StackPane coverContainer = new StackPane(coverView);
-        coverContainer.setMaxSize(200, Double.MAX_VALUE);
-        coverView.fitWidthProperty().bind(coverContainer.widthProperty());
-        coverView.fitHeightProperty().bind(coverContainer.heightProperty());
-        
-        //Crear clip
+
+        // Clip redondeado
         Rectangle recorte = new Rectangle();
         recorte.setArcWidth(20);
         recorte.setArcHeight(20);
+
         recorte.widthProperty().bind(coverContainer.widthProperty());
         recorte.heightProperty().bind(coverContainer.heightProperty());
-        
+
         coverContainer.setClip(recorte);
-        
-        //titulo del manga
+
+        // Título
         Label title = new Label(manga.getTitle());
-        //salto de linea auto
+
         title.setWrapText(true);
-        title.setMaxHeight(52); 
-        title.maxWidthProperty().bind(coverContainer.widthProperty());
+        title.setTextAlignment(TextAlignment.CENTER);
+        title.setAlignment(Pos.TOP_CENTER);
+
+        title.setMinHeight(50);
+        title.setMaxHeight(50);
+
+        title.setMaxWidth(Double.MAX_VALUE);
+
         title.getStyleClass().add("manga-title");
-         // Permite que el label crezca
-        title.setAlignment(Pos.CENTER_LEFT);
-       
-        VBox iconManga = new VBox(5, coverContainer,title);
-        iconManga.setAlignment(Pos.TOP_CENTER);
-        
-        //evento al hacer clic
-        iconManga.setOnMouseClicked(e -> {
-            nav.goTo(new ScnMangaMenu(nav,manga));
-        });
+
+        VBox iconManga = new VBox(5, coverContainer, title);
+
+        iconManga.setFillWidth(true);
+
+        title.prefWidthProperty().bind(iconManga.widthProperty());
+
+        iconManga.setAlignment(Pos.TOP_LEFT);
+
+        iconManga.setOnMouseClicked(
+            e -> nav.goTo(new ScnMangaMenu(nav, manga))
+        );
+
         iconManga.getStyleClass().add("manga-icon");
+
         return iconManga;
     }
     
@@ -125,9 +197,9 @@ public class ScnMainMenu implements Navigable{
             tareaCargar.setOnSucceeded(e -> {
                 // Esto se ejecuta de vuelta en el Application Thread
                 mangas = tareaCargar.getValue();
-                tilepane.getChildren().clear();
-                createTiles();
-                resizeTiles(scroll.getWidth());
+                //tilepane.getChildren().clear();
+                //createTiles();
+                //resizeTiles(scroll.getWidth());
             });
 
             tareaCargar.setOnFailed(e -> {
@@ -150,7 +222,7 @@ public class ScnMainMenu implements Navigable{
         double padding = 15;        
         
         
-        
+        // Panel con las tiles
         tilepane.setHgap(hgap);
         tilepane.setVgap(vgap);
         tilepane.setPadding(new Insets(padding));
@@ -158,10 +230,13 @@ public class ScnMainMenu implements Navigable{
         
         
         
-        
+        // Scroll
         scroll = new ScrollPane(tilepane); 
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        
+        
+        // Iconos
         
         SVGPath icnReload = new SVGPath();
         icnReload.setContent("M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z");
@@ -193,13 +268,21 @@ public class ScnMainMenu implements Navigable{
         Group icon_add_group = new Group(icnAdd);
         StackPane icon_container_add = new StackPane(icon_add_group);
         
+        // Botones
+        
         Button btnAdd = new Button("",icon_container_add);
         Button btnImportar = new Button("",icon_container_importar);
+        btnImportar.setMinSize(24, 24);
+        btnImportar.setMaxSize(24, 24);
         Button btnReload = new Button("",icon_container);
         btnReload.setMinSize(24, 24);
         btnReload.setMaxSize(24,24);
-        btnImportar.setMinSize(24, 24);
-        btnImportar.setMaxSize(24, 24);
+        
+        Button btnConfig = new Button("");
+        btnConfig.setOnAction(e -> { 
+            nav.goTo(new ScnConfig(this.nav));
+        });
+        
         
         btnReload.setOnAction(e -> {       
             Logger.info("- Starting mangas reload.");
@@ -219,9 +302,14 @@ public class ScnMainMenu implements Navigable{
                    
         
         scroll.setFitToWidth(true);
+        
+        // Menu lateral
+        
         SideMenu lateralmenu = new SideMenu();
         lateralmenu.addTop(btnReload).addBottom(btnImportar);
         lateralmenu.addBottom(btnAdd);
+        lateralmenu.addBottom(btnConfig);
+
         BorderPane panel = new BorderPane();
         panel.setCenter(scroll);
         panel.setLeft(lateralmenu.getPane());
@@ -229,7 +317,7 @@ public class ScnMainMenu implements Navigable{
             resizeTiles(newVal.doubleValue());
         });
         
-        
+        // Panel con todo
         rootCache = new Scene(panel,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
         rootCache.getStylesheets().add(nav.getCss());
         rootCache.setOnKeyPressed( e -> {
@@ -250,7 +338,7 @@ public class ScnMainMenu implements Navigable{
         });
         return rootCache;
     }
-    private void resizeTiles(double totalWidth) {
+    public void resizeTiles(double totalWidth) {
         int columns = 5;
         double hgap = 15, vgap = 15, padding = 15;
 
@@ -359,6 +447,7 @@ public class ScnMainMenu implements Navigable{
     private void reloadMangas(){
         mangas = null;
         rootCache = null;
+        tilepane.getChildren().clear();
         nav.goTo(new ScnMainMenu(nav));
     }
     @Override

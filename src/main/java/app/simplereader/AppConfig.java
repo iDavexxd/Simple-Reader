@@ -18,6 +18,11 @@ public class AppConfig {
     public int HEIGHT = 720;
     public String APP_TITLE = "Simple Reader";
     
+    public String READING_DIR = "LTR";
+    public String SCALING_MODE = "FIT_HEIGHT";
+    
+    public final String VERSION = "Alpha 2.0";
+    
     public static AppConfig instance;
     private static final String CONFIG_FILE = System.getProperty("user.home") 
                                             + File.separator + "Documents" 

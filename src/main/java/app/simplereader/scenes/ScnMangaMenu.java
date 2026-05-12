@@ -38,6 +38,7 @@ public class ScnMangaMenu implements Navigable{
     public ScnMangaMenu(Navegador nav,Manga manga){
         this.manga = manga;
         this.nav = nav;
+        nav.getStage().setResizable(false);
     }
     
     @Override

@@ -27,7 +27,6 @@ public class SimpleReader extends Application{
         
         Navegador nav = new Navegador(stage);
         nav.goTo(new ScnMainMenu(nav));
-        stage.setResizable(true);
         stage.setOnCloseRequest(e -> Platform.exit());
         stage.show();
     }

@@ -5,11 +5,12 @@ import app.simplereader.interfaces.Manga;
 import app.simplereader.scenes.ScnMainMenu;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import java.nio.file.Files;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import javafx.application.Platform;
+import javafx.scene.layout.VBox;
 
 /**
  *
@@ -17,7 +18,7 @@ import java.util.List;
  */
 public class MangaLoader {
     
-    private ScnMainMenu mainMenu;
+    private static ScnMainMenu mainMenu;
     
     public MangaLoader(ScnMainMenu mainMenu){
         this.mainMenu = mainMenu;
@@ -49,7 +50,17 @@ public class MangaLoader {
         Arrays.sort(mangas);
         List<Manga> lista = new ArrayList<>();
         for (File subcarpeta : mangas) {
-            lista.add(new LocalManga(subcarpeta, subcarpeta.getName(), "", ""));
+            LocalManga manga = new LocalManga(subcarpeta, subcarpeta.getName(), "", "");
+            if (manga.getCover() != null) {
+                Platform.runLater(() -> {
+                    VBox iconManga = mainMenu.crearIcon(manga); // ← adentro del runLater
+                    mainMenu.getTilePane().getChildren().add(iconManga);
+                });
+                Platform.runLater(() -> mainMenu.resizeTiles(mainMenu.getScroll().getWidth()));
+            } else {
+                Logger.warning(manga.getTitle()+" - no tiene una cover.");
+            }
+            lista.add(manga);
         }
         return lista;
     }
@@ -77,7 +88,16 @@ public class MangaLoader {
                 String contenido = java.nio.file.Files.readString(archivo.toPath());
                 JsonObject json = JsonParser.parseString(contenido).getAsJsonObject();
                 String mangaID = json.get("id").getAsString();
-                lista.add(new mdManga(mangaID));
+                mdManga manga = new mdManga(mangaID);
+                if (manga.getCover() != null) {
+                    Platform.runLater(() -> {
+                        VBox iconManga = mainMenu.crearIcon(manga); // ← adentro del runLater
+                        mainMenu.getTilePane().getChildren().add(iconManga);
+                    });
+                    Platform.runLater(() -> mainMenu.resizeTiles(mainMenu.getScroll().getWidth()));
+                } else {
+                    Logger.warning(manga.getTitle()+" - no tiene una cover.");
+                }
                 Logger.info("MangaDex cargado: " + mangaID);
             } catch (Exception e) {
                 Logger.error("Error leyendo: " + archivo.getName());

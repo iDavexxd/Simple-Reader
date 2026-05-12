@@ -70,6 +70,7 @@ public class ScnReader implements Navigable {
         this.chapternum = indice;
         this.manga = manga;
         this.indiceactual = chapter.isReaded() ? 0 : chapter.getLastRead();
+        nav.getStage().setResizable(true);
         Logger.info("Loaded " + chapter.getName() + " " + chapternum);
     }
     
@@ -100,6 +101,7 @@ public class ScnReader implements Navigable {
                     preloader.shutdownNow();
                     manga.saveData();
                     nav.getStage().setOnCloseRequest(null);
+                    nav.getStage().setMaximized(false);
                     nav.goTo(new ScnMangaMenu(nav,manga));
                 }
                 case RIGHT -> {
@@ -132,6 +134,7 @@ public class ScnReader implements Navigable {
                 layout.getStyleClass().add("fullscreen");
             } else {
                 layout.getStyleClass().remove("fullscreen");
+
             }
         });
         nav.getStage().setOnCloseRequest(e -> {
