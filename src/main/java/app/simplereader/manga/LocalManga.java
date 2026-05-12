@@ -34,6 +34,8 @@ public class LocalManga implements Manga{
     private String description;
     private transient File cover;
     private final transient File folder;
+    private String Category;
+    
     
     private final HashMap<String, Integer> lastChapterPage = new HashMap<>();
     private Set<String> readedChapters = new HashSet<>();
@@ -124,6 +126,30 @@ public class LocalManga implements Manga{
         return ChapterType.UNKNOWN;
     }
     
+    private void saveYml() {
+        File yamlFile = new File(folder, "info.yaml");
+        MangaData data = new MangaData();
+        data.title = this.title;
+        data.author = this.author;
+        data.description = this.description;
+        data.tags = this.tags;
+        data.category = this.Category; // ← ahora sí
+
+        // mismo código que createYml...
+        org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
+        options.setPrettyFlow(true);
+        options.setDefaultFlowStyle(org.yaml.snakeyaml.DumperOptions.FlowStyle.BLOCK);
+        org.yaml.snakeyaml.representer.Representer representer = 
+            new org.yaml.snakeyaml.representer.Representer(options);
+        representer.addClassTag(MangaData.class, org.yaml.snakeyaml.nodes.Tag.MAP);
+        Yaml yaml = new Yaml(representer, options);
+        try (FileWriter writer = new FileWriter(yamlFile)) {
+            yaml.dump(data, writer);
+        } catch (IOException e) {
+            Logger.error(title + " - Error guardando YAML.");
+        }
+    }
+    
     private void openYml(){
         File yamlFile = new File(folder, "info.yaml");
         if (!yamlFile.exists()) {
@@ -141,6 +167,7 @@ public class LocalManga implements Manga{
         data.author = this.author;
         data.description = this.description;
         data.tags = this.tags;
+        data.category = this.Category;
         
         org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
         options.setPrettyFlow(true);
@@ -174,6 +201,7 @@ public class LocalManga implements Manga{
             ? String.join("\n", data.description)
             : "";
             this.tags = data.tags != null ? data.tags : new ArrayList<>();
+            this.Category = data.category != null ? data.category : "Default";
             Logger.info("YAML leído: " + title);
             reader.close();
         } 
@@ -206,20 +234,20 @@ public class LocalManga implements Manga{
         Logger.info(this.getTitle()+" - Loaded Cover: " + cover.getName());
     }
     // No uso esto aun, lo dejo por si sirve
-    private void setCover(File cover) {
-        if (cover == null) {
-        Logger.warning("Cover es null");
-        return;
-        }
-    
-        String nombre = cover.getName().toLowerCase();
-        if (nombre.endsWith(".jpg") || nombre.endsWith(".jpeg") || nombre.endsWith(".png")) {
-            this.cover = cover;
-        } else {
-            Logger.warning("El archivo no es una imagen válida: " + cover.getName());
-        }
-
-    }
+//    public void setCover(File cover) {
+//        if (cover == null) {
+//            Logger.warning("Cover es null");
+//            return;
+//        }
+//    
+//        String nombre = cover.getName().toLowerCase();
+//        if (nombre.endsWith(".jpg") || nombre.endsWith(".jpeg") || nombre.endsWith(".png")) {
+//            this.cover = cover;
+//        } else {
+//            Logger.warning("El archivo no es una imagen válida: " + cover.getName());
+//        }
+//
+//    }
     
     @Override
     public void saveData() {
@@ -334,12 +362,22 @@ public class LocalManga implements Manga{
     
     @Override
     public List<Chapter> getReaded(){
-        return chReaded;
+        return this.chReaded;
     }
     
     @Override
     public List<Chapter> getUnreaded(){
-        return chUnreaded;
+        return this.chUnreaded;
     }
-        
+    
+    @Override
+    public String getCategory(){
+        return this.Category;
+    }
+    
+    @Override
+    public void setCategory(String cat){
+        this.Category = cat;
+        saveYml();
+    }
 }

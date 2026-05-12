@@ -1,6 +1,8 @@
 package app.simplereader.scenes;
 
 import app.simplereader.AppConfig;
+import app.simplereader.Category;
+import app.simplereader.CategoryManager;
 import app.simplereader.Logger;
 import app.simplereader.Navegador;
 import app.simplereader.interfaces.Manga;
@@ -14,7 +16,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
+import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -29,6 +33,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F7;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
@@ -48,24 +54,25 @@ public class ScnMainMenu implements Navigable{
     private static List<Manga> mangas;
     private static Scene rootCache;
     private final MangaLoader MangaLaoder;
+    private static String actualCategory = "Default";
     
+    //private static List<TilePane> tilePaneList = new ArrayList<>();
     
-    private static TilePane tilepane = new TilePane();
     private static ScrollPane scroll;
+    
+    public static CategoryManager manager = new CategoryManager();
+    private static TilePane DefaultPane = manager.getCategories().get("Default").getPane().getPane();
+    
+    private static int currentCategoryIndex = 0;
+    
     public ScnMainMenu(Navegador nav){
         this.nav = nav;
-        this.MangaLaoder = new MangaLoader(this);
+        this.MangaLaoder = new MangaLoader(this,manager);
         nav.getStage().setResizable(false);
     }
     
-    public TilePane getTilePane(){
-        return tilepane;
-    }
-    
-    public ScrollPane getScroll(){
-        return scroll;
-    }
-    
+        
+       
     public VBox crearIcon(Manga manga){
         ImageView coverView = new ImageView();
         coverView.setPreserveRatio(true);
@@ -183,9 +190,9 @@ public class ScnMainMenu implements Navigable{
     public Scene getScene(){
         if (mangas == null) {
             // Muestra un estado de carga mientras espera
-//            Label lblCargando = new Label("Cargando mangas...");
-//            lblCargando.getStyleClass().add("loading-label");
-//            tilepane.getChildren().add(lblCargando);
+            Label lblCargando = new Label("Cargando mangas...");
+            lblCargando.getStyleClass().add("loading-label");
+            DefaultPane.getChildren().add(lblCargando);
 
             Task<List<Manga>> tareaCargar = new Task<>() {
                 @Override
@@ -197,15 +204,15 @@ public class ScnMainMenu implements Navigable{
             tareaCargar.setOnSucceeded(e -> {
                 // Esto se ejecuta de vuelta en el Application Thread
                 mangas = tareaCargar.getValue();
-                //tilepane.getChildren().clear();
-                //createTiles();
+                DefaultPane.getChildren().clear();
+                createTiles();
                 //resizeTiles(scroll.getWidth());
             });
 
             tareaCargar.setOnFailed(e -> {
                 Logger.error("Error cargando mangas: " + tareaCargar.getException().getMessage());
-                tilepane.getChildren().clear();
-                tilepane.getChildren().add(new Label("Error al cargar mangas."));
+                DefaultPane.getChildren().clear();
+                DefaultPane.getChildren().add(new Label("Error al cargar mangas."));
             });
 
             Thread hilo = new Thread(tareaCargar);
@@ -223,15 +230,15 @@ public class ScnMainMenu implements Navigable{
         
         
         // Panel con las tiles
-        tilepane.setHgap(hgap);
-        tilepane.setVgap(vgap);
-        tilepane.setPadding(new Insets(padding));
-        tilepane.setPrefColumns(columns);
+        DefaultPane.setHgap(hgap);
+        DefaultPane.setVgap(vgap);
+        DefaultPane.setPadding(new Insets(padding));
+        DefaultPane.setPrefColumns(columns);
         
         
         
         // Scroll
-        scroll = new ScrollPane(tilepane); 
+        scroll = new ScrollPane(DefaultPane); 
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         
@@ -303,6 +310,39 @@ public class ScnMainMenu implements Navigable{
         
         scroll.setFitToWidth(true);
         
+        // Menu con las categorias
+        
+        HBox categoryButtons = new HBox(hgap);
+        Button btnDefCat = new Button("Default");
+        btnDefCat.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnDefCat, Priority.ALWAYS);
+        btnDefCat.setOnAction(e -> {
+            showCategory("Default");
+        });
+        categoryButtons.getChildren().add(btnDefCat);
+        categoryButtons.setPadding(new Insets(15, 15, 0, 15));
+        categoryButtons.setSpacing(2);
+
+        for(String name:manager.getNameList()){
+            Button btnCategory = new Button(name);
+            HBox.setHgrow(btnCategory, Priority.ALWAYS);
+
+            btnCategory.setMaxWidth(Double.MAX_VALUE);
+            btnCategory.setOnAction(e -> {
+                showCategory(name);
+            });
+            categoryButtons.getChildren().add(btnCategory);
+        }
+        
+        
+        BorderPane categoriesPane = new BorderPane();
+        categoriesPane.setCenter(categoryButtons);
+        categoriesPane.setMinHeight(30);
+        categoriesPane.setMaxHeight(30);
+        
+        VBox scrlandpane = new VBox(categoriesPane,scroll);
+        
+        
         // Menu lateral
         
         SideMenu lateralmenu = new SideMenu();
@@ -311,7 +351,7 @@ public class ScnMainMenu implements Navigable{
         lateralmenu.addBottom(btnConfig);
 
         BorderPane panel = new BorderPane();
-        panel.setCenter(scroll);
+        panel.setCenter(scrlandpane);
         panel.setLeft(lateralmenu.getPane());
         scroll.widthProperty().addListener((obs, oldVal, newVal) -> {
             resizeTiles(newVal.doubleValue());
@@ -323,6 +363,7 @@ public class ScnMainMenu implements Navigable{
         rootCache.setOnKeyPressed( e -> {
             KeyCode key = e.getCode();
             switch (key){
+                case DIGIT1 -> showCategory("Default"); // siempre Default
                 case F5 -> {
                     Logger.info("F5");
                     reloadMangas();
@@ -336,27 +377,44 @@ public class ScnMainMenu implements Navigable{
             
             }
         });
+        if (!actualCategory.equals("Default")){
+            showCategory(actualCategory);
+        }
         return rootCache;
     }
+    private void showCategory(String Name) {
+        TilePane pane = manager.getCategories().get(Name).getPane().getPane();
+
+        // Configurar el pane si no está configurado aún
+        pane.setHgap(15);
+        pane.setVgap(15);
+        pane.setPadding(new Insets(15));
+        pane.setPrefColumns(5);
+
+        scroll.setContent(pane);
+        resizeTiles(scroll.getWidth());
+        actualCategory = Name;
+    }
     public void resizeTiles(double totalWidth) {
+         // Obtener el pane activo en lugar de siempre DefaultPane
+        TilePane activePane = (TilePane) scroll.getContent();
+        if (activePane == null) return;
+
         int columns = 5;
         double hgap = 15, vgap = 15, padding = 15;
-
         double tileWidth = (totalWidth - padding * 2 - hgap * (columns - 1) - 5) / columns;
-        double tileHeight = tileWidth * 1.5; // ratio 2:3 típico de portadas
+        double tileHeight = tileWidth * 1.5;
 
-        tilepane.setPrefTileWidth(tileWidth);
-        tilepane.setPrefTileHeight(tileHeight + 45);
+        activePane.setPrefTileWidth(tileWidth);
+        activePane.setPrefTileHeight(tileHeight + 45);
 
-        for (javafx.scene.Node node : tilepane.getChildren()) {
+        for (javafx.scene.Node node : activePane.getChildren()) {
             if (node instanceof VBox vbox) {
                 vbox.setPrefWidth(tileWidth);
                 vbox.setPrefHeight(tileHeight + 45);
-
-                // Ahora buscamos el StackPane, no el ImageView
                 if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof StackPane container) {
                     container.setPrefWidth(tileWidth);
-                    container.setPrefHeight(tileHeight); // ← aquí limitas el alto de la imagen
+                    container.setPrefHeight(tileHeight);
                 }
             }
         }
@@ -364,8 +422,13 @@ public class ScnMainMenu implements Navigable{
     private void createTiles(){
         for(Manga manga : mangas){
             if(manga.getCover() != null){
-                VBox iconManga = crearIcon(manga);
-                tilepane.getChildren().add(iconManga);
+                Platform.runLater(() -> {
+                    VBox iconManga = crearIcon(manga);
+                    //DefaultPane.getChildren().add(iconManga);
+                    manager.getCategories().get(manga.getCategory()).getPane().getPane().getChildren().add(iconManga);
+                });
+                Platform.runLater(() -> resizeTiles(scroll.getWidth()));
+
             } else {
                 Logger.warning(manga.getTitle()+" - no tiene una cover.");
             }
@@ -447,7 +510,11 @@ public class ScnMainMenu implements Navigable{
     private void reloadMangas(){
         mangas = null;
         rootCache = null;
-        tilepane.getChildren().clear();
+        
+        for(String name : manager.getNameList()){
+            manager.getCategories().get(name).getPane().getPane().getChildren().clear();
+        }
+        DefaultPane.getChildren().clear();
         nav.goTo(new ScnMainMenu(nav));
     }
     @Override

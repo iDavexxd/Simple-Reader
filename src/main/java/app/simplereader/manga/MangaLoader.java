@@ -1,5 +1,7 @@
 package app.simplereader.manga;
 
+import app.simplereader.Category;
+import app.simplereader.CategoryManager;
 import app.simplereader.Logger;
 import app.simplereader.interfaces.Manga;
 import app.simplereader.scenes.ScnMainMenu;
@@ -9,8 +11,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import javafx.application.Platform;
-import javafx.scene.layout.VBox;
+
 
 /**
  *
@@ -19,9 +20,12 @@ import javafx.scene.layout.VBox;
 public class MangaLoader {
     
     private static ScnMainMenu mainMenu;
+    private static CategoryManager manager;
     
-    public MangaLoader(ScnMainMenu mainMenu){
+    public MangaLoader(ScnMainMenu mainMenu,CategoryManager manager){
         this.mainMenu = mainMenu;
+        this.manager = manager;
+        
     }
     
     public static List<Manga> loadMangas() {
@@ -51,15 +55,12 @@ public class MangaLoader {
         List<Manga> lista = new ArrayList<>();
         for (File subcarpeta : mangas) {
             LocalManga manga = new LocalManga(subcarpeta, subcarpeta.getName(), "", "");
-            if (manga.getCover() != null) {
-                Platform.runLater(() -> {
-                    VBox iconManga = mainMenu.crearIcon(manga); // ← adentro del runLater
-                    mainMenu.getTilePane().getChildren().add(iconManga);
-                });
-                Platform.runLater(() -> mainMenu.resizeTiles(mainMenu.getScroll().getWidth()));
-            } else {
-                Logger.warning(manga.getTitle()+" - no tiene una cover.");
-            }
+
+            if(manga.getCategory() == null) manga.setCategory("Default");
+            Category category = manager.getCategories().get(manga.getCategory());
+            category.addManga(manga);
+            Logger.info("Manga: "+manga.getTitle()+" - Category: "+manga.getCategory());
+
             lista.add(manga);
         }
         return lista;
@@ -89,15 +90,12 @@ public class MangaLoader {
                 JsonObject json = JsonParser.parseString(contenido).getAsJsonObject();
                 String mangaID = json.get("id").getAsString();
                 mdManga manga = new mdManga(mangaID);
-                if (manga.getCover() != null) {
-                    Platform.runLater(() -> {
-                        VBox iconManga = mainMenu.crearIcon(manga); // ← adentro del runLater
-                        mainMenu.getTilePane().getChildren().add(iconManga);
-                    });
-                    Platform.runLater(() -> mainMenu.resizeTiles(mainMenu.getScroll().getWidth()));
-                } else {
-                    Logger.warning(manga.getTitle()+" - no tiene una cover.");
-                }
+                if(manga.getCategory() == null) manga.setCategory("Default");
+                Category category = manager.getCategories().get(manga.getCategory());
+                category.addManga(manga);
+                Logger.info("Manga: "+manga.getTitle()+" - Category: "+manga.getCategory());
+                lista.add(manga);
+                
                 Logger.info("MangaDex cargado: " + mangaID);
             } catch (Exception e) {
                 Logger.error("Error leyendo: " + archivo.getName());

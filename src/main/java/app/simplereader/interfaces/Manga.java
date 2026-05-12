@@ -22,5 +22,9 @@ public interface Manga {
     List<Chapter> getReaded();
     List<Chapter> getUnreaded();
     
+    String getCategory();
+    
+    
+    void setCategory(String c);
     void saveData();
 }

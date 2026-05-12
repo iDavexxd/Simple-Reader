@@ -11,4 +11,5 @@ public class MangaData {
     public String author;
     public String description;
     public List<String> tags;
+    public String category;
 }

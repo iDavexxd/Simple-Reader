@@ -5,6 +5,7 @@ import app.simplereader.Navegador;
 import app.simplereader.interfaces.Navigable;
 import app.simplereader.scenes.others.SideMenu;
 import javafx.geometry.Insets;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -13,7 +14,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.SVGPath;
 
 /**
  *
@@ -26,60 +29,55 @@ public class ScnConfig implements Navigable {
     public ScnConfig(Navegador nav){
         this.nav = nav;
     }
-
+    
+//    private void saveConfig(){
+//        // Sincronizar UI -> Objeto Config
+//            AppConfig.get().READING_DIR = cbDirection.getValue().contains("LTR") ? "LTR" : "RTL";
+//            AppConfig.get().SCALING_MODE = cbScaling.getValue().contains("ancho") ? "FIT_WIDTH" : "FIT_HEIGHT";
+//            
+//            AppConfig.get().save(); // Guardar a JSON
+//            
+//    }
     @Override
     public Scene getScene() {
-        VBox container = new VBox(15); // Espacio de 15px entre elementos
-        container.setPadding(new Insets(20));
-
-        // --- SECCIÓN: LECTOR ---
-        Label lblLector = new Label("Configuración del Lector");
-        lblLector.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
-
-        ComboBox<String> cbDirection = new ComboBox<>();
-        cbDirection.getItems().addAll("Izquierda a derecha (LTR)", "Derecha a izquierda (RTL)");
-        cbDirection.setValue(AppConfig.get().READING_DIR.equals("LTR") ? 
-                             "Izquierda a derecha (LTR)" : "Derecha a izquierda (RTL)");
-
-        ComboBox<String> cbScaling = new ComboBox<>();
-        cbScaling.getItems().addAll("Ajustar al ancho", "Ajustar al alto");
-        cbScaling.setValue(AppConfig.get().SCALING_MODE.equals("FIT_WIDTH") ? 
-                           "Ajustar al ancho" : "Ajustar al alto");
-
-        // --- SECCIÓN: ACERCA DE ---
-        Separator sep = new Separator();
-        Label lblAbout = new Label("Acerca de");
-        lblAbout.setStyle("-fx-font-weight: bold;");
-        Label lblInfo = new Label(AppConfig.get().APP_TITLE + "\nVersión: " + AppConfig.get().VERSION + "\nDesarrollado por: David");
-
-        // --- BOTÓN GUARDAR ---
-        Button btnSave = new Button("Guardar Cambios");
-        btnSave.setOnAction(e -> {
-            // Sincronizar UI -> Objeto Config
-            AppConfig.get().READING_DIR = cbDirection.getValue().contains("LTR") ? "LTR" : "RTL";
-            AppConfig.get().SCALING_MODE = cbScaling.getValue().contains("ancho") ? "FIT_WIDTH" : "FIT_HEIGHT";
-            
-            AppConfig.get().save(); // Guardar a JSON
-            
-            // Opcional: Mostrar una alerta de éxito
-            new Alert(Alert.AlertType.INFORMATION, "Configuración guardada").show();
-        });
-
-        // Agregar todo al container
-        container.getChildren().addAll(lblLector, new Label("Dirección:"), cbDirection, 
-                                     new Label("Escalado:"), cbScaling, 
-                                     sep, lblAbout, lblInfo, btnSave);
         
+        
+        // Menu lateral
         SideMenu lateralmenu = new SideMenu();        
+        
+        // botones
+        SVGPath svgBack = new SVGPath();
+        svgBack.setContent("M640-80 240-480l400-400 71 71-329 329 329 329-71 71Z");
+        svgBack.getStyleClass().add("icon");
+        double scale = 24.0 / 960.0;
+        svgBack.setScaleX(scale);
+        svgBack.setScaleY(scale);
+        
+        Group gpBack = new Group(svgBack);
+        StackPane back_container = new StackPane(gpBack);
+        back_container.setPrefSize(24, 24);
+        back_container.setMinSize(24, 24);
 
-        ScrollPane Scroll = new ScrollPane(container);
-        Scroll.setFitToWidth(true); // Para que el VBox use todo el ancho
+        Button btnBackToMenu = new Button("",back_container);
+        btnBackToMenu.setOnAction(e ->{
+            nav.goTo(new ScnMainMenu(this.nav));
+        });
+        btnBackToMenu.setPrefSize(24, 24);
+        btnBackToMenu.setMinSize(24, 24);
+        
+        
+        lateralmenu.addTop(btnBackToMenu);
+        
+        ScrollPane Scroll = new ScrollPane();
+        Scroll.setFitToWidth(true);
 
         BorderPane root = new BorderPane();
         root.setCenter(Scroll);
         root.setLeft(lateralmenu.getPane());
-        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        root.getStyleClass().add("conf-root");
         
+        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        scene.getStylesheets().add(nav.getCss());
         return scene;
         
         

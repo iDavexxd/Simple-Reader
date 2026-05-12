@@ -1,5 +1,6 @@
 package app.simplereader.manga;
 
+import app.simplereader.Category;
 import app.simplereader.Logger;
 import app.simplereader.Sorter;
 import app.simplereader.interfaces.Chapter;
@@ -30,6 +31,7 @@ public class mdManga implements Manga{
     private String author;
     private String description;
     private String coverURL;
+    private String Category;
     private final List<String> tags = new ArrayList<>();
     private final List<Chapter> chapters = new ArrayList<>();
     private final Set<String> readedChapters = new HashSet<>();
@@ -271,6 +273,7 @@ public class mdManga implements Manga{
             json.addProperty("author", author);
             json.addProperty("coverURL", coverURL);
             json.addProperty("description", description);
+            json.addProperty("category", Category != null ? Category : "Default");
             // Tags
             JsonArray tagsArray = new JsonArray();
             tags.forEach(tagsArray::add);
@@ -332,7 +335,7 @@ public class mdManga implements Manga{
             }
             if (json.has("coverURL"))    this.coverURL = json.get("coverURL").getAsString();
             if (json.has("description")) this.description = json.get("description").getAsString();
-
+            if (json.has("category")) this.Category = json.get("category").getAsString();
             Logger.info(title + " - Datos cargados.");
         } catch (Exception e) {
             Logger.error(title + " - Error leyendo datos: " + e.getMessage());
@@ -357,6 +360,16 @@ public class mdManga implements Manga{
     @Override 
     public List<Chapter> getReaded(){
         return chReaded;
+    }
+    
+    @Override
+    public String getCategory(){
+        return Category;
+    }
+    
+    @Override
+    public void setCategory(String category){
+        Category = category;
     }
     
     private void downloadCover() {

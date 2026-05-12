@@ -369,3 +369,10 @@
 .vbox-padding {
     -fx-padding: 10 0 10 0;
 }
+
+
+/* Configuración */
+
+.conf-root{
+    -fx-background-color: -fx-main-bg;
+}
