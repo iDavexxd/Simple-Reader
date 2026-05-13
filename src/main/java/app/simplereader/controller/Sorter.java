@@ -1,4 +1,4 @@
-package app.simplereader;
+package app.simplereader.controller;
 
 /**
  *

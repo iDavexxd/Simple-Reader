@@ -1,26 +1,28 @@
-package app.simplereader;
+package app.simplereader.controller;
 
-import app.simplereader.interfaces.Navigable;
+import app.simplereader.model.AppConfig;
+import app.simplereader.controller.Logger;
 import javafx.stage.Stage;
+import app.simplereader.repository.AppScene;
 
 /**
  *
  * @author david
  */
-public class Navegador {
+public class SceneController {
     
     private static String actualScene;
         
     
     private final Stage stage;
     private String css;
-    private Navegador instance;
+    private SceneController instance;
 
-    public Navegador getInstance() {
+    public SceneController getInstance() {
         return instance;
     }
     
-    public Navegador(Stage stage) {
+    public SceneController(Stage stage) {
         this.stage = stage;
 
         try 
@@ -35,7 +37,7 @@ public class Navegador {
     }
     
     
-    public void goTo(Navigable s){
+    public void goTo(AppScene s){
         actualScene = s.getName();        
         stage.setTitle(AppConfig.get().APP_TITLE+ " - "+actualScene);
         stage.setScene(s.getScene());

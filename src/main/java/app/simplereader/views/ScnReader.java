@@ -1,11 +1,11 @@
-package app.simplereader.scenes;
+package app.simplereader.views;
 
-import app.simplereader.AppConfig;
-import app.simplereader.Logger;
-import app.simplereader.Navegador;
-import app.simplereader.interfaces.Chapter;
-import app.simplereader.interfaces.Manga;
-import app.simplereader.interfaces.Navigable;
+import app.simplereader.views.ScnMangaMenu;
+import app.simplereader.model.AppConfig;
+import app.simplereader.controller.Logger;
+import app.simplereader.controller.SceneController;
+import app.simplereader.repository.Chapter;
+import app.simplereader.repository.Manga;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -33,14 +33,15 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
+import app.simplereader.repository.AppScene;
 
 /**
  *
  * @author david
  */
-public class ScnReader implements Navigable {
+public class ScnReader implements AppScene {
 
-    private final Navegador nav;
+    private final SceneController nav;
     private Chapter chapter;
     private int chapternum;
     private final Manga manga;
@@ -64,7 +65,7 @@ public class ScnReader implements Navigable {
         return t;
     });
     
-    public ScnReader(Navegador nav, Manga manga, Chapter chapter, int indice) {
+    public ScnReader(SceneController nav, Manga manga, Chapter chapter, int indice) {
         this.nav = nav;
         this.chapter = chapter;
         this.chapternum = indice;

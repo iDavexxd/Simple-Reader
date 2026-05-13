@@ -1,4 +1,4 @@
-package app.simplereader.manga;
+package app.simplereader.model;
 
 import java.util.List;
 

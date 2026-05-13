@@ -1,7 +1,9 @@
 package app.simplereader;
 
 
-import app.simplereader.scenes.ScnMainMenu;
+import app.simplereader.controller.SceneController;
+import app.simplereader.controller.Logger;
+import app.simplereader.views.ScnMainMenu;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
@@ -25,7 +27,7 @@ public class SimpleReader extends Application{
         
 
         
-        Navegador nav = new Navegador(stage);
+        SceneController nav = new SceneController(stage);
         nav.goTo(new ScnMainMenu(nav));
         stage.setOnCloseRequest(e -> Platform.exit());
         stage.show();

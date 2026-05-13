@@ -1,12 +1,11 @@
-package app.simplereader.scenes;
+package app.simplereader.views;
 
-import app.simplereader.AppConfig;
-import app.simplereader.Logger;
-import app.simplereader.Navegador;
-import app.simplereader.interfaces.Chapter;
-import app.simplereader.interfaces.Manga;
-import app.simplereader.interfaces.Navigable;
-import app.simplereader.scenes.others.SideMenu;
+import app.simplereader.views.ScnMainMenu;
+import app.simplereader.model.AppConfig;
+import app.simplereader.controller.Logger;
+import app.simplereader.controller.SceneController;
+import app.simplereader.repository.Chapter;
+import app.simplereader.repository.Manga;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -26,16 +25,17 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
+import app.simplereader.repository.AppScene;
 
 /**
  *
  * @author david
  */
-public class ScnMangaMenu implements Navigable{
+public class ScnMangaMenu implements AppScene{
     private final Manga manga;
-    private final Navegador nav;
+    private final SceneController nav;
     private boolean isdown = true;
-    public ScnMangaMenu(Navegador nav,Manga manga){
+    public ScnMangaMenu(SceneController nav,Manga manga){
         this.manga = manga;
         this.nav = nav;
         nav.getStage().setResizable(false);

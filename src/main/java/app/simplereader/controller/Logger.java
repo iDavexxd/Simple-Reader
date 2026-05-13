@@ -1,6 +1,6 @@
-package app.simplereader;
+package app.simplereader.controller;
 
-import app.simplereader.interfaces.Chapter;
+import app.simplereader.repository.Chapter;
 import javafx.scene.control.Alert;
 
 /**

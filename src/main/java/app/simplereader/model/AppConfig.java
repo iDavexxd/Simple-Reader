@@ -1,5 +1,7 @@
-package app.simplereader;
+package app.simplereader.model;
 
+import app.simplereader.controller.Logger;
+import app.simplereader.controller.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.File;

@@ -1,21 +1,22 @@
-package app.simplereader.scenes;
+package app.simplereader.views;
 
-import app.simplereader.AppConfig;
-import app.simplereader.Navegador;
-import app.simplereader.interfaces.Manga;
-import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.mdManga;
+import app.simplereader.views.ScnMangaMenu;
+import app.simplereader.model.AppConfig;
+import app.simplereader.controller.SceneController;
+import app.simplereader.repository.Manga;
+import app.simplereader.model.mdManga;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import app.simplereader.repository.AppScene;
 
 
-public class TestScene implements Navigable{
-    private final Navegador nav;
+public class TestScene implements AppScene{
+    private final SceneController nav;
     
     
-    public TestScene(Navegador nav){
+    public TestScene(SceneController nav){
         this.nav = nav;
     }
 

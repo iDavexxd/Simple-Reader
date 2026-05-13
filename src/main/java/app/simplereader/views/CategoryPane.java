@@ -1,6 +1,6 @@
-package app.simplereader;
+package app.simplereader.views;
 
-import app.simplereader.interfaces.Manga;
+import app.simplereader.repository.Manga;
 import java.util.List;
 import javafx.scene.layout.TilePane;
 

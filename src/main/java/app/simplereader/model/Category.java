@@ -1,6 +1,7 @@
-package app.simplereader;
+package app.simplereader.model;
 
-import app.simplereader.interfaces.Manga;
+import app.simplereader.views.CategoryPane;
+import app.simplereader.repository.Manga;
 import java.util.ArrayList;
 import java.util.List;
 

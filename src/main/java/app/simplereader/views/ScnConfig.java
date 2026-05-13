@@ -1,9 +1,8 @@
-package app.simplereader.scenes;
+package app.simplereader.views;
 
-import app.simplereader.AppConfig;
-import app.simplereader.Navegador;
-import app.simplereader.interfaces.Navigable;
-import app.simplereader.scenes.others.SideMenu;
+import app.simplereader.views.ScnMainMenu;
+import app.simplereader.model.AppConfig;
+import app.simplereader.controller.SceneController;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -17,16 +16,17 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
+import app.simplereader.repository.AppScene;
 
 /**
  *
  * @author david
  */
-public class ScnConfig implements Navigable {
+public class ScnConfig implements AppScene {
     
-    private Navegador nav;
+    private SceneController nav;
     
-    public ScnConfig(Navegador nav){
+    public ScnConfig(SceneController nav){
         this.nav = nav;
     }
     

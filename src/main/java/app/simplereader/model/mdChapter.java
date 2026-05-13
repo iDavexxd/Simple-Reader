@@ -1,8 +1,8 @@
-package app.simplereader.manga.chapter;
+package app.simplereader.model;
 
-import app.simplereader.Logger;
-import app.simplereader.interfaces.Chapter;
-import app.simplereader.interfaces.Manga;
+import app.simplereader.controller.Logger;
+import app.simplereader.repository.Chapter;
+import app.simplereader.repository.Manga;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

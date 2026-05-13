@@ -1,10 +1,12 @@
-package app.simplereader.manga;
+package app.simplereader.controller;
 
-import app.simplereader.Category;
-import app.simplereader.CategoryManager;
-import app.simplereader.Logger;
-import app.simplereader.interfaces.Manga;
-import app.simplereader.scenes.ScnMainMenu;
+import app.simplereader.model.mdManga;
+import app.simplereader.model.LocalManga;
+import app.simplereader.model.Category;
+import app.simplereader.controller.CategoryController;
+import app.simplereader.controller.Logger;
+import app.simplereader.repository.Manga;
+import app.simplereader.views.ScnMainMenu;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.File;
@@ -17,12 +19,12 @@ import java.util.List;
  *
  * @author david
  */
-public class MangaLoader {
+public class MangaController {
     
     private static ScnMainMenu mainMenu;
-    private static CategoryManager manager;
+    private static CategoryController manager;
     
-    public MangaLoader(ScnMainMenu mainMenu,CategoryManager manager){
+    public MangaController(ScnMainMenu mainMenu,CategoryController manager){
         this.mainMenu = mainMenu;
         this.manager = manager;
         

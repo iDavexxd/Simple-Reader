@@ -1,15 +1,13 @@
-package app.simplereader.scenes;
+package app.simplereader.views;
 
-import app.simplereader.AppConfig;
-import app.simplereader.Category;
-import app.simplereader.CategoryManager;
-import app.simplereader.Logger;
-import app.simplereader.Navegador;
-import app.simplereader.interfaces.Manga;
-import app.simplereader.interfaces.Navigable;
-import app.simplereader.manga.MangaLoader;
-import app.simplereader.manga.mdManga;
-import app.simplereader.scenes.others.SideMenu;
+import app.simplereader.model.AppConfig;
+import app.simplereader.model.Category;
+import app.simplereader.controller.CategoryController;
+import app.simplereader.controller.Logger;
+import app.simplereader.controller.SceneController;
+import app.simplereader.repository.Manga;
+import app.simplereader.controller.MangaController;
+import app.simplereader.model.mdManga;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,30 +42,31 @@ import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import app.simplereader.repository.AppScene;
 
 /**
  *
  * @author david
  */
-public class ScnMainMenu implements Navigable{
-    private final Navegador nav;    
+public class ScnMainMenu implements AppScene{
+    private final SceneController nav;    
     private static List<Manga> mangas;
     private static Scene rootCache;
-    private final MangaLoader MangaLaoder;
+    private final MangaController MangaLaoder;
     private static String actualCategory = "Default";
     
     //private static List<TilePane> tilePaneList = new ArrayList<>();
     
     private static ScrollPane scroll;
     
-    public static CategoryManager manager = new CategoryManager();
+    public static CategoryController manager = new CategoryController();
     private static TilePane DefaultPane = manager.getCategories().get("Default").getPane().getPane();
     
     private static int currentCategoryIndex = 0;
     
-    public ScnMainMenu(Navegador nav){
+    public ScnMainMenu(SceneController nav){
         this.nav = nav;
-        this.MangaLaoder = new MangaLoader(this,manager);
+        this.MangaLaoder = new MangaController(this,manager);
         nav.getStage().setResizable(false);
     }
     
@@ -197,7 +196,7 @@ public class ScnMainMenu implements Navigable{
             Task<List<Manga>> tareaCargar = new Task<>() {
                 @Override
                 protected List<Manga> call() {
-                    return MangaLoader.loadMangas(); // Se ejecuta en hilo de fondo
+                    return MangaController.loadMangas(); // Se ejecuta en hilo de fondo
                 }
             };
 

@@ -1,7 +1,6 @@
-package app.simplereader.manga.chapter;
+package app.simplereader.model;
 
-import app.simplereader.Logger;
-import app.simplereader.manga.ChapterType;
+import app.simplereader.controller.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

@@ -1,10 +1,10 @@
 
-package app.simplereader.manga.chapter;
+package app.simplereader.model;
 
-import app.simplereader.Logger;
-import app.simplereader.Sorter;
-import app.simplereader.interfaces.Chapter;
-import app.simplereader.interfaces.Manga;
+import app.simplereader.controller.Logger;
+import app.simplereader.controller.Sorter;
+import app.simplereader.repository.Chapter;
+import app.simplereader.repository.Manga;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

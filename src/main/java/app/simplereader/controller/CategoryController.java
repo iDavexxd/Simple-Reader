@@ -1,5 +1,6 @@
-package app.simplereader;
+package app.simplereader.controller;
 
+import app.simplereader.model.Category;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.*;
@@ -16,7 +17,7 @@ import java.util.List;
  *
  * @author david
  */
-public class CategoryManager {
+public class CategoryController {
     
     private static final String PATH = System.getProperty("user.home") + "/Documents/SimpleReader/data/user/categories.json";
     
@@ -34,7 +35,7 @@ public class CategoryManager {
         return categories;
     }
     
-    public CategoryManager(){
+    public CategoryController(){
         loadCategories();
         saveCategories();
     }

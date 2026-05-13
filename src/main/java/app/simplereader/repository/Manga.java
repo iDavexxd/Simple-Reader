@@ -1,4 +1,4 @@
-package app.simplereader.interfaces;
+package app.simplereader.repository;
 
 import java.util.HashMap;
 import java.util.List;
