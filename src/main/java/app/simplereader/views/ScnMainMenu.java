@@ -1,33 +1,19 @@
 package app.simplereader.views;
 
 import app.simplereader.model.AppConfig;
-import app.simplereader.model.Category;
 import app.simplereader.controller.CategoryController;
 import app.simplereader.controller.Logger;
+import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.repository.Manga;
-import app.simplereader.controller.MangaController;
 import app.simplereader.model.mdManga;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import javafx.application.Platform;
-import javafx.concurrent.Task;
+
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F7;
 import javafx.scene.layout.BorderPane;
@@ -36,10 +22,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
-import javafx.scene.text.TextAlignment;
-import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import app.simplereader.repository.AppScene;
@@ -50,178 +33,37 @@ import app.simplereader.repository.AppScene;
  */
 public class ScnMainMenu implements AppScene{
     private final SceneController nav;    
-    private static List<Manga> mangas;
     private static Scene rootCache;
-    private final MangaController MangaLaoder;
-    private static String actualCategory = "Default";
+    private final MainMenuController controller;
     
-    //private static List<TilePane> tilePaneList = new ArrayList<>();
     
     private static ScrollPane scroll;
     
     public static CategoryController manager = new CategoryController();
     private static TilePane DefaultPane = manager.getCategories().get("Default").getPane().getPane();
     
-    private static int currentCategoryIndex = 0;
     
     public ScnMainMenu(SceneController nav){
         this.nav = nav;
-        this.MangaLaoder = new MangaController(this,manager);
+        this.controller = new MainMenuController(nav, manager, this);
         nav.getStage().setResizable(false);
     }
     
-        
-       
-    public VBox crearIcon(Manga manga){
-        ImageView coverView = new ImageView();
-        coverView.setPreserveRatio(true);
-        coverView.setManaged(false);
-
-        StackPane coverContainer = new StackPane(coverView);
-        coverContainer.setMaxSize(250, Double.MAX_VALUE);
-
-        if(manga.getCover() != null){
-
-            Image icon = new Image(manga.getCover(), true);
-            coverView.setImage(icon);
-
-            icon.progressProperty().addListener((obs, old, progress) -> {
-
-                if(progress.doubleValue() >= 1.0){
-
-                    double imageRatio = icon.getWidth() / icon.getHeight();
-
-                    // ratio del contenedor (2:3)
-                    double containerRatio = 2.0 / 3.0;
-
-                    // Limpiar bindings anteriores
-                    coverView.fitWidthProperty().unbind();
-                    coverView.fitHeightProperty().unbind();
-
-                    if(imageRatio < containerRatio){
-
-                        // Imagen muy angosta
-                        // llenar ancho y recortar arriba/abajo
-                        coverView.fitWidthProperty().bind(
-                            coverContainer.widthProperty()
-                        );
-
-                    } else {
-
-                        // Imagen normal o ancha
-                        // llenar alto y recortar lados
-                        coverView.fitHeightProperty().bind(
-                            coverContainer.heightProperty()
-                        );
-                    }
-
-                    // Centrar imagen
-                    coverView.layoutXProperty().bind(
-                        javafx.beans.binding.Bindings.createDoubleBinding(
-                            () -> (
-                                coverContainer.getWidth()
-                                - coverView.getBoundsInLocal().getWidth()
-                            ) / 2.0,
-                            coverContainer.widthProperty(),
-                            coverView.boundsInLocalProperty()
-                        )
-                    );
-
-                    coverView.layoutYProperty().bind(
-                        javafx.beans.binding.Bindings.createDoubleBinding(
-                            () -> (
-                                coverContainer.getHeight()
-                                - coverView.getBoundsInLocal().getHeight()
-                            ) / 2.0,
-                            coverContainer.heightProperty(),
-                            coverView.boundsInLocalProperty()
-                        )
-                    );
-                }
-            });
-
-            Logger.info(manga.getTitle()+" - "+manga.getCover()+" --> Loaded");
-        }
-
-        // Clip redondeado
-        Rectangle recorte = new Rectangle();
-        recorte.setArcWidth(20);
-        recorte.setArcHeight(20);
-
-        recorte.widthProperty().bind(coverContainer.widthProperty());
-        recorte.heightProperty().bind(coverContainer.heightProperty());
-
-        coverContainer.setClip(recorte);
-
-        // Título
-        Label title = new Label(manga.getTitle());
-
-        title.setWrapText(true);
-        title.setTextAlignment(TextAlignment.CENTER);
-        title.setAlignment(Pos.TOP_CENTER);
-
-        title.setMinHeight(50);
-        title.setMaxHeight(50);
-
-        title.setMaxWidth(Double.MAX_VALUE);
-
-        title.getStyleClass().add("manga-title");
-
-        VBox iconManga = new VBox(5, coverContainer, title);
-
-        iconManga.setFillWidth(true);
-
-        title.prefWidthProperty().bind(iconManga.widthProperty());
-
-        iconManga.setAlignment(Pos.TOP_LEFT);
-
-        iconManga.setOnMouseClicked(
-            e -> nav.goTo(new ScnMangaMenu(nav, manga))
-        );
-
-        iconManga.getStyleClass().add("manga-icon");
-
-        return iconManga;
+    public SceneController getSceneController(){
+        return this.nav;
     }
-    
+ 
     @Override
     @SuppressWarnings("empty-statement")
     public Scene getScene(){
-        if (mangas == null) {
-            // Muestra un estado de carga mientras espera
-            Label lblCargando = new Label("Cargando mangas...");
-            lblCargando.getStyleClass().add("loading-label");
-            DefaultPane.getChildren().add(lblCargando);
-
-            Task<List<Manga>> tareaCargar = new Task<>() {
-                @Override
-                protected List<Manga> call() {
-                    return MangaController.loadMangas(); // Se ejecuta en hilo de fondo
-                }
-            };
-
-            tareaCargar.setOnSucceeded(e -> {
-                // Esto se ejecuta de vuelta en el Application Thread
-                mangas = tareaCargar.getValue();
-                DefaultPane.getChildren().clear();
-                createTiles();
-                //resizeTiles(scroll.getWidth());
-            });
-
-            tareaCargar.setOnFailed(e -> {
-                Logger.error("Error cargando mangas: " + tareaCargar.getException().getMessage());
-                DefaultPane.getChildren().clear();
-                DefaultPane.getChildren().add(new Label("Error al cargar mangas."));
-            });
-
-            Thread hilo = new Thread(tareaCargar);
-            hilo.setDaemon(true);
-            hilo.start();
-        }
+        
+        
         if(rootCache != null){
             return rootCache;
         }
         
+        controller.loadMangas();
+
         int columns = 5;
         double hgap = 15;
         double vgap = 15;
@@ -286,23 +128,23 @@ public class ScnMainMenu implements AppScene{
         
         Button btnConfig = new Button("");
         btnConfig.setOnAction(e -> { 
-            nav.goTo(new ScnConfig(this.nav));
+            nav.goTo(new ScnConfig(this.nav),this);
         });
         
         
         btnReload.setOnAction(e -> {       
             Logger.info("- Starting mangas reload.");
-            reloadMangas(); 
+            controller.reloadMangas(); 
         });
         btnImportar.setOnAction(e -> {
-            importFolder();
+            controller.importFolder();
         });
         btnAdd.setOnAction(e -> {
             String id = showInputDialog("Ingresar ID del manga");
             if (!id.isBlank()) {
                 Manga manga = new mdManga(id);
                 manga.saveData();
-                reloadMangas();
+                controller.reloadMangas();
             }
         });
                    
@@ -316,7 +158,7 @@ public class ScnMainMenu implements AppScene{
         btnDefCat.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnDefCat, Priority.ALWAYS);
         btnDefCat.setOnAction(e -> {
-            showCategory("Default");
+            controller.showCategory("Default");
         });
         categoryButtons.getChildren().add(btnDefCat);
         categoryButtons.setPadding(new Insets(15, 15, 0, 15));
@@ -328,7 +170,7 @@ public class ScnMainMenu implements AppScene{
 
             btnCategory.setMaxWidth(Double.MAX_VALUE);
             btnCategory.setOnAction(e -> {
-                showCategory(name);
+                controller.showCategory(name);
             });
             categoryButtons.getChildren().add(btnCategory);
         }
@@ -353,7 +195,7 @@ public class ScnMainMenu implements AppScene{
         panel.setCenter(scrlandpane);
         panel.setLeft(lateralmenu.getPane());
         scroll.widthProperty().addListener((obs, oldVal, newVal) -> {
-            resizeTiles(newVal.doubleValue());
+            controller.resizeTiles(newVal.doubleValue());
         });
         
         // Panel con todo
@@ -362,127 +204,26 @@ public class ScnMainMenu implements AppScene{
         rootCache.setOnKeyPressed( e -> {
             KeyCode key = e.getCode();
             switch (key){
-                case DIGIT1 -> showCategory("Default"); // siempre Default
+                case DIGIT1 -> controller.showCategory("Default"); // siempre Default
                 case F5 -> {
                     Logger.info("F5");
-                    reloadMangas();
+                    controller.reloadMangas();
                 }
                 case F12 ->{
-                    importFolder();
+                    controller.importFolder();
                 }    
                 case F7 -> {
-                    nav.goTo(new TestScene(nav));
+                    nav.goTo(new TestScene(nav),this);
                 }
             
             }
         });
-        if (!actualCategory.equals("Default")){
-            showCategory(actualCategory);
+        if (!controller.equals("Default")){
+            controller.showCategory(controller.getActualCategory());
         }
         return rootCache;
     }
-    private void showCategory(String Name) {
-        TilePane pane = manager.getCategories().get(Name).getPane().getPane();
 
-        // Configurar el pane si no está configurado aún
-        pane.setHgap(15);
-        pane.setVgap(15);
-        pane.setPadding(new Insets(15));
-        pane.setPrefColumns(5);
-
-        scroll.setContent(pane);
-        resizeTiles(scroll.getWidth());
-        actualCategory = Name;
-    }
-    public void resizeTiles(double totalWidth) {
-         // Obtener el pane activo en lugar de siempre DefaultPane
-        TilePane activePane = (TilePane) scroll.getContent();
-        if (activePane == null) return;
-
-        int columns = 5;
-        double hgap = 15, vgap = 15, padding = 15;
-        double tileWidth = (totalWidth - padding * 2 - hgap * (columns - 1) - 5) / columns;
-        double tileHeight = tileWidth * 1.5;
-
-        activePane.setPrefTileWidth(tileWidth);
-        activePane.setPrefTileHeight(tileHeight + 45);
-
-        for (javafx.scene.Node node : activePane.getChildren()) {
-            if (node instanceof VBox vbox) {
-                vbox.setPrefWidth(tileWidth);
-                vbox.setPrefHeight(tileHeight + 45);
-                if (!vbox.getChildren().isEmpty() && vbox.getChildren().get(0) instanceof StackPane container) {
-                    container.setPrefWidth(tileWidth);
-                    container.setPrefHeight(tileHeight);
-                }
-            }
-        }
-    }
-    private void createTiles(){
-        for(Manga manga : mangas){
-            if(manga.getCover() != null){
-                Platform.runLater(() -> {
-                    VBox iconManga = crearIcon(manga);
-                    //DefaultPane.getChildren().add(iconManga);
-                    manager.getCategories().get(manga.getCategory()).getPane().getPane().getChildren().add(iconManga);
-                });
-                Platform.runLater(() -> resizeTiles(scroll.getWidth()));
-
-            } else {
-                Logger.warning(manga.getTitle()+" - no tiene una cover.");
-            }
-        }
-    }
-    
-    
-    private void importFolder(){
-        DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setTitle("Importar manga");
-        
-        File selectedDirectory = dirChooser.showDialog(nav.getStage());
-        
-        if(selectedDirectory != null){
-            Logger.info("Carpeta seleccionada: " + selectedDirectory.getAbsolutePath());
-            copytoMangaFolder(selectedDirectory);
-        }
-        reloadMangas();
-    }
-    
-    private void copytoMangaFolder(File source){
-        String home = System.getProperty("user.home");
-        
-        Path mangafolder = Paths.get(home + "/Documents/SimpleReader/mangas");
-        Path sourcePath = source.toPath();
-        Path targetPath = mangafolder.resolve(source.getName());
-        
-        try {
-            if (source.isDirectory()) {
-                // Copiar directorio (requiere Java 8+)
-                // Usamos walk para copiar el contenido recursivamente
-                Files.walk(sourcePath).forEach(sourceItem -> {
-                    Path destination = targetPath.resolve(sourcePath.relativize(sourceItem));
-                    try {
-                        Files.copy(sourceItem, destination, StandardCopyOption.REPLACE_EXISTING);
-                    } catch (IOException e) {
-                        Logger.info("Error copiando el archivo: " + sourceItem);
-                        e.printStackTrace();
-                    }
-                });
-                Logger.info("Carpeta importada exitosamente a: " + targetPath);
-            } else {
-                // Copiar archivo simple (.zip o .cbz)
-                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                Logger.info("Archivo importado exitosamente a: " + targetPath);
-            }
-
-            // ¡IMPORTANTE! Aquí debes llamar al método que recarga la lista de mangas en tu menú principal
-            // Por ejemplo: reloadMangaList(); 
-
-        } catch (IOException e) {
-            Logger.info("Error al importar: " + e.getMessage());
-        }
-        
-    }
     public static String showInputDialog(String titulo) {
         Stage dialog = new Stage();
         dialog.setTitle(titulo);
@@ -506,15 +247,13 @@ public class ScnMainMenu implements AppScene{
 
         return resultado[0];
     }
-    private void reloadMangas(){
-        mangas = null;
-        rootCache = null;
-        
-        for(String name : manager.getNameList()){
-            manager.getCategories().get(name).getPane().getPane().getChildren().clear();
-        }
-        DefaultPane.getChildren().clear();
-        nav.goTo(new ScnMainMenu(nav));
+    
+    public ScrollPane getScroll(){
+        return scroll;
+    }
+    
+    public Scene getRootCache(){
+        return rootCache;
     }
     @Override
     public String getName(){

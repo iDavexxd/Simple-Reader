@@ -60,7 +60,7 @@ public class ScnConfig implements AppScene {
 
         Button btnBackToMenu = new Button("",back_container);
         btnBackToMenu.setOnAction(e ->{
-            nav.goTo(new ScnMainMenu(this.nav));
+            nav.goTo(new ScnMainMenu(this.nav),this);
         });
         btnBackToMenu.setPrefSize(24, 24);
         btnBackToMenu.setMinSize(24, 24);

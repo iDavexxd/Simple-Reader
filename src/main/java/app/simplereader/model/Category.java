@@ -36,7 +36,4 @@ public class Category {
         return this.Name;
     }
     
-    public void saveCategory(){
-        // Aca guardar un json
-    }
 }

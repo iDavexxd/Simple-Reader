@@ -26,8 +26,7 @@ public class MangaController {
     
     public MangaController(ScnMainMenu mainMenu,CategoryController manager){
         this.mainMenu = mainMenu;
-        this.manager = manager;
-        
+        this.manager = manager;        
     }
     
     public static List<Manga> loadMangas() {

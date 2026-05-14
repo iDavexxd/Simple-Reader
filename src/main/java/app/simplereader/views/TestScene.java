@@ -1,9 +1,7 @@
 package app.simplereader.views;
 
-import app.simplereader.views.ScnMangaMenu;
 import app.simplereader.model.AppConfig;
 import app.simplereader.controller.SceneController;
-import app.simplereader.repository.Manga;
 import app.simplereader.model.mdManga;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -29,7 +27,7 @@ public class TestScene implements AppScene{
         
         Button boton = new Button("Leer");
         boton.setOnAction(e -> {
-            nav.goTo(new ScnMangaMenu(nav, new mdManga(texto.getText())));
+            nav.goTo(new ScnMangaMenu(nav, new mdManga(texto.getText())),this);
         });
         root.setBottom(boton);
         

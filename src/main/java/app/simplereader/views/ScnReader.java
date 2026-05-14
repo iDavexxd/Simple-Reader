@@ -103,7 +103,7 @@ public class ScnReader implements AppScene {
                     manga.saveData();
                     nav.getStage().setOnCloseRequest(null);
                     nav.getStage().setMaximized(false);
-                    nav.goTo(new ScnMangaMenu(nav,manga));
+                    nav.goTo(new ScnMangaMenu(nav,manga),this);
                 }
                 case RIGHT -> {
                     if(e.isShiftDown()){
@@ -319,7 +319,7 @@ public class ScnReader implements AppScene {
         btnBackToMenu.setOnAction(e -> {
             manga.saveData();
             nav.getStage().setOnCloseRequest(null);
-            nav.goTo(new ScnMangaMenu(nav,this.manga));
+            nav.goTo(new ScnMangaMenu(nav,this.manga),this);
         });
         btnBackToMenu.setMinSize(24, 24);
         btnBackToMenu.setMaxSize(24, 24);
