@@ -5,6 +5,8 @@ import app.simplereader.model.LocalManga;
 import app.simplereader.model.Category;
 import app.simplereader.controller.CategoryController;
 import app.simplereader.controller.Logger;
+import app.simplereader.model.LocalSource;
+import app.simplereader.model.MangadexSource;
 import app.simplereader.repository.Manga;
 import app.simplereader.views.ScnMainMenu;
 import com.google.gson.JsonObject;
@@ -31,8 +33,11 @@ public class MangaController {
     
     public static List<Manga> loadMangas() {
         List<Manga> lista = new ArrayList<>();
-        lista.addAll(loadLocalMangas());
-        lista.addAll(loadMangaDexMangas());
+        //lista.addAll(loadLocalMangas());
+        LocalSource local = new LocalSource(manager);
+        lista.addAll(local.loadMangas());
+        MangadexSource md = new MangadexSource(manager);
+        lista.addAll(md.loadMangas());
         return lista;
     }
     

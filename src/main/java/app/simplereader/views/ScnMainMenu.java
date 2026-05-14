@@ -33,9 +33,9 @@ import app.simplereader.repository.AppScene;
  */
 public class ScnMainMenu implements AppScene{
     private final SceneController nav;    
-    private static Scene rootCache;
     private final MainMenuController controller;
     
+    private static Boolean mangasLoaded = false;
     
     private static ScrollPane scroll;
     
@@ -55,14 +55,15 @@ public class ScnMainMenu implements AppScene{
  
     @Override
     @SuppressWarnings("empty-statement")
-    public Scene getScene(){
+    public Scene getScene(){      
         
         
-        if(rootCache != null){
-            return rootCache;
+        
+        if(!mangasLoaded){
+            controller.loadMangas();
+            mangasLoaded = true;
+            // Cargar los mangas solo si no se han cargao
         }
-        
-        controller.loadMangas();
 
         int columns = 5;
         double hgap = 15;
@@ -128,7 +129,7 @@ public class ScnMainMenu implements AppScene{
         
         Button btnConfig = new Button("");
         btnConfig.setOnAction(e -> { 
-            nav.goTo(new ScnConfig(this.nav),this);
+            nav.goTo(new ScnConfig(this.nav));
         });
         
         
@@ -199,7 +200,9 @@ public class ScnMainMenu implements AppScene{
         });
         
         // Panel con todo
-        rootCache = new Scene(panel,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
+        
+        
+        Scene rootCache = new Scene(panel,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
         rootCache.getStylesheets().add(nav.getCss());
         rootCache.setOnKeyPressed( e -> {
             KeyCode key = e.getCode();
@@ -213,7 +216,7 @@ public class ScnMainMenu implements AppScene{
                     controller.importFolder();
                 }    
                 case F7 -> {
-                    nav.goTo(new TestScene(nav),this);
+                    nav.goTo(new TestScene(nav));
                 }
             
             }
@@ -251,10 +254,7 @@ public class ScnMainMenu implements AppScene{
     public ScrollPane getScroll(){
         return scroll;
     }
-    
-    public Scene getRootCache(){
-        return rootCache;
-    }
+   
     @Override
     public String getName(){
         return "Menu";

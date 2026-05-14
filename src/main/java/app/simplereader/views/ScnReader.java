@@ -1,6 +1,5 @@
 package app.simplereader.views;
 
-import app.simplereader.views.ScnMangaMenu;
 import app.simplereader.model.AppConfig;
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.SceneController;
@@ -103,7 +102,7 @@ public class ScnReader implements AppScene {
                     manga.saveData();
                     nav.getStage().setOnCloseRequest(null);
                     nav.getStage().setMaximized(false);
-                    nav.goTo(new ScnMangaMenu(nav,manga),this);
+                    nav.backScene();
                 }
                 case RIGHT -> {
                     if(e.isShiftDown()){
@@ -232,12 +231,12 @@ public class ScnReader implements AppScene {
                 
         
 
-        StackPane layout = new StackPane();
-        layout.getChildren().add(scrollVisor);
+        StackPane spane = new StackPane();
+        spane.getChildren().add(scrollVisor);
         
         lateralMenu = getLateralMenu();
         StackPane.setAlignment(lateralMenu, Pos.CENTER_LEFT);
-        layout.getChildren().add(lateralMenu);
+        spane.getChildren().add(lateralMenu);
         
         //esto cambia el tamaño de la imagen si se cambia el tamaño de la ventana
         scrollVisor.widthProperty().addListener((obs, oldVal, newVal) -> fitImageToScreen());
@@ -248,8 +247,8 @@ public class ScnReader implements AppScene {
                 fitImageToScreen();
             }
         });
-        layout.setOnMouseClicked(e -> {
-            double width = layout.getWidth();
+        spane.setOnMouseClicked(e -> {
+            double width = spane.getWidth();
             double x = e.getX();
 
             double leftZone = width * 0.4;
@@ -276,8 +275,8 @@ public class ScnReader implements AppScene {
             LoadImage();
         }
         
-        layout.getStyleClass().add("reader");
-        return layout;
+        spane.getStyleClass().add("reader");
+        return spane;
     }
     
     private Parent getLateralMenu(){
@@ -319,7 +318,7 @@ public class ScnReader implements AppScene {
         btnBackToMenu.setOnAction(e -> {
             manga.saveData();
             nav.getStage().setOnCloseRequest(null);
-            nav.goTo(new ScnMangaMenu(nav,this.manga),this);
+            nav.goTo(new ScnMangaMenu(nav,this.manga));
         });
         btnBackToMenu.setMinSize(24, 24);
         btnBackToMenu.setMaxSize(24, 24);
@@ -503,7 +502,6 @@ public class ScnReader implements AppScene {
         menuVisible = true;
         lateralMenu.setVisible(true);
         lateralMenu.setManaged(true);
-        //if(nav.getStage().isFullScreen()) layout.getStyleClass().remove("fullscreen");
     }
     
     private void NextPage(){

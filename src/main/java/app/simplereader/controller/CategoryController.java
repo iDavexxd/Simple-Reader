@@ -21,10 +21,11 @@ public class CategoryController {
     
     private static final String PATH = System.getProperty("user.home") + "/Documents/SimpleReader/data/user/categories.json";
     
-    private List<String> nameList = new ArrayList<>();
-    private HashMap<String, Category> categories = new HashMap<>(); // Nombre, Objeto categoria
+    public static List<String> nameList = new ArrayList<>();
+    public static HashMap<String, Category> categories = new HashMap<>(); // Nombre, Objeto categoria
 
-    private List<Category> categoryList = new ArrayList<>();
+    public static List<Category> categoryList = new ArrayList<>();
+    
     private final Gson gson = new Gson();
     
     public List<String> getNameList(){
@@ -76,16 +77,20 @@ public class CategoryController {
     
     private void createCategories(){
         categories.put("Default", new Category("Default"));
-        
+
         for (String name : nameList) {
-            Category category = new Category(name);
-            categoryList.add(category);
-            categories.put(name, category);
+            if (!categories.containsKey(name)) {  // ← corrección
+                Category category = new Category(name);
+                categoryList.add(category);
+                categories.put(name, category);  
+            }
         }
-        
     }
+    
     public void reloadCategories(){
-        
+        categories.clear();
+        categoryList.clear();
+        loadCategories();
     }
     
     public void saveCategories(){

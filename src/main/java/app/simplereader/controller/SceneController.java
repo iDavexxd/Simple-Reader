@@ -4,7 +4,8 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.controller.Logger;
 import javafx.stage.Stage;
 import app.simplereader.repository.AppScene;
-import java.lang.classfile.Opcode;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -13,7 +14,9 @@ import java.lang.classfile.Opcode;
 public class SceneController {
     
     private static String ActualSceneName;
-    private static AppScene ActualScene, LastScene;
+   
+    
+    private List<AppScene> scnList = new ArrayList<>();
     
     private final Stage stage;
     private String css;
@@ -38,17 +41,26 @@ public class SceneController {
     }
     
     
-    public void goTo(AppScene s, AppScene last){
+    public void goTo(AppScene s){
         ActualSceneName = s.getName();
-        LastScene = last;
-        ActualScene = s;
+        
         stage.setTitle(AppConfig.get().APP_TITLE+ " - "+ActualSceneName);
         stage.setScene(s.getScene());
+        scnList.add(s);
         Logger.info("Scene --> "+s.getName());
     }
     
+ 
+    
     public void backScene(){
-        goTo(LastScene, ActualScene);
+        if (scnList.size() < 2) return; // evita crash si no hay dónde volver
+        int indice = scnList.size() - 1;
+        scnList.remove(indice);                              // elimina la actual primero
+        AppScene anterior = scnList.get(scnList.size() - 1);
+        ActualSceneName = anterior.getName();
+        stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
+        stage.setScene(anterior.getScene());
+        Logger.info("Scene --> " + anterior.getName());
     }
 
     public String getCss() {

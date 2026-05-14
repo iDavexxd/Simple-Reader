@@ -23,6 +23,14 @@ public class AppConfig {
     public String READING_DIR = "LTR";
     public String SCALING_MODE = "FIT_HEIGHT";
     
+    public static String DATA_FOLDER = System.getProperty("user.home")
+            + File.separator
+            +"Documents"
+            +File.separator
+            +"SimpleReader"
+            + File.separator
+            + "/data/";
+    
     public final String VERSION = "Alpha 2.0";
     
     public static AppConfig instance;

@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,8 +38,10 @@ public class mdManga implements Manga{
     private List<Chapter> chUnreaded = new ArrayList<>();
     private List<Chapter> chReaded = new ArrayList<>();
     
-    private static final String DATA_FOLDER = System.getProperty("user.home") 
-    + "/Documents/SimpleReader/data/";
+    //private static final String DATA_FOLDER = System.getProperty("user.home") 
+    //+ "/Documents/SimpleReader/data/MangaDex/";
+    
+    private static final String DATA_FOLDER = AppConfig.DATA_FOLDER + "MangaDex"+File.separator;
     
     public mdManga(String mangaID){
         this.mangaID = mangaID;

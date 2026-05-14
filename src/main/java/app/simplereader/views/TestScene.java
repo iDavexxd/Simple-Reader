@@ -27,7 +27,7 @@ public class TestScene implements AppScene{
         
         Button boton = new Button("Leer");
         boton.setOnAction(e -> {
-            nav.goTo(new ScnMangaMenu(nav, new mdManga(texto.getText())),this);
+            nav.goTo(new ScnMangaMenu(nav, new mdManga(texto.getText())));
         });
         root.setBottom(boton);
         

@@ -74,7 +74,7 @@ public class ScnMangaMenu implements AppScene{
                 
         Button btnBack = new Button("",icon_back);
         btnBack.setOnAction(e -> {
-            nav.goTo(new ScnMainMenu(nav),this);
+            nav.backScene();
         });
         btnBack.setMinSize(24, 24);
         btnBack.setMaxSize(24,24);
@@ -109,7 +109,7 @@ public class ScnMangaMenu implements AppScene{
                 if (selChapter.hasPages()) {
                     int indice = manga.getChapters().indexOf(selChapter);
                     Logger.info("Selected: " + selChapter.getName());
-                    nav.goTo(new ScnReader(nav, manga, selChapter, indice),this);
+                    nav.goTo(new ScnReader(nav, manga, selChapter, indice));
                 } else {
                     Logger.noPagesAlert(selChapter);
                 }
@@ -177,7 +177,7 @@ public class ScnMangaMenu implements AppScene{
                 if (selChapter.hasPages()) {
                     int indice = manga.getChapters().indexOf(selChapter);
                     Logger.info("Selected: " + selChapter.getName());
-                    nav.goTo(new ScnReader(nav, manga, selChapter, indice),this);
+                    nav.goTo(new ScnReader(nav, manga, selChapter, indice));
                 } else {
                     Logger.noPagesAlert(selChapter);
                 }
@@ -231,11 +231,11 @@ public class ScnMangaMenu implements AppScene{
             switch (key) {
                 case F5 -> {
                     Logger.info("F5");
-                    nav.goTo(new ScnMangaMenu(nav, this.manga),this);
+                    nav.goTo(new ScnMangaMenu(nav, this.manga));
                     e.consume();
                 }
                 case ESCAPE -> {
-                    nav.goTo(new ScnMainMenu(nav),this);
+                    nav.goTo(new ScnMainMenu(nav));
                     e.consume();
                 }
                 

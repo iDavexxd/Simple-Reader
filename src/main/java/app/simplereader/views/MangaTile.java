@@ -125,9 +125,7 @@ public class MangaTile {
 
         iconManga.setAlignment(Pos.TOP_LEFT);
 
-//        iconManga.setOnMouseClicked(
-//            e -> nav.goTo(new ScnMangaMenu(nav, manga))
-//        );
+        iconManga.setOnMouseClicked( e -> nav.goTo(new ScnMangaMenu(nav,manga)));
 
         iconManga.getStyleClass().add("manga-icon");
 
