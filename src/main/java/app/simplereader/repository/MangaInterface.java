@@ -8,19 +8,21 @@ import java.util.Set;
  *
  * @author david
  */
-public interface Manga {
+public interface MangaInterface {
+    
     String getTitle();
     String getAuthor();
     String getDescription();
     List<String> getTags();
-    List<Chapter> getChapters();
+    List<ChapterInterface> getChapters();
     String getCover();
+    MangaSource getSource();
     
     Set<String> getReadedChapters();
     HashMap<String,Integer> getChapterLastPage();
     
-    List<Chapter> getReaded();
-    List<Chapter> getUnreaded();
+    List<ChapterInterface> getReaded();
+    List<ChapterInterface> getUnreaded();
     
     String getCategory();
     
@@ -28,3 +30,4 @@ public interface Manga {
     void setCategory(String c);
     void saveData();
 }
+

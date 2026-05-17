@@ -10,7 +10,7 @@ import javafx.scene.image.Image;
  *
  * @author david
  */
-public interface Chapter {
+public interface ChapterInterface {
     int getPageCount();
     Image getPage(int index);
     boolean hasPages();

@@ -2,8 +2,6 @@ package app.simplereader.model;
 
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.Sorter;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -18,12 +16,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
  * @author david
  */
-public class mdManga implements Manga{
+public class mdManga implements MangaInterface{
     
     private final String mangaID;
     private String title;
@@ -32,11 +32,11 @@ public class mdManga implements Manga{
     private String coverURL;
     private String Category;
     private final List<String> tags = new ArrayList<>();
-    private final List<Chapter> chapters = new ArrayList<>();
+    private final List<ChapterInterface> chapters = new ArrayList<>();
     private final Set<String> readedChapters = new HashSet<>();
     private final HashMap<String, Integer> lastChapterPage = new HashMap<>();
-    private List<Chapter> chUnreaded = new ArrayList<>();
-    private List<Chapter> chReaded = new ArrayList<>();
+    private List<ChapterInterface> chUnreaded = new ArrayList<>();
+    private List<ChapterInterface> chReaded = new ArrayList<>();
     
     //private static final String DATA_FOLDER = System.getProperty("user.home") 
     //+ "/Documents/SimpleReader/data/MangaDex/";
@@ -64,9 +64,10 @@ public class mdManga implements Manga{
     
     private boolean existsData() {
         return java.nio.file.Files.exists(
-            java.nio.file.Paths.get(DATA_FOLDER + "md_" + mangaID + ".json")
+            java.nio.file.Paths.get(DATA_FOLDER + "/md_" + mangaID + ".json")
         );
     }
+    
     private void loadMangaData(){
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -218,8 +219,8 @@ public class mdManga implements Manga{
         }
     }
     
-    private Chapter createChapter(String chapterID, String name, int Number){
-        Chapter chapter = new mdChapter(this,chapterID, name, Number);
+    private ChapterInterface createChapter(String chapterID, String name, int Number){
+        ChapterInterface chapter = new mdChapter(this,chapterID, name, Number);
         if(chapter.isReaded()){
             chReaded.add(chapter);
         }else{
@@ -249,7 +250,7 @@ public class mdManga implements Manga{
     }
 
     @Override
-    public List<Chapter> getChapters() {
+    public List<ChapterInterface> getChapters() {
         return chapters;
     }
 
@@ -354,12 +355,12 @@ public class mdManga implements Manga{
     }
     
     @Override
-    public List<Chapter> getUnreaded(){
+    public List<ChapterInterface> getUnreaded(){
         return chUnreaded;
     }
     
     @Override 
-    public List<Chapter> getReaded(){
+    public List<ChapterInterface> getReaded(){
         return chReaded;
     }
     

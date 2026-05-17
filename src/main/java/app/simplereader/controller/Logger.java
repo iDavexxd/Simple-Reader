@@ -1,7 +1,7 @@
 package app.simplereader.controller;
 
-import app.simplereader.repository.Chapter;
 import javafx.scene.control.Alert;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
@@ -18,7 +18,7 @@ public class Logger {
         System.out.println("[ERROR]!!!! - "+msg);
     }
     
-    public static void noPagesAlert(Chapter selChapter){
+    public static void noPagesAlert(ChapterInterface selChapter){
         // Creamos la alerta de tipo ADVERTENCIA
         Alert alerta = new Alert(Alert.AlertType.WARNING);
         alerta.setTitle("Capítulo vacío");

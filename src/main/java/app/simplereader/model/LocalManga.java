@@ -2,8 +2,6 @@ package app.simplereader.model;
 
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.Sorter;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -19,13 +17,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipFile;
 import org.yaml.snakeyaml.Yaml;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
  * @author david
  */
 
-public class LocalManga implements Manga{
+public class LocalManga implements MangaInterface{
     
     private String title;
     private String author;
@@ -38,9 +38,9 @@ public class LocalManga implements Manga{
     private final HashMap<String, Integer> lastChapterPage = new HashMap<>();
     private Set<String> readedChapters = new HashSet<>();
     private List<String> tags;
-    private transient List<Chapter> chapters;
-    private transient List<Chapter> chUnreaded = new ArrayList<>();
-    private transient List<Chapter> chReaded = new ArrayList<>();
+    private transient List<ChapterInterface> chapters;
+    private transient List<ChapterInterface> chUnreaded = new ArrayList<>();
+    private transient List<ChapterInterface> chReaded = new ArrayList<>();
     
     public LocalManga(File folder,String title, String author, String description){
         this.folder = folder;
@@ -79,7 +79,7 @@ public class LocalManga implements Manga{
             i++;
             ChapterType type = detectChapterType(subfolder);
 
-            Chapter chapter = null;
+            ChapterInterface chapter = null;
 
             switch(type){
                 case FOLDER -> {
@@ -350,21 +350,21 @@ public class LocalManga implements Manga{
         this.tags = tags;
     }
     @Override
-    public List<Chapter> getChapters() {
+    public List<ChapterInterface> getChapters() {
         return chapters;
     }
 
-    public void setChapters(List<Chapter> chapters) {
+    public void setChapters(List<ChapterInterface> chapters) {
         this.chapters = chapters;
     }
     
     @Override
-    public List<Chapter> getReaded(){
+    public List<ChapterInterface> getReaded(){
         return this.chReaded;
     }
     
     @Override
-    public List<Chapter> getUnreaded(){
+    public List<ChapterInterface> getUnreaded(){
         return this.chUnreaded;
     }
     

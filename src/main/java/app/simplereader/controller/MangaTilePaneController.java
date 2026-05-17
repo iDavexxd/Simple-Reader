@@ -1,12 +1,12 @@
 package app.simplereader.controller;
 
-import app.simplereader.repository.Manga;
 import app.simplereader.views.MangaTile;
 import app.simplereader.views.MangaTilePane;
 import java.util.List;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -16,7 +16,7 @@ public class MangaTilePaneController {
     
     private TilePane pane;
     private final SceneController nav;
-    private List<Manga> mangas;
+    private List<MangaInterface> mangas;
     private MangaTilePane view;
     
     public MangaTilePaneController(TilePane pane, SceneController nav, MangaTilePane view){
@@ -26,14 +26,14 @@ public class MangaTilePaneController {
     }
 
     
-    public void addManga(Manga manga){
+    public void addManga(MangaInterface manga){
         pane.getChildren().add(MangaTile.create(manga, nav));
     }
       
 
         
     public void createTiles(){
-        for(Manga manga: mangas){
+        for(MangaInterface manga: mangas){
             addManga(manga);
         }
     }

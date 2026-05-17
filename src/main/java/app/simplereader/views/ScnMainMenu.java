@@ -5,7 +5,6 @@ import app.simplereader.controller.CategoryController;
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
-import app.simplereader.repository.Manga;
 import app.simplereader.model.mdManga;
 
 import javafx.geometry.Insets;
@@ -26,6 +25,7 @@ import javafx.scene.shape.SVGPath;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import app.simplereader.repository.AppScene;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -143,7 +143,7 @@ public class ScnMainMenu implements AppScene{
         btnAdd.setOnAction(e -> {
             String id = showInputDialog("Ingresar ID del manga");
             if (!id.isBlank()) {
-                Manga manga = new mdManga(id);
+                MangaInterface manga = new mdManga(id);
                 manga.saveData();
                 controller.reloadMangas();
             }

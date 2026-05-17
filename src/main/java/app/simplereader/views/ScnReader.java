@@ -3,8 +3,6 @@ package app.simplereader.views;
 import app.simplereader.model.AppConfig;
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.SceneController;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +31,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
@@ -41,16 +41,16 @@ import app.simplereader.repository.AppScene;
 public class ScnReader implements AppScene {
 
     private final SceneController nav;
-    private Chapter chapter;
+    private ChapterInterface chapter;
     private int chapternum;
-    private final Manga manga;
+    private final MangaInterface manga;
 
     private ImageView visor;
     private ScrollPane scrollVisor;
     private int indiceactual = 0;
     private Parent layout;
     private ComboBox<Integer> pagina;
-    private ComboBox<Chapter> caps;
+    private ComboBox<ChapterInterface> caps;
     private boolean updatingUI;
     private Parent lateralMenu;
     private boolean menuVisible = true;
@@ -64,7 +64,7 @@ public class ScnReader implements AppScene {
         return t;
     });
     
-    public ScnReader(SceneController nav, Manga manga, Chapter chapter, int indice) {
+    public ScnReader(SceneController nav, MangaInterface manga, ChapterInterface chapter, int indice) {
         this.nav = nav;
         this.chapter = chapter;
         this.chapternum = indice;
@@ -146,7 +146,7 @@ public class ScnReader implements AppScene {
         return scene;
     }
     
-    private void loadChapter(Chapter chapter, int index){
+    private void loadChapter(ChapterInterface chapter, int index){
         this.chapter = chapter;
         this.chapternum = index;
         
@@ -366,12 +366,12 @@ public class ScnReader implements AppScene {
         btnBackCh.getStyleClass().add("reader-button2");
         caps = new ComboBox<>();
         caps.setMinHeight(50);
-        for(Chapter cap : manga.getChapters()){
+        for(ChapterInterface cap : manga.getChapters()){
             caps.getItems().add(cap);
         }
         caps.setValue(this.chapter);
         caps.setOnAction(e -> {
-            Chapter selected = caps.getValue();
+            ChapterInterface selected = caps.getValue();
             if (selected != null) {
                 int index = manga.getChapters().indexOf(selected);
                 if (index >= 0) {
@@ -382,7 +382,7 @@ public class ScnReader implements AppScene {
         });
         caps.setCellFactory(list -> new javafx.scene.control.ListCell<>() {
             @Override
-            protected void updateItem(Chapter item, boolean empty) {
+            protected void updateItem(ChapterInterface item, boolean empty) {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? "" : item.getName());
             }
@@ -390,7 +390,7 @@ public class ScnReader implements AppScene {
 
         caps.setButtonCell(new javafx.scene.control.ListCell<>() {
             @Override
-            protected void updateItem(Chapter item, boolean empty) {
+            protected void updateItem(ChapterInterface item, boolean empty) {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? "" : item.getName());
             }
@@ -533,7 +533,7 @@ public class ScnReader implements AppScene {
     }
     private void NextChapter(){
         if (this.chapternum < this.manga.getChapters().size() - 1) {
-            Chapter next = this.manga.getChapters().get(this.chapternum + 1);
+            ChapterInterface next = this.manga.getChapters().get(this.chapternum + 1);
             if(next.hasPages()){
                 this.chapter.markAsReaded();
                 manga.saveData();
@@ -547,7 +547,7 @@ public class ScnReader implements AppScene {
     private void BackChapter(){
         if (this.chapternum > 0) 
         {
-            Chapter last = this.manga.getChapters().get(this.chapternum - 1);
+            ChapterInterface last = this.manga.getChapters().get(this.chapternum - 1);
             if(last.hasPages())
             {
                 manga.saveData();

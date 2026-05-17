@@ -6,7 +6,6 @@ package app.simplereader.views;
 
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.SceneController;
-import app.simplereader.repository.Manga;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -15,6 +14,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -22,7 +22,7 @@ import javafx.scene.text.TextAlignment;
  */
 public class MangaTile {
     
-    public static VBox create(Manga manga, SceneController nav){
+    public static VBox create(MangaInterface manga, SceneController nav){
         ImageView coverView = new ImageView();
         coverView.setPreserveRatio(true);
         coverView.setManaged(false);

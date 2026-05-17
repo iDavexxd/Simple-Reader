@@ -1,8 +1,6 @@
 package app.simplereader.model;
 
 import app.simplereader.controller.Logger;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,20 +11,22 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.image.Image;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
  * @author david
  */
-public class mdChapter implements Chapter{
+public class mdChapter implements ChapterInterface{
     
     private final String chapterID;
     private final List<String> pageUrls = new ArrayList<>();
     private final int Number;
     private final String name;
-    private final Manga manga;
+    private final MangaInterface manga;
     private int lastRead;
-    public mdChapter(Manga manga,String chapterID, String name, int Number){
+    public mdChapter(MangaInterface manga,String chapterID, String name, int Number){
         this.chapterID = chapterID;
         this.name = name;
         this.Number = Number;

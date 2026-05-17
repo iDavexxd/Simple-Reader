@@ -2,13 +2,13 @@ package app.simplereader.model;
 
 import app.simplereader.controller.CategoryController;
 import app.simplereader.controller.Logger;
-import app.simplereader.repository.Manga;
 import app.simplereader.repository.MangaSource;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -21,7 +21,7 @@ public class MangadexSource implements MangaSource{
     }
     
     @Override
-    public List<Manga> loadMangas(){
+    public List<MangaInterface> loadMangas(){
         String home = System.getProperty("user.home");
         File dataFolder = new File(home + "/Documents/SimpleReader/data/MangaDex/");
         
@@ -38,7 +38,7 @@ public class MangadexSource implements MangaSource{
             return new ArrayList<>();
         }
 
-        List<Manga> lista = new ArrayList<>();
+        List<MangaInterface> lista = new ArrayList<>();
         for (File archivo : archivos) {
             try {
                 String contenido = java.nio.file.Files.readString(archivo.toPath());

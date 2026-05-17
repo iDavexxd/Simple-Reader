@@ -1,9 +1,9 @@
 package app.simplereader.model;
 
 import app.simplereader.views.CategoryPane;
-import app.simplereader.repository.Manga;
 import java.util.ArrayList;
 import java.util.List;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -12,7 +12,7 @@ import java.util.List;
 public class Category {
     
     private String Name;
-    private List<Manga> mangaList = new ArrayList<>();
+    private List<MangaInterface> mangaList = new ArrayList<>();
     private CategoryPane pane = new CategoryPane(Name, mangaList);
     
     
@@ -20,11 +20,11 @@ public class Category {
         this.Name = name;
     } // Constructor ahre que comentaba
     
-    public List<Manga> getMangas(){
+    public List<MangaInterface> getMangas(){
         return this.mangaList;
     }
     
-    public void addManga(Manga manga){
+    public void addManga(MangaInterface manga){
         this.mangaList.add(manga);
     }
     

@@ -4,8 +4,6 @@ import app.simplereader.views.ScnMainMenu;
 import app.simplereader.model.AppConfig;
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.SceneController;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -26,16 +24,18 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
  * @author david
  */
 public class ScnMangaMenu implements AppScene{
-    private final Manga manga;
+    private final MangaInterface manga;
     private final SceneController nav;
     private boolean isdown = true;
-    public ScnMangaMenu(SceneController nav,Manga manga){
+    public ScnMangaMenu(SceneController nav,MangaInterface manga){
         this.manga = manga;
         this.nav = nav;
         nav.getStage().setResizable(false);
@@ -97,14 +97,14 @@ public class ScnMangaMenu implements AppScene{
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20,cover,datos);
         //panel con to'
-        ListView<Chapter> listaCaps = new ListView<>();
+        ListView<ChapterInterface> listaCaps = new ListView<>();
         HBox.setHgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
-        for (Chapter cap : manga.getChapters()) {
+        for (ChapterInterface cap : manga.getChapters()) {
             listaCaps.getItems().add(cap);
         }
 
         listaCaps.setOnMouseClicked(e -> {
-            Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
+            ChapterInterface selChapter = listaCaps.getSelectionModel().getSelectedItem();
             if (selChapter != null) {
                 if (selChapter.hasPages()) {
                     int indice = manga.getChapters().indexOf(selChapter);
@@ -117,9 +117,9 @@ public class ScnMangaMenu implements AppScene{
         });
 
         listaCaps.getStyleClass().add("chapter-list");
-        listaCaps.setCellFactory(lv -> new ListCell<Chapter>() {
+        listaCaps.setCellFactory(lv -> new ListCell<ChapterInterface>() {
             @Override
-            protected void updateItem(Chapter cap, boolean empty) {
+            protected void updateItem(ChapterInterface cap, boolean empty) {
                 super.updateItem(cap, empty);
                 getStyleClass().removeAll("chapter-read", "chapter-unread");
                 if (empty || cap == null) {
@@ -168,7 +168,7 @@ public class ScnMangaMenu implements AppScene{
         Button btnKeepReading =  new Button("",icon_read);
         btnKeepReading.getStyleClass().add("mangamenu-button");
         btnKeepReading.setOnAction(e -> {
-            Chapter selChapter = manga.getChapters().stream()
+            ChapterInterface selChapter = manga.getChapters().stream()
                     .filter(c -> !c.isReaded())
                     .findFirst()
                     .orElse(null);

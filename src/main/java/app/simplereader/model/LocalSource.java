@@ -6,12 +6,12 @@ package app.simplereader.model;
 
 import app.simplereader.controller.CategoryController;
 import app.simplereader.controller.Logger;
-import app.simplereader.repository.Manga;
 import app.simplereader.repository.MangaSource;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -28,7 +28,7 @@ public class LocalSource implements MangaSource {
     
     
     @Override
-    public List<Manga> loadMangas(){
+    public List<MangaInterface> loadMangas(){
         String home = System.getProperty("user.home");
         File mainfolder = new File(home + "/Documents/SimpleReader/mangas/local");
         if (!mainfolder.exists()) {
@@ -44,7 +44,7 @@ public class LocalSource implements MangaSource {
         }
 
         Arrays.sort(mangas);
-        List<Manga> lista = new ArrayList<>();
+        List<MangaInterface> lista = new ArrayList<>();
         for (File subcarpeta : mangas) {
             LocalManga manga = new LocalManga(subcarpeta, subcarpeta.getName(), "", "");
             if (manga.getCategory() == null) manga.setCategory("Default");

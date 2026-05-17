@@ -1,8 +1,8 @@
 package app.simplereader.views;
 
-import app.simplereader.repository.Manga;
 import java.util.List;
 import javafx.scene.layout.TilePane;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -12,9 +12,9 @@ public class CategoryPane{
     
     private TilePane categoryTilePane = new TilePane();
     private final String categoryName;
-    private List<Manga> mangas;
+    private List<MangaInterface> mangas;
     
-    public CategoryPane(String name, List<Manga> mangas){
+    public CategoryPane(String name, List<MangaInterface> mangas){
         this.categoryName = name;
         this.mangas = mangas;
     }

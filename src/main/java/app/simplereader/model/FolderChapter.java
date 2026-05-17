@@ -2,27 +2,27 @@ package app.simplereader.model;
 
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.Sorter;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javafx.scene.image.Image;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
  * @author david
  */
-public class FolderChapter implements Chapter{
+public class FolderChapter implements ChapterInterface{
     
     private final File folder;
     private final List<File> pages = new ArrayList<>();
     private final String name;
-    private final Manga manga;
+    private final MangaInterface manga;
     private int lastRead;
     
-    public FolderChapter(Manga manga,File folder){
+    public FolderChapter(MangaInterface manga,File folder){
         this.folder = folder;
         this.name = folder.getName();
         this.manga = manga;

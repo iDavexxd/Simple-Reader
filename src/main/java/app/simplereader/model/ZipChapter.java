@@ -3,8 +3,6 @@ package app.simplereader.model;
 
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.Sorter;
-import app.simplereader.repository.Chapter;
-import app.simplereader.repository.Manga;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,21 +14,23 @@ import java.util.zip.ZipFile;
 import javafx.scene.image.Image;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
+import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.ChapterInterface;
 
 /**
  *
  * @author david
  */
-public class ZipChapter implements Chapter{
+public class ZipChapter implements ChapterInterface{
     
     private Integer number;
     private final File zipFile;
     private String name;
     private List<String> pages;
-    private final Manga manga;    
+    private final MangaInterface manga;    
     private int lastRead;
     
-    public ZipChapter(Manga manga,File zipFile){
+    public ZipChapter(MangaInterface manga,File zipFile){
         this.zipFile = zipFile;
         String fname = zipFile.getName();
         int dot = fname.lastIndexOf('.');

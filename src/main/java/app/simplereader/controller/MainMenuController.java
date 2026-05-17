@@ -1,6 +1,5 @@
 package app.simplereader.controller;
 
-import app.simplereader.repository.Manga;
 import app.simplereader.views.MangaTile;
 import app.simplereader.views.ScnMainMenu;
 import java.io.File;
@@ -18,6 +17,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -28,7 +28,7 @@ public class MainMenuController {
     private SceneController nav;
     private CategoryController manager;
     private ScnMainMenu mainMenu;
-    private List<Manga> mangas = new ArrayList<>();
+    private List<MangaInterface> mangas = new ArrayList<>();
     
     private static String actualCategory = "Default";
     
@@ -74,9 +74,9 @@ public class MainMenuController {
 //            lblCargando.getStyleClass().add("loading-label");
 //            DefaultPane.getChildren().add(lblCargando);
 
-            Task<List<Manga>> tareaCargar = new Task<>() {
+            Task<List<MangaInterface>> tareaCargar = new Task<>() {
                 @Override
-                protected List<Manga> call() {
+                protected List<MangaInterface> call() {
                     return MangaControler.loadMangas(); // Se ejecuta en hilo de fondo
                 }
             };
@@ -102,7 +102,7 @@ public class MainMenuController {
     }
     
     private void createTiles(){
-        for(Manga manga : mangas){
+        for(MangaInterface manga : mangas){
             if(manga.getCover() != null){
                 Platform.runLater(() -> {
                     VBox iconManga = MangaTile.create(manga,mainMenu.getSceneController());
