@@ -30,4 +30,3 @@ public interface MangaInterface {
     void setCategory(String c);
     void saveData();
 }
-

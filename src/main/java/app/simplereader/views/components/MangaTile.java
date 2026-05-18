@@ -1,11 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package app.simplereader.views;
+package app.simplereader.views.components;
 
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.SceneController;
+import app.simplereader.model.Manga;
+import app.simplereader.views.ScnMangaMenu;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -14,7 +12,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
-import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -22,7 +19,9 @@ import app.simplereader.repository.MangaInterface;
  */
 public class MangaTile {
     
-    public static VBox create(MangaInterface manga, SceneController nav){
+    private static SceneController nav = SceneController.getInstance();
+    
+    public static VBox create(Manga manga){
         ImageView coverView = new ImageView();
         coverView.setPreserveRatio(true);
         coverView.setManaged(false);
@@ -30,9 +29,9 @@ public class MangaTile {
         StackPane coverContainer = new StackPane(coverView);
         coverContainer.setMaxSize(250, Double.MAX_VALUE);
 
-        if(manga.getCover() != null){
+        if(manga.getCoverURL() != null){
 
-            Image icon = new Image(manga.getCover(), true);
+            Image icon = new Image(manga.getCoverURL(), true);
             coverView.setImage(icon);
 
             icon.progressProperty().addListener((obs, old, progress) -> {
@@ -90,7 +89,7 @@ public class MangaTile {
                 }
             });
 
-            Logger.info(manga.getTitle()+" - "+manga.getCover()+" --> Loaded");
+            Logger.info(manga.getTitle()+" - "+manga.getCoverURL()+" --> Loaded");
         }
 
         // Clip redondeado
@@ -125,7 +124,7 @@ public class MangaTile {
 
         iconManga.setAlignment(Pos.TOP_LEFT);
 
-        iconManga.setOnMouseClicked( e -> nav.goTo(new ScnMangaMenu(nav,manga)));
+        iconManga.setOnMouseClicked( e -> nav.goTo(new ScnMangaMenu(manga)));
 
         iconManga.getStyleClass().add("manga-icon");
 

@@ -1,4 +1,4 @@
-package app.simplereader.views;
+package app.simplereader.views.components;
 
 import javafx.geometry.Pos;
 import javafx.scene.Parent;

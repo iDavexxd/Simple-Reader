@@ -1,20 +1,20 @@
 package app.simplereader.views;
 
-import app.simplereader.model.AppConfig;
-import app.simplereader.controller.CategoryController;
+import app.simplereader.views.components.SideMenu;
+import app.simplereader.controller.LibraryController;
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
-import app.simplereader.model.mdManga;
+import app.simplereader.controller.SourceManager;
+import app.simplereader.model.AppConfig;
+import app.simplereader.model.Category;
 
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
-import static javafx.scene.input.KeyCode.F7;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -22,31 +22,40 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import app.simplereader.repository.AppScene;
-import app.simplereader.repository.MangaInterface;
+import app.simplereader.repository.MangaSource;
+
+import java.util.HashMap;
+import java.util.Map;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 
 /**
  *
  * @author david
  */
 public class ScnMainMenu implements AppScene{
-    private final SceneController nav;    
-    private final MainMenuController controller;
+    private static ScnMainMenu instance;
     
-    private static Boolean mangasLoaded = false;
+    private final SceneController nav = SceneController.getInstance();    
+    private final LibraryController lib = LibraryController.getInstance();
     
-    private static ScrollPane scroll;
+    private ScrollPane scroll;
+    private TilePane activePane;
+    private String currentCategory = "Default";
     
-    public static CategoryController manager = new CategoryController();
-    private static TilePane DefaultPane = manager.getCategories().get("Default").getPane().getPane();
+    private MainMenuController controller;
     
+    private static Map<String, TilePane> categoryPanes = new HashMap<>();
     
-    public ScnMainMenu(SceneController nav){
-        this.nav = nav;
-        this.controller = new MainMenuController(nav, manager, this);
+    public ScnMainMenu(){
+        MainMenuController.doInstance(this);
+        this.controller = MainMenuController.getInstance();
         nav.getStage().setResizable(false);
+    }
+    
+    public static ScnMainMenu getInstance(){
+        return instance;
     }
     
     public SceneController getSceneController(){
@@ -54,36 +63,28 @@ public class ScnMainMenu implements AppScene{
     }
  
     @Override
-    @SuppressWarnings("empty-statement")
     public Scene getScene(){      
         
-        
-        
-        if(!mangasLoaded){
-            controller.loadMangas();
-            mangasLoaded = true;
-            // Cargar los mangas solo si no se han cargao
-        }
-
         int columns = 5;
         double hgap = 15;
         double vgap = 15;
         double padding = 15;        
         
+        // Crear TilePanes para cada categoría
+        controller.doCreateCategoryPanes();
         
-        // Panel con las tiles
-        DefaultPane.setHgap(hgap);
-        DefaultPane.setVgap(vgap);
-        DefaultPane.setPadding(new Insets(padding));
-        DefaultPane.setPrefColumns(columns);
+        // Pane activo por defecto
+        activePane = categoryPanes.getOrDefault("Default", controller.createTilePane("Default", hgap, vgap, padding, columns));
+        categoryPanes.putIfAbsent("Default", activePane);
         
-        
+        // Cargar mangas en los tiles
+        controller.loadAllTiles();
         
         // Scroll
-        scroll = new ScrollPane(DefaultPane); 
+        scroll = new ScrollPane(activePane); 
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        
+        scroll.setFitToWidth(true);
         
         // Iconos
         
@@ -132,25 +133,18 @@ public class ScnMainMenu implements AppScene{
             nav.goTo(new ScnConfig(this.nav));
         });
         
-        
         btnReload.setOnAction(e -> {       
             Logger.info("- Starting mangas reload.");
             controller.reloadMangas(); 
         });
         btnImportar.setOnAction(e -> {
-            controller.importFolder();
+            importFolder();
         });
-        btnAdd.setOnAction(e -> {
-            String id = showInputDialog("Ingresar ID del manga");
-            if (!id.isBlank()) {
-                MangaInterface manga = new mdManga(id);
-                manga.saveData();
-                controller.reloadMangas();
-            }
-        });
-                   
         
-        scroll.setFitToWidth(true);
+                   
+        scroll.widthProperty().addListener((obs, oldVal, newVal) -> {
+            controller.resizeTiles(newVal.doubleValue());
+        });
         
         // Menu con las categorias
         
@@ -165,25 +159,24 @@ public class ScnMainMenu implements AppScene{
         categoryButtons.setPadding(new Insets(15, 15, 0, 15));
         categoryButtons.setSpacing(2);
 
-        for(String name:manager.getNameList()){
-            Button btnCategory = new Button(name);
-            HBox.setHgrow(btnCategory, Priority.ALWAYS);
-
-            btnCategory.setMaxWidth(Double.MAX_VALUE);
-            btnCategory.setOnAction(e -> {
-                controller.showCategory(name);
-            });
-            categoryButtons.getChildren().add(btnCategory);
+        for (Category cat : lib.getAllCategories()) {
+            if (!cat.getName().equals("Default")) {
+                Button btnCategory = new Button(cat.getName());
+                HBox.setHgrow(btnCategory, Priority.ALWAYS);
+                btnCategory.setMaxWidth(Double.MAX_VALUE);
+                btnCategory.setOnAction(e -> {
+                    controller.showCategory(cat.getName());
+                });
+                categoryButtons.getChildren().add(btnCategory);
+            }
         }
-        
         
         BorderPane categoriesPane = new BorderPane();
         categoriesPane.setCenter(categoryButtons);
         categoriesPane.setMinHeight(30);
         categoriesPane.setMaxHeight(30);
         
-        VBox scrlandpane = new VBox(categoriesPane,scroll);
-        
+        VBox scrlandpane = new VBox(categoriesPane, scroll);
         
         // Menu lateral
         
@@ -195,60 +188,92 @@ public class ScnMainMenu implements AppScene{
         BorderPane panel = new BorderPane();
         panel.setCenter(scrlandpane);
         panel.setLeft(lateralmenu.getPane());
-        scroll.widthProperty().addListener((obs, oldVal, newVal) -> {
-            controller.resizeTiles(newVal.doubleValue());
+        
+        StackPane root = new StackPane();
+        root.getChildren().add(panel);
+        StackPane overlay = createSourcePickerOverlay();
+        root.getChildren().add(overlay);
+        btnAdd.setOnAction(e -> {
+            overlay.setVisible(true);
+            overlay.setManaged(true);
         });
         
-        // Panel con todo
-        
-        
-        Scene rootCache = new Scene(panel,AppConfig.get().WIDTH,AppConfig.get().HEIGHT);
+        Scene rootCache = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         rootCache.getStylesheets().add(nav.getCss());
         rootCache.setOnKeyPressed( e -> {
             KeyCode key = e.getCode();
             switch (key){
-                case DIGIT1 -> controller.showCategory("Default"); // siempre Default
+                case DIGIT1 -> controller.showCategory("Default");
                 case F5 -> {
                     Logger.info("F5");
                     controller.reloadMangas();
                 }
-                case F12 ->{
-                    controller.importFolder();
-                }    
-                case F7 -> {
-                    nav.goTo(new TestScene(nav));
-                }
-            
+                case F12 -> importFolder();
             }
         });
-        if (!controller.equals("Default")){
-            controller.showCategory(controller.getActualCategory());
-        }
+        
         return rootCache;
     }
+    
+    private StackPane createSourcePickerOverlay() {
+        StackPane overlay = new StackPane();
+        overlay.setVisible(false); // Oculto por defecto
+        overlay.setManaged(false); // No afecta al layout cuando está oculto
+        // Fondo oscuro semitransparente
+        javafx.scene.shape.Rectangle bg = new javafx.scene.shape.Rectangle();
+        bg.setFill(javafx.scene.paint.Color.rgb(0, 0, 0, 0.6));
+        bg.widthProperty().bind(overlay.widthProperty());
+        bg.heightProperty().bind(overlay.heightProperty());
+        // La "tarjeta" central
+        VBox card = new VBox(15);
+        card.getStyleClass().add("picker-card"); // Para CSS
+        card.setPadding(new Insets(20));
+        card.setAlignment(Pos.CENTER);
+        card.setMaxWidth(300);
+        Label title = new Label("Selecciona una fuente");
+        title.getStyleClass().add("picker-title");
+        VBox sourcesList = new VBox(10);
+        sourcesList.setAlignment(Pos.CENTER);
+        // Botones para cada Source
+        for (MangaSource src : SourceManager.getInstance().getAllSources()) {
+            Button btn = new Button(src.getName());
+            btn.getStyleClass().add("picker-btn");
+            btn.setMaxWidth(Double.MAX_VALUE);
 
-    public static String showInputDialog(String titulo) {
-        Stage dialog = new Stage();
-        dialog.setTitle(titulo);
-        dialog.initModality(Modality.APPLICATION_MODAL); // bloquea la ventana principal
+            btn.setOnAction(e -> {
+                overlay.setVisible(false);
+                overlay.setManaged(false);
+                controller.doGoToSource(src);
+            });
 
-        TextField textField = new TextField();
-        Button btnOk = new Button("OK");
-
-        final String[] resultado = {""};
-
-        btnOk.setOnAction(e -> {
-            resultado[0] = textField.getText();
-            dialog.close();
+            sourcesList.getChildren().add(btn);
+        }
+        // Botón cancelar
+        Button btnCancel = new Button("Cancelar");
+        btnCancel.getStyleClass().add("picker-btn-cancel");
+        btnCancel.setOnAction(e -> {
+            overlay.setVisible(false);
+            overlay.setManaged(false);
         });
+        card.getChildren().addAll(title, sourcesList, btnCancel);
+        overlay.getChildren().addAll(bg, card);
+        return overlay;
+    }
 
-        VBox layout = new VBox(10, textField, btnOk);
-        layout.setPadding(new Insets(20));
+    
+    
+    private void importFolder() {
+        // TODO: Implementar importación de carpetas
+        Logger.info("Import folder - pending implementation");
+    }
 
-        dialog.setScene(new Scene(layout, 300, 100));
-        dialog.showAndWait(); // espera a que se cierre
-
-        return resultado[0];
+        
+    public Map<String, TilePane> getCategoriesPanes(){
+        return ScnMainMenu.categoryPanes;
+    }
+    
+    public TilePane getActivePane(){
+        return activePane;
     }
     
     public ScrollPane getScroll(){
@@ -262,5 +287,16 @@ public class ScnMainMenu implements AppScene{
     @Override
     public String getParentName(){
         return "Main";
+    }
+    
+    /*
+    Setters:
+    */
+    public void setActivePane(TilePane pane){
+        activePane = pane;
+    }
+    
+    public void setCurrentCategory(String name){
+        currentCategory = name;
     }
 }

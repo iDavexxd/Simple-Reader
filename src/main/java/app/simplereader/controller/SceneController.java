@@ -20,10 +20,15 @@ public class SceneController {
     
     private final Stage stage;
     private String css;
-    private SceneController instance;
-
-    public SceneController getInstance() {
+    
+    private static SceneController instance;
+    
+    public static SceneController getInstance() {
         return instance;
+    }
+    
+    public static void doInstance(Stage stage){
+        instance = new SceneController(stage);
     }
     
     public SceneController(Stage stage) {

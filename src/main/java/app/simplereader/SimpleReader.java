@@ -1,13 +1,14 @@
 package app.simplereader;
 
-
+import app.simplereader.controller.LibraryController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.controller.Logger;
+import app.simplereader.controller.SourceManager;
+import app.simplereader.model.LocalSource;
 import app.simplereader.views.ScnMainMenu;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
-
 
 /**
  *
@@ -15,7 +16,6 @@ import javafx.stage.Stage;
  */
 public class SimpleReader extends Application{
           
-    
     @Override
     public void start(Stage stage) {
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoSlab-Regular.ttf"), 14);
@@ -25,19 +25,20 @@ public class SimpleReader extends Application{
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoMono-Regular.ttf"), 14);
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoMono-Bold.ttf"), 14);
         
-
-        
-        SceneController nav = new SceneController(stage);
-        nav.goTo(new ScnMainMenu(nav));
-        stage.setOnCloseRequest(e -> Platform.exit());
+        // Registrar sources
+        SourceManager.getInstance().registerSource(new LocalSource());
+        SourceManager.getInstance().loadSources();
+        SceneController.doInstance(stage);
+        SceneController.getInstance().goTo(new ScnMainMenu());
+        stage.setOnCloseRequest(e -> {
+            Platform.exit();
+            LibraryController.getInstance().saveLibrary();
+            });
         stage.show();
     }
         
-
     public static void main(String[] args) {
         launch(args);
         Logger.info("XD");
     }
-
-
 }

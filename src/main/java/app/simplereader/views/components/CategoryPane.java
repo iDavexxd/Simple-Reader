@@ -1,4 +1,4 @@
-package app.simplereader.views;
+package app.simplereader.views.components;
 
 import java.util.List;
 import javafx.scene.layout.TilePane;

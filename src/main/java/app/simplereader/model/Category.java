@@ -1,39 +1,37 @@
 package app.simplereader.model;
 
-import app.simplereader.views.CategoryPane;
 import java.util.ArrayList;
 import java.util.List;
-import app.simplereader.repository.MangaInterface;
 
 /**
  *
  * @author david
  */
 public class Category {
+    private final String name;
     
-    private String Name;
-    private List<MangaInterface> mangaList = new ArrayList<>();
-    private CategoryPane pane = new CategoryPane(Name, mangaList);
-    
+    private List<Manga> mangaList;
     
     public Category(String name){
-        this.Name = name;
-    } // Constructor ahre que comentaba
-    
-    public List<MangaInterface> getMangas(){
-        return this.mangaList;
-    }
-    
-    public void addManga(MangaInterface manga){
-        this.mangaList.add(manga);
-    }
-    
-    public CategoryPane getPane(){
-        return this.pane;
+        this.name = name;
+        mangaList = new ArrayList<>();
     }
     
     public String getName(){
-        return this.Name;
+        return name;
     }
     
+    public List<Manga> getMangas(){
+        return mangaList;
+    }
+    
+    public void addManga(Manga manga){
+        if (!mangaList.contains(manga)) {
+            mangaList.add(manga);
+        }
+    }
+    
+    public void removeManga(Manga manga){
+        mangaList.remove(manga);
+    }
 }

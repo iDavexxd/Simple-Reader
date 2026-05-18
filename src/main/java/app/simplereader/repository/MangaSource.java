@@ -10,18 +10,16 @@ import java.util.List;
  */
 public interface MangaSource {   
     
-    
-    String getMangaName();
-    
-    String getMangaID();
-    String getMangaTitle(String id);
-    String getMangaAuthor(String id);
-    String getMangaDescription(String id);
-    
+    String getID();
+    String getName();
+    String getCoverURL(String MangaID);
+    List<Manga> searchManga(String query);
+    List<Chapter> getChapters(String mangaID);
+    List<String> getPages(String MangaID,String chapterID);
     
     
-    List<Chapter> getChapters(String id);
+    void fetchMangaData(Manga manga);
     
-    List<String> getPages(ChapterInterface chapter);
     
+        
 }

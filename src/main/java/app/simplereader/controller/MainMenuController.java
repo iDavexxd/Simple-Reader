@@ -1,23 +1,17 @@
 package app.simplereader.controller;
 
-import app.simplereader.views.MangaTile;
+import app.simplereader.model.Category;
+import app.simplereader.model.Manga;
+import app.simplereader.repository.AppScene;
+import app.simplereader.repository.MangaSource;
+import app.simplereader.views.components.MangaTile;
 import app.simplereader.views.ScnMainMenu;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
+import app.simplereader.views.ScnSource;
 import java.util.List;
-import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
-import javafx.stage.DirectoryChooser;
-import app.simplereader.repository.MangaInterface;
 
 /**
  *
@@ -25,36 +19,106 @@ import app.simplereader.repository.MangaInterface;
  */
 public class MainMenuController {
     
-    private SceneController nav;
-    private CategoryController manager;
-    private ScnMainMenu mainMenu;
-    private List<MangaInterface> mangas = new ArrayList<>();
+    private ScnMainMenu scene;
+    private Boolean tilesLoaded = false;
+
+    public static MainMenuController instance;
+    public SceneController nav = SceneController.getInstance();
+    private final LibraryController lib = LibraryController.getInstance();
     
-    private static String actualCategory = "Default";
+    public MainMenuController(ScnMainMenu scene){
+        this.scene = scene;
+    }
     
-    private MangaController MangaControler;
+    public static void doInstance(ScnMainMenu scene){
+        MainMenuController.instance = new MainMenuController(scene);
+    }
     
-    public MainMenuController(SceneController nav, CategoryController manager, ScnMainMenu mainMenu){
-        this.nav = nav;
-        this.manager = manager;
-        this.mainMenu = mainMenu;
-        this.MangaControler = new MangaController(mainMenu, manager);
+    public static MainMenuController getInstance(){        
+        return instance;
+    }
+    
+    public void doBackScene(){
+        nav.backScene();
+    }
+    
+    public void doGoToSource(MangaSource src){
+        nav.goTo(new ScnSource(src));
+    }
+    
+    public void doCreateCategoryPanes(){
+        int columns = 5;
+        double hgap = 15;
+        double vgap = 15;
+        double padding = 15;  
+        
+        if(scene.getCategoriesPanes().isEmpty() || scene.getCategoriesPanes() == null){
+            for (Category cat : lib.getAllCategories()) {
+                TilePane pane = createTilePane(cat.getName(), hgap, vgap, padding, columns);
+                scene.getCategoriesPanes().put(cat.getName(), pane);
+            }
+        }
+    }
+    
+    public void loadAllTiles() {
+        if(tilesLoaded) return;
+        
+        for (Category cat : lib.getAllCategories()) {
+            TilePane pane = scene.getCategoriesPanes().get(cat.getName());
+            if (pane == null) {
+                pane = createTilePane(cat.getName(), 15, 15, 15, 5);
+                scene.getCategoriesPanes().put(cat.getName(), pane);
+            }
+            
+            List<Manga> mangas = lib.getMangasByCategory(cat.getName());
+            for (Manga manga : mangas) {
+                if (manga.getCoverURL() != null) {
+                    VBox tile = MangaTile.create(manga);
+                    pane.getChildren().add(tile);
+                } else {
+                    Logger.warning(manga.getTitle() + " - no tiene cover.");
+                }
+            }
+        }
+        
+        tilesLoaded = true;
+    }
+    
+    public TilePane createTilePane(String name, double hgap, double vgap, double padding, int columns) {
+        TilePane pane = new TilePane();
+        pane.setHgap(hgap);
+        pane.setVgap(vgap);
+        pane.setPadding(new Insets(padding));
+        pane.setPrefColumns(columns);
+        return pane;
+    }
+    
+    public void showCategory(String name) {
+        TilePane pane = scene.getCategoriesPanes().get(name);
+        if (pane == null) {
+            pane = createTilePane(name, 15, 15, 15, 5);
+            scene.getCategoriesPanes().put(name, pane);
+        }
+        
+        scene.setActivePane(pane);
+        scene.getScroll().setContent(scene.getActivePane());
+        scene.setCurrentCategory(name);
+        resizeTiles(scene.getScroll().getWidth());
     }
     
     public void resizeTiles(double totalWidth) {
-         // Obtener el pane activo en lugar de siempre DefaultPane
-        TilePane activePane = (TilePane) mainMenu.getScroll().getContent();
-        if (activePane == null) return;
+        TilePane pane = scene.getActivePane();
+        if (pane == null) return;
 
         int columns = 5;
         double hgap = 15, vgap = 15, padding = 15;
         double tileWidth = (totalWidth - padding * 2 - hgap * (columns - 1) - 5) / columns;
         double tileHeight = tileWidth * 1.5;
 
-        activePane.setPrefTileWidth(tileWidth);
-        activePane.setPrefTileHeight(tileHeight + 45);
+        pane.setPrefTileWidth(tileWidth);
+        pane.setPrefTileHeight(tileHeight + 45);
 
-        for (javafx.scene.Node node : activePane.getChildren()) {
+        for (javafx.scene.Node node : pane.getChildren()) {
             if (node instanceof VBox vbox) {
                 vbox.setPrefWidth(tileWidth);
                 vbox.setPrefHeight(tileHeight + 45);
@@ -66,133 +130,23 @@ public class MainMenuController {
         }
     }
     
-    public void loadMangas(){
-
-        if (mangas == null || mangas.isEmpty()) {
-            // Muestra un estado de carga mientras espera
-//            Label lblCargando = new Label("Cargando mangas...");
-//            lblCargando.getStyleClass().add("loading-label");
-//            DefaultPane.getChildren().add(lblCargando);
-
-            Task<List<MangaInterface>> tareaCargar = new Task<>() {
-                @Override
-                protected List<MangaInterface> call() {
-                    return MangaControler.loadMangas(); // Se ejecuta en hilo de fondo
-                }
-            };
-
-            tareaCargar.setOnSucceeded(e -> {
-                // Esto se ejecuta de vuelta en el Application Thread
-                mangas = tareaCargar.getValue();
-//                DefaultPane.getChildren().clear();
-                createTiles();
-                //resizeTiles(scroll.getWidth());
-            });
-
-            tareaCargar.setOnFailed(e -> {
-                Logger.error("Error cargando mangas: " + tareaCargar.getException().getMessage());
-//                DefaultPane.getChildren().clear();
-//                DefaultPane.getChildren().add(new Label("Error al cargar mangas."));
-            });
-
-            Thread hilo = new Thread(tareaCargar);
-            hilo.setDaemon(true);
-            hilo.start();
+    public void reloadMangas() {
+        // Limpiar todos los panes
+        for (TilePane pane : scene.getCategoriesPanes().values()) {
+            pane.getChildren().clear();
         }
+        tilesLoaded = false;
+        // Recargar desde LibraryController
+        loadAllTiles();
+        resizeTiles(scene.getScroll().getWidth());
     }
+    /*
+    Setters:
+    */
     
-    private void createTiles(){
-        for(MangaInterface manga : mangas){
-            if(manga.getCover() != null){
-                Platform.runLater(() -> {
-                    VBox iconManga = MangaTile.create(manga,mainMenu.getSceneController());
-                    //DefaultPane.getChildren().add(iconManga);
-                    manager.getCategories().get(manga.getCategory()).getPane().getPane().getChildren().add(iconManga);
-                });
-                Platform.runLater(() -> resizeTiles(mainMenu.getScroll().getWidth()));
-
-            } else {
-                Logger.warning(manga.getTitle()+" - no tiene una cover.");
-            }
+    public void setScene(AppScene scene){
+        if(scene instanceof ScnMainMenu){
+            this.scene = (ScnMainMenu) scene;
         }
-    }
-    
-    public void reloadMangas(){
-        manager.getCategories().get("Default").getMangas().clear();
-        manager.getCategories().get("Default").getPane().getPane().getChildren().clear();
-        for(String name : manager.getNameList()){
-            manager.getCategories().get(name).getMangas().clear();
-            manager.getCategories().get(name).getPane().getPane().getChildren().clear();
-        }
-        mangas.clear();
-        loadMangas();
-    }
-    
-    public void showCategory(String Name) {
-        TilePane pane = manager.getCategories().get(Name).getPane().getPane();
-
-        // Configurar el pane si no está configurado aún
-        pane.setHgap(15);
-        pane.setVgap(15);
-        pane.setPadding(new Insets(15));
-        pane.setPrefColumns(5);
-
-        mainMenu.getScroll().setContent(pane);
-        resizeTiles(mainMenu.getScroll().getWidth());
-        actualCategory = Name;
-    }
-    
-    public String getActualCategory(){
-        return actualCategory;
-    }
-    
-    public void importFolder(){
-        DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setTitle("Importar manga");
-        
-        File selectedDirectory = dirChooser.showDialog(nav.getStage());
-        
-        if(selectedDirectory != null){
-            Logger.info("Carpeta seleccionada: " + selectedDirectory.getAbsolutePath());
-            copytoMangaFolder(selectedDirectory);
-        }
-        
-        reloadMangas();
-    }
-    
-    private void copytoMangaFolder(File source){
-        String home = System.getProperty("user.home");
-        
-        Path mangafolder = Paths.get(home + "/Documents/SimpleReader/mangas");
-        Path sourcePath = source.toPath();
-        Path targetPath = mangafolder.resolve(source.getName());
-        
-        try {
-            if (source.isDirectory()) {
-                // Copiar directorio (requiere Java 8+)
-                // Usamos walk para copiar el contenido recursivamente
-                Files.walk(sourcePath).forEach(sourceItem -> {
-                    Path destination = targetPath.resolve(sourcePath.relativize(sourceItem));
-                    try {
-                        Files.copy(sourceItem, destination, StandardCopyOption.REPLACE_EXISTING);
-                    } catch (IOException e) {
-                        Logger.info("Error copiando el archivo: " + sourceItem);
-                        e.printStackTrace();
-                    }
-                });
-                Logger.info("Carpeta importada exitosamente a: " + targetPath);
-            } else {
-                // Copiar archivo simple (.zip o .cbz)
-                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                Logger.info("Archivo importado exitosamente a: " + targetPath);
-            }
-
-            // ¡IMPORTANTE! Aquí debes llamar al método que recarga la lista de mangas en tu menú principal
-            // Por ejemplo: reloadMangaList(); 
-
-        } catch (IOException e) {
-            Logger.info("Error al importar: " + e.getMessage());
-        }
-        
     }
 }
