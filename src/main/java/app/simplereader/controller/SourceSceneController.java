@@ -1,7 +1,7 @@
 package app.simplereader.controller;
 
 import app.simplereader.repository.MangaSource;
-import app.simplereader.views.ScnSource;
+import app.simplereader.views.ScnSourceSearch;
 
 /**
  *
@@ -9,9 +9,9 @@ import app.simplereader.views.ScnSource;
  */
 public class SourceSceneController {
     
-    private ScnSource scene;
+    private ScnSourceSearch scene;
     private MangaSource source;
-    public SourceSceneController(ScnSource scene,MangaSource source){
+    public SourceSceneController(ScnSourceSearch scene,MangaSource source){
         this.scene = scene;
         this.source = source;
     }

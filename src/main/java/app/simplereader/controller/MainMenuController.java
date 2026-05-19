@@ -6,7 +6,7 @@ import app.simplereader.repository.AppScene;
 import app.simplereader.repository.MangaSource;
 import app.simplereader.views.components.MangaTile;
 import app.simplereader.views.ScnMainMenu;
-import app.simplereader.views.ScnSource;
+import app.simplereader.views.ScnSourceSearch;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.layout.StackPane;
@@ -43,7 +43,7 @@ public class MainMenuController {
     }
     
     public void doGoToSource(MangaSource src){
-        nav.goTo(new ScnSource(src));
+        nav.goTo(new ScnSourceSearch(src));
     }
     
     public void doCreateCategoryPanes(){

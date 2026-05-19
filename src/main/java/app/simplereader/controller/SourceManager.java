@@ -2,6 +2,7 @@ package app.simplereader.controller;
 
 import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
+import app.simplereader.model.LocalSource;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
 import com.google.gson.Gson;
@@ -40,6 +41,12 @@ public class SourceManager {
             instance = new SourceManager();
         }
         return instance;
+    }
+    
+    public void reloadSources(){
+        sources.clear();
+        registerSource(new LocalSource());
+        loadSources();
     }
     
     public void loadSources(){

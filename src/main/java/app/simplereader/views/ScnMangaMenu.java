@@ -2,13 +2,12 @@ package app.simplereader.views;
 
 import app.simplereader.views.components.SideMenu;
 import app.simplereader.controller.LibraryController;
+import app.simplereader.controller.MangaMenuController;
 import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.controller.Logger;
-import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
-import app.simplereader.controller.SourceManager;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -29,7 +28,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
-import app.simplereader.repository.MangaSource;
 import app.simplereader.views.components.Buttons;
 
 import java.util.List;
@@ -41,13 +39,19 @@ import java.util.List;
 public class ScnMangaMenu implements AppScene{
     private final Manga manga;
     private final SceneController nav = SceneController.getInstance();
-    private final LibraryController library = LibraryController.getInstance();
+    private final MangaMenuController controller;
     
     private boolean isdown = true;
+    private SVGPath icnArrow;
+    private ListView<Chapter> listaCaps;
     
     public ScnMangaMenu(Manga manga){
         this.manga = manga;
         nav.getStage().setResizable(false);
+        
+        MangaMenuController.doInstance(this);
+        this.controller = MangaMenuController.getInstance();
+        controller.init(manga);
     }
     
     @Override
@@ -80,7 +84,7 @@ public class ScnMangaMenu implements AppScene{
         Label description = new Label(manga.getDescription() != null ? manga.getDescription() : "");
         description.setWrapText(true);
         description.getStyleClass().add("manga-info-description");
-        Label tags = new Label(getTags());
+        Label tags = new Label(controller.getTags());
         tags.getStyleClass().add("manga-info-tags");
         VBox datosmanga = new VBox(10, title, author, description); 
         VBox tagsmanga = new VBox(tags);
@@ -89,40 +93,18 @@ public class ScnMangaMenu implements AppScene{
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20, cover, datos);
         
-        List<Chapter> chapters = manga.getChapters();
-        final List<Chapter> finalChapters = chapters != null ? chapters : List.of();
+        List<Chapter> chapters = controller.getChapters();
         
-        ListView<Chapter> listaCaps = new ListView<>();
+        listaCaps = new ListView<>();
         HBox.setHgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
-        for (Chapter cap : finalChapters) {
+        for (Chapter cap : chapters) {
             listaCaps.getItems().add(cap);
         }
 
         listaCaps.setOnMouseClicked(e -> {
             Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
             if (selChapter != null) {
-                
-                // 1. Si no tiene páginas cargadas, las pedimos al Source
-                if (!selChapter.hasPages()) {
-                    Logger.info("Cargando páginas para: " + selChapter.getTitle());
-                    
-                    // Obtenemos el source correspondiente
-                    MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-                    if (src != null) {
-                        // Pedimos las páginas y se las asignamos al capítulo
-                        List<String> pages = src.getPages(manga.getMangaID(), selChapter.getChapterID());
-                        selChapter.setPages(pages);
-                    }
-                }
-                
-                // 2. Ahora sí comprobamos si tiene páginas
-                if (selChapter.hasPages()) {
-                    int indice = finalChapters.indexOf(selChapter);
-                    Logger.info("Selected: " + selChapter.getTitle());
-                    nav.goTo(new ScnReader(nav, manga, selChapter, indice));
-                } else {
-                    Logger.noPagesAlert(selChapter.getTitle());
-                }
+                controller.openChapter(selChapter);
             }
         });
 
@@ -161,7 +143,7 @@ public class ScnMangaMenu implements AppScene{
         String down = "M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z";
         String up = "M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z";
         
-        SVGPath icnArrow = new SVGPath();
+        icnArrow = new SVGPath();
         
         icnArrow.setContent(down);
         icnArrow.getStyleClass().add("icon");
@@ -176,38 +158,16 @@ public class ScnMangaMenu implements AppScene{
         
         Button btnAddToLibrary = new Button("");
         btnAddToLibrary.getStyleClass().add("mangamenu-button");
-        btnAddToLibrary.setOnAction(e -> addToLibrary());
+        btnAddToLibrary.setOnAction(e -> controller.addToLibrary());
 
         
         Button btnKeepReading = new Button("", icon_read);
         btnKeepReading.getStyleClass().add("mangamenu-button");
         btnKeepReading.setOnAction(e -> {
-            Chapter selChapter = finalChapters.stream()
-                    .filter(c -> !c.isReaded())
-                    .findFirst()
-                    .orElse(null);
+            Chapter selChapter = controller.findFirstUnreadChapter();
 
             if (selChapter != null) {
-                
-                if (!selChapter.hasPages()) {
-                    Logger.info("Cargando páginas para: " + selChapter.getTitle());
-                    
-                    // Obtenemos el source correspondiente
-                    MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-                    if (src != null) {
-                        // Pedimos las páginas y se las asignamos al capítulo
-                        List<String> pages = src.getPages(manga.getMangaID(), selChapter.getChapterID());
-                        selChapter.setPages(pages);
-                    }
-                }
-                
-                if (selChapter.hasPages()) {
-                    int indice = finalChapters.indexOf(selChapter);
-                    Logger.info("Selected: " + selChapter.getTitle());
-                    nav.goTo(new ScnReader(nav, manga, selChapter, indice));
-                } else {
-                    Logger.noPagesAlert(selChapter.getTitle());
-                }
+                controller.openChapter(selChapter);
             } else {
                 Logger.info("No unread chapters.");
             }
@@ -272,11 +232,6 @@ public class ScnMangaMenu implements AppScene{
         
         return scene;
     }
-    
-    private String getTags() {
-        if (manga.getTags() == null || manga.getTags().isEmpty()) return "";
-        return String.join(", ", manga.getTags());
-    }
 
     @Override
     public String getName() {
@@ -285,13 +240,6 @@ public class ScnMangaMenu implements AppScene{
     @Override
     public String getParentName(){
         return "MangaMenu";
-    }
-
-    private void addToLibrary() {
-        SourceManager.getInstance().saveManga(this.manga);
-        library.addManga(this.manga,"Default");
-        library.saveLibrary();
-        MainMenuController.getInstance().reloadMangas();
     }
     
 }

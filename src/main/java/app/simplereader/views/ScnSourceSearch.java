@@ -24,7 +24,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import java.util.List;
 import java.util.Map;
-public class ScnSource implements AppScene {
+public class ScnSourceSearch implements AppScene {
     private final SceneController nav = SceneController.getInstance();
     private final MangaSource source;
     
@@ -32,7 +32,7 @@ public class ScnSource implements AppScene {
     private ListView<Manga> resultsList;
     // Lista observable vinculada al ListView
     private ObservableList<Manga> results = FXCollections.observableArrayList();
-    public ScnSource(MangaSource source) {
+    public ScnSourceSearch(MangaSource source) {
         this.source = source;
     }
     @Override
