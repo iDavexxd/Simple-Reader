@@ -376,3 +376,160 @@
 .conf-root{
     -fx-background-color: -fx-main-bg;
 }
+
+
+/*
+    Menu de los sources
+*/
+
+
+.source-title{
+    -fx-font-family: "Roboto Slab";
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+    -fx-font-size: 18px;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+}
+
+.source-list {
+    -fx-font-family: "Lato";
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px;
+    -fx-border-color: transparent;
+}
+
+/* Ancho base del scrollbar completo */
+.source-list .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+/* Thumb delgado usando insets laterales */
+.source-list .scroll-bar:vertical .thumb {
+    -fx-background-color: -fx-accent;
+    -fx-background-insets: 0 3 0 3; /* top right bottom left — recorta 3px a cada lado */
+    -fx-background-radius: 10;
+}
+
+/* En hover, el scrollbar se ensancha y el thumb ocupa todo el ancho */
+.source-list .scroll-bar:vertical:hover {
+    -fx-pref-width: 8px;
+}
+
+.source-list .scroll-bar:vertical:hover .thumb {
+    -fx-background-insets: 0 1 0 1;
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 10;
+}
+
+/* Ocultar botones de incremento/decremento */
+.source-list .scroll-bar:vertical .increment-button,
+.source-list .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-opacity: 0;
+}
+
+.source-list .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.source-list .list-cell {
+    -fx-background-color: -fx-main-bg;
+    -fx-text-fill: -fx-accent;
+}
+
+.source-list .list-cell:hover {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: -fx-secondary-bg;
+    -fx-background-radius: 10;
+}
+
+.source-list .list-cell:empty:hover {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+/*
+    Menu de busqueda de los sources
+*/
+
+.search-title{
+    -fx-font-family: "Roboto Slab";
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+    -fx-font-size: 102px;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-padding: 50px;
+}
+
+.search-bar{
+    -fx-background-color: #F4F7FB;
+    -fx-background-radius: 8px;
+    -fx-border-color: transparent;
+    
+    -fx-font-family: "Lato";
+    -fx-font-size: 14px;
+    -fx-text-fill: -fx-secondary-bg;
+}
+
+.search-list {
+    -fx-font-family: "Lato";
+    -fx-background-color: -fx-third-bg;
+    -fx-background-radius: 8px;
+    -fx-border-color: transparent;
+}
+
+/* Ancho base del scrollbar completo */
+.search-list .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+/* Thumb delgado usando insets laterales */
+.search-list .scroll-bar:vertical .thumb {
+    -fx-background-color: -fx-accent;
+    -fx-background-insets: 0 3 0 3; /* top right bottom left — recorta 3px a cada lado */
+    -fx-background-radius: 10;
+}
+
+/* En hover, el scrollbar se ensancha y el thumb ocupa todo el ancho */
+.search-list .scroll-bar:vertical:hover {
+    -fx-pref-width: 8px;
+}
+
+.search-list .scroll-bar:vertical:hover .thumb {
+    -fx-background-insets: 0 1 0 1;
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 10;
+}
+
+/* Ocultar botones de incremento/decremento */
+.search-list .scroll-bar:vertical .increment-button,
+.search-list .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-opacity: 0;
+}
+
+.search-list .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.search-list .list-cell {
+    -fx-background-color: -fx-third-bg;;
+    -fx-text-fill: -fx-accent;
+}
+
+.search-list .list-cell:hover {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: -fx-secondary-bg;
+    -fx-background-radius: 10;
+}
+
+.search-list .list-cell:empty:hover {
+    -fx-background-color: -fx-third-bg;;
+    -fx-background-insets: 0;
+}

@@ -10,6 +10,7 @@ import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
 import app.simplereader.repository.AppScene;
+import app.simplereader.views.components.Buttons;
 import java.util.HashMap;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -24,34 +25,63 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import java.util.List;
 import java.util.Map;
+import javafx.geometry.Pos;
+import javafx.scene.Group;
+import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
+import javafx.scene.shape.SVGPath;
 public class ScnSourceSearch implements AppScene {
     private final SceneController nav = SceneController.getInstance();
     private final MangaSource source;
     
     private TextField searchField;
     private ListView<Manga> resultsList;
-    // Lista observable vinculada al ListView
-    private ObservableList<Manga> results = FXCollections.observableArrayList();
+
+    private final ObservableList<Manga> results = FXCollections.observableArrayList();
     public ScnSourceSearch(MangaSource source) {
         this.source = source;
     }
     @Override
     public Scene getScene() {
         SideMenu lateralmenu = new SideMenu();
-        Button btnBack = new Button("<-");
+        Button btnBack = Buttons.getBackButton();
         
         lateralmenu.addTop(btnBack);
         btnBack.setOnAction(e-> nav.backScene());
         searchField = new TextField();
         searchField.setPromptText("Buscar en " + source.getName() + "...");
+        searchField.setMaxSize(800, 30);
+        searchField.setMinSize(800, 30);
+        searchField.getStyleClass().add("search-bar");
+        double scale = 24.0 / 960.0;
         
-        Button btnSearch = new Button("Buscar");
+        SVGPath icnSearch = new SVGPath();
+        icnSearch.setContent("M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z");
+        icnSearch.getStyleClass().add("icon");
+        icnSearch.setScaleX(scale);
+        icnSearch.setScaleY(scale);
+        
+        Group icnSearch_group = new Group(icnSearch);
+        StackPane icnSearch_pane = new StackPane(icnSearch_group);
+        
+        Button btnSearch = new Button("",icnSearch_pane);
         btnSearch.setOnAction(e -> doSearch());
+        btnSearch.setMinSize(30, 30);
+        btnSearch.setMaxSize(30, 30);
+
+        HBox searchBar = new HBox(5, searchField, btnSearch);
+        searchBar.setPadding(new Insets(10));
+        searchBar.setAlignment(Pos.CENTER);
         
-        HBox topBar = new HBox(10, searchField, btnSearch);
-        topBar.setPadding(new Insets(10));
+        Label title = new Label(source.getName());
+        title.getStyleClass().add("search-title");
+        title.setAlignment(Pos.CENTER);
+        title.setMaxWidth(Double.MAX_VALUE);
+        
+        VBox top = new VBox(10,title,searchBar);
+        
         resultsList = new ListView<>(results);
-        
+        resultsList.getStyleClass().add("search-list");
         // Configurar cómo se ve cada item
         resultsList.setCellFactory(lv -> new ListCell<>() {
             @Override
@@ -119,15 +149,17 @@ public class ScnSourceSearch implements AppScene {
                 nav.goTo(new ScnMangaMenu(mangaToRead));
             }
         });
-        VBox vboxconto = new VBox(10, topBar, resultsList);
         VBox.setVgrow(resultsList, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setMargin(resultsList, new Insets(10, 20, 20, 20));
         BorderPane root = new BorderPane();
+        VBox cosas = new VBox(top,resultsList);
+        root.setCenter(cosas);
         root.setLeft(lateralmenu.getPane());
-        root.setCenter(vboxconto);
         Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         scene.getStylesheets().add(nav.getCss());
         return scene;
     }
+    
     private void doSearch() {
         String query = searchField.getText();
         if (query.isBlank()) return;
@@ -137,6 +169,7 @@ public class ScnSourceSearch implements AppScene {
         List<Manga> found = SourceManager.getInstance().searchManga(source, query);
         results.addAll(found);
     }
+    
     @Override
     public String getName() { return "Search - " + source.getName(); }
     @Override

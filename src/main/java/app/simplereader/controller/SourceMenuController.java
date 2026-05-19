@@ -53,7 +53,7 @@ public class SourceMenuController {
 
         if (selectedFile != null) {
             try {
-                // Carpeta destino (puedes cambiar "plugins" por la ruta que necesites)
+                // Carpeta
                 File destDir = new File(AppConfig.PLUGIN_FOLDER);
                 
                 // Crea la carpeta si no existe
@@ -64,14 +64,10 @@ public class SourceMenuController {
                 Path sourcePath = selectedFile.toPath();
                 Path destPath = new File(destDir, selectedFile.getName()).toPath();
 
-                // COPIAR el archivo a la nueva carpeta reemplazando si ya existe.
-                // Nota: Usamos copy en lugar de move para no borrarle el archivo original al usuario.
-                // Si quieres MOVERLO estrictamente, cambia "Files.copy" por "Files.move"
+                // Copia el archivo
                 Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
 
-                System.out.println("Plugin importado exitosamente a: " + destPath.toAbsolutePath());
-                
-                // Opcional: Aquí podrías llamar a un método para recargar la lista de sources.
+                Logger.info("Imported plugin: "+selectedFile.getName());
                 SourceManager.getInstance().reloadSources();
                 refreshList();
             } catch (IOException e) {

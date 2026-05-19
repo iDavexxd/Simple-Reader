@@ -20,6 +20,7 @@ import javafx.scene.image.Image;
  */
 public class ReaderController {
     private ScnReader view;
+    
     private static ReaderController instance;
     private SceneController nav = SceneController.getInstance();
     private final LibraryController lib = LibraryController.getInstance();
@@ -276,6 +277,11 @@ public class ReaderController {
     }
     
     public void resetZoom() {
+        if (view.getVisor() != null) {
+            // 1.0 significa 100% (tamaño normal sin zoom)
+            view.getVisor().setScaleX(1.0);
+            view.getVisor().setScaleY(1.0);
+        }
         inZoom = false;
     }
     

@@ -44,9 +44,9 @@ public class ScnMainMenu implements AppScene{
     private TilePane activePane;
     private String currentCategory = "Default";
     
-    private MainMenuController controller;
+    private final MainMenuController controller;
     
-    private static Map<String, TilePane> categoryPanes = new HashMap<>();
+    private static final Map<String, TilePane> categoryPanes = new HashMap<>();
     
     public ScnMainMenu(){
         MainMenuController.doInstance(this);
@@ -195,8 +195,7 @@ public class ScnMainMenu implements AppScene{
         StackPane overlay = createSourcePickerOverlay();
         root.getChildren().add(overlay);
         btnAdd.setOnAction(e -> {
-//            overlay.setVisible(true);
-//            overlay.setManaged(true);
+
             nav.goTo(new ScnSourceMenu());
         });
         

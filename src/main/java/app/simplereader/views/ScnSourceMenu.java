@@ -11,14 +11,17 @@ import app.simplereader.views.components.SideMenu;
 import java.util.List;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import javafx.stage.Window;
 
@@ -68,7 +71,7 @@ public class ScnSourceMenu implements AppScene {
         
         //Lista
         sourceListView = new ListView<>();
-        
+        sourceListView.getStyleClass().add("source-list");
         List<MangaSource> sources = controller.getAllSources();
         sourceListView.setCellFactory(param -> new ListCell<MangaSource>() {
             @Override
@@ -95,11 +98,17 @@ public class ScnSourceMenu implements AppScene {
             sourceListView.setItems(observableSources);
         }
         
-        BorderPane temporalRoot = new BorderPane();
-        temporalRoot.setLeft(leftMenu.getPane());
-        temporalRoot.setCenter(sourceListView);
+        Label title = new Label("Extensions");
+        title.getStyleClass().add("source-title");
+        title.setMaxWidth(Double.MAX_VALUE);
+        title.setAlignment(Pos.CENTER);
+        VBox vboxconto = new VBox(title,sourceListView);
+        VBox.setVgrow(sourceListView, Priority.ALWAYS);
+        BorderPane root = new BorderPane();
+        root.setLeft(leftMenu.getPane());
+        root.setCenter(vboxconto);
         
-        Scene scene = new Scene(temporalRoot, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         scene.getStylesheets().add(nav.getCss());
         return scene;
     }

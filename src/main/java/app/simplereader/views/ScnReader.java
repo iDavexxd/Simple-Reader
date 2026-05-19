@@ -81,7 +81,9 @@ public class ScnReader implements AppScene {
         scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             KeyCode key = e.getCode();
             switch (key) {
-                case F5 -> controller.loadCurrentImage();
+                case F5 -> {
+                    controller.resetZoom();
+                }
                 case F11 -> {
                     boolean isFull = nav.getStage().isFullScreen();
                     nav.getStage().setFullScreen(!isFull);
@@ -458,6 +460,10 @@ public class ScnReader implements AppScene {
         
     public void setChapter(Chapter chapter){
         this.chapter = chapter;
+    }
+    
+    public ImageView getVisor(){
+        return this.visor;
     }
     
     @Override

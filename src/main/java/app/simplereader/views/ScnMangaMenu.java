@@ -31,6 +31,7 @@ import app.simplereader.repository.AppScene;
 import app.simplereader.views.components.Buttons;
 
 import java.util.List;
+import javafx.scene.paint.Color;
 
 /**
  *
@@ -43,6 +44,8 @@ public class ScnMangaMenu implements AppScene{
     
     private boolean isdown = true;
     private SVGPath icnArrow;
+    private SVGPath icnLibrary;
+    
     private ListView<Chapter> listaCaps;
     
     public ScnMangaMenu(Manga manga){
@@ -56,22 +59,95 @@ public class ScnMangaMenu implements AppScene{
     
     @Override
     public Scene getScene() {
-        ImageView cover = new ImageView();
-        cover.setFitWidth(250);
-        cover.setFitHeight(400);
-        cover.setPreserveRatio(true);
+        ImageView coverView = new ImageView();
+        coverView.setPreserveRatio(true);
+        coverView.setManaged(false);
+
+        // 1. Contenedor con tamaño mayor (300px en lugar de 250px)
+        StackPane coverContainer = new StackPane();
+        coverContainer.setMinWidth(300);
+        coverContainer.setMaxWidth(300);
+        coverContainer.setMinHeight(450); // 300 * 1.5
+        coverContainer.setMaxHeight(450);
+
+        // 2. Placeholder semitransparente
+        Rectangle placeholder = new Rectangle();
+        placeholder.setFill(Color.rgb(255, 255, 255, 0.1)); 
+        placeholder.widthProperty().bind(coverContainer.widthProperty());
+        placeholder.heightProperty().bind(coverContainer.heightProperty());
+
+        coverContainer.getChildren().addAll(placeholder, coverView);
+
+        if (manga.getCoverURL() != null) {
+            Image icon = new Image(manga.getCoverURL(), true);
+            coverView.setImage(icon);
+
+            // 3. Lógica de recorte dinámico
+            Runnable updateImageFit = () -> {
+                if (icon.getProgress() < 1.0 || icon.isError()) return;
+
+                double imgW = icon.getWidth();
+                double imgH = icon.getHeight();
+                double contW = coverContainer.getWidth();
+                double contH = coverContainer.getHeight();
+
+                if (imgW == 0 || imgH == 0 || contW == 0 || contH == 0) return;
+
+                double imageRatio = imgW / imgH;
+                double realContainerRatio = contW / contH; 
+
+                if (imageRatio < realContainerRatio) {
+                    coverView.setFitWidth(contW);
+                    coverView.setFitHeight(0); 
+                } else {
+                    coverView.setFitHeight(contH);
+                    coverView.setFitWidth(0); 
+                }
+            };
+
+            coverContainer.widthProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
+            coverContainer.heightProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
+
+            icon.progressProperty().addListener((obs, old, progress) -> {
+                if (progress.doubleValue() >= 1.0) {
+                    updateImageFit.run();
+                    placeholder.setVisible(false);
+                }
+            });
+
+            // 4. Centrado de la imagen
+            coverView.layoutXProperty().bind(
+                javafx.beans.binding.Bindings.createDoubleBinding(
+                    () -> (coverContainer.getWidth() - coverView.getBoundsInLocal().getWidth()) / 2.0,
+                    coverContainer.widthProperty(),
+                    coverView.boundsInLocalProperty()
+                )
+            );
+
+            coverView.layoutYProperty().bind(
+                javafx.beans.binding.Bindings.createDoubleBinding(
+                    () -> (coverContainer.getHeight() - coverView.getBoundsInLocal().getHeight()) / 2.0,
+                    coverContainer.heightProperty(),
+                    coverView.boundsInLocalProperty()
+                )
+            );
+        }
+
+        // 5. Clip redondeado para el contenedor general
         Rectangle recorte = new Rectangle();
         recorte.setArcWidth(20);
         recorte.setArcHeight(20);
+
+        recorte.widthProperty().bind(coverContainer.widthProperty());
+        recorte.heightProperty().bind(coverContainer.heightProperty());
+
+        coverContainer.setClip(recorte);
         
-        recorte.widthProperty().bind(cover.fitWidthProperty());
-        recorte.heightProperty().bind(cover.layoutBoundsProperty().map(bounds -> bounds.getHeight()));
+        // 6. Listener para mantener ratio 2:3
+        coverContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
+            coverContainer.setPrefHeight(newVal.doubleValue() * 1.5);
+        });
         
-        cover.setClip(recorte);
-        if (manga.getCoverURL() != null) {
-            Image img = new Image(manga.getCoverURL(), true);
-            cover.setImage(img);
-        }        
         double scale = 24.0 / 960.0;
         Button btnBack = Buttons.getBackButton();
         
@@ -91,7 +167,7 @@ public class ScnMangaMenu implements AppScene{
         BorderPane datos = new BorderPane();
         datos.setTop(datosmanga);
         datos.setBottom(tagsmanga);
-        HBox top = new HBox(20, cover, datos);
+        HBox top = new HBox(20, coverContainer, datos);
         
         List<Chapter> chapters = controller.getChapters();
         
@@ -143,6 +219,18 @@ public class ScnMangaMenu implements AppScene{
         String down = "M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z";
         String up = "M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z";
         
+        String addLibrary = "M520-400h80v-120h120v-80H600v-120h-80v120H400v80h120v120ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
+        String onLibrary = "m508-398 226-226-56-58-170 170-86-84-56 56 142 142ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
+        
+        icnLibrary = new SVGPath();
+        icnLibrary.setContent(addLibrary);
+        icnLibrary.getStyleClass().add("icon");
+        icnLibrary.setScaleX(scale);
+        icnLibrary.setScaleY(scale);
+        
+        Group icnLibrary_group = new Group(icnLibrary);
+        StackPane icnLibrary_pane = new StackPane(icnLibrary_group);
+        
         icnArrow = new SVGPath();
         
         icnArrow.setContent(down);
@@ -154,13 +242,14 @@ public class ScnMangaMenu implements AppScene{
         StackPane icon_arrow = new StackPane(icon_arrow_group);
         
         
-        VBox botones = new VBox();
+        VBox botones = new VBox(5);
         
-        Button btnAddToLibrary = new Button("");
+        Button btnAddToLibrary = new Button("",icnLibrary_pane);
         btnAddToLibrary.getStyleClass().add("mangamenu-button");
         btnAddToLibrary.setOnAction(e -> controller.addToLibrary());
+        btnAddToLibrary.setMinSize(40, 40);
+        btnAddToLibrary.setMaxSize(40, 40);
 
-        
         Button btnKeepReading = new Button("", icon_read);
         btnKeepReading.getStyleClass().add("mangamenu-button");
         btnKeepReading.setOnAction(e -> {
