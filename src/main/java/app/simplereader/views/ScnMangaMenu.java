@@ -8,6 +8,7 @@ import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.controller.Logger;
 import app.simplereader.controller.SceneController;
+import app.simplereader.model.Category;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -31,6 +32,11 @@ import app.simplereader.repository.AppScene;
 import app.simplereader.views.components.Buttons;
 
 import java.util.List;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 
 /**
@@ -41,12 +47,23 @@ public class ScnMangaMenu implements AppScene{
     private final Manga manga;
     private final SceneController nav = SceneController.getInstance();
     private final MangaMenuController controller;
+    private final LibraryController lib = LibraryController.getInstance();
     
     private boolean isdown = true;
+    private boolean menuVisible = false;
+    
+    
     private SVGPath icnArrow;
     private SVGPath icnLibrary;
     
+    private Label title;
+    private Label author;
+    private Label description;
+    private Label tags;
+    
     private ListView<Chapter> listaCaps;
+    private StackPane categoryMenu;
+    private VBox categoryButtons;
     
     public ScnMangaMenu(Manga manga){
         this.manga = manga;
@@ -152,16 +169,17 @@ public class ScnMangaMenu implements AppScene{
         Button btnBack = Buttons.getBackButton();
         
         VBox buttons = new VBox(btnBack);
-        Label title = new Label(manga.getTitle());
+        title = new Label(manga.getTitle());
         title.getStyleClass().add("manga-info-title");
         title.setWrapText(true);
-        Label author = new Label(manga.getAuthor() != null ? manga.getAuthor() : "");
+        author = new Label(manga.getAuthor() != null ? manga.getAuthor() : "");
         author.getStyleClass().add("manga-info-author");
-        Label description = new Label(manga.getDescription() != null ? manga.getDescription() : "");
+        description = new Label(manga.getDescription() != null ? manga.getDescription() : "");
         description.setWrapText(true);
         description.getStyleClass().add("manga-info-description");
-        Label tags = new Label(controller.getTags());
+        tags = new Label(controller.getTags());
         tags.getStyleClass().add("manga-info-tags");
+        
         VBox datosmanga = new VBox(10, title, author, description); 
         VBox tagsmanga = new VBox(tags);
         BorderPane datos = new BorderPane();
@@ -169,13 +187,11 @@ public class ScnMangaMenu implements AppScene{
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20, coverContainer, datos);
         
-        List<Chapter> chapters = controller.getChapters();
+        
         
         listaCaps = new ListView<>();
         HBox.setHgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
-        for (Chapter cap : chapters) {
-            listaCaps.getItems().add(cap);
-        }
+        doAddChapters();
 
         listaCaps.setOnMouseClicked(e -> {
             Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
@@ -246,7 +262,9 @@ public class ScnMangaMenu implements AppScene{
         
         Button btnAddToLibrary = new Button("",icnLibrary_pane);
         btnAddToLibrary.getStyleClass().add("mangamenu-button");
-        btnAddToLibrary.setOnAction(e -> controller.addToLibrary());
+        btnAddToLibrary.setOnAction(e -> {
+            doShowMenu();
+        });
         btnAddToLibrary.setMinSize(40, 40);
         btnAddToLibrary.setMaxSize(40, 40);
 
@@ -299,17 +317,48 @@ public class ScnMangaMenu implements AppScene{
         
         BorderPane panel = new BorderPane();
         panel.setLeft(lateralmenu.getPane());
-        
         panel.setCenter(coverlista);
-       
-        Scene scene = new Scene(panel, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        
+        //Menu
+        categoryMenu = new StackPane();
+        categoryMenu.getStyleClass().add("category-option");
+        categoryMenu.setMaxSize(300, 450);
+        categoryMenu.setVisible(menuVisible);
+        categoryMenu.setPadding(new Insets(15));
+        
+        Button btnClose = new Button("x");
+        btnClose.setMinSize(24, 24);
+        btnClose.setMaxSize(24,24);
+        btnClose.setOnAction(e -> doHideMenu());
+        Region topSpacer = new Region();
+        topSpacer.setMaxWidth(Double.MAX_VALUE);
+        Label topLabel = new Label("Categories");
+        
+        HBox topContent = new HBox(topLabel,topSpacer,btnClose);
+        HBox.setHgrow(topSpacer, Priority.ALWAYS);
+        categoryButtons = new VBox(5);
+        categoryButtons.setAlignment(Pos.TOP_CENTER);
+        StackPane.setAlignment(categoryButtons, Pos.TOP_CENTER);
+        
+        
+        doCategoryButtons();
+        ScrollPane categories = new ScrollPane(categoryButtons);
+        
+        VBox content = new VBox(10,topContent,categories);
+        
+        
+        categoryMenu.getChildren().add(content);
+        StackPane panel_menu = new StackPane(panel,categoryMenu);
+        
+        BorderPane fullPanel = new BorderPane();
+        fullPanel.setCenter(panel_menu);
+        Scene scene = new Scene(fullPanel, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         scene.getStylesheets().add(nav.getCss());
         scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             KeyCode key = e.getCode();
             switch (key) {
                 case F5 -> {
-                    Logger.info("F5");
-                    nav.goTo(new ScnMangaMenu(this.manga));
+                    controller.reloadManga();
                     e.consume();
                 }
                 case ESCAPE -> {
@@ -321,7 +370,79 @@ public class ScnMangaMenu implements AppScene{
         
         return scene;
     }
+    
+    public void doAddChapters(){
+        List<Chapter> chapters = controller.getChapters();
+        for (Chapter cap : chapters) {
+            listaCaps.getItems().add(cap);
+        }
+    }
+    
+    public void doReloadChapters(){
+        List<Chapter> chapters = controller.getChapters();
+        listaCaps.getItems().clear();
+        for (Chapter cap : chapters) {
+            listaCaps.getItems().add(cap);
+        }
+    }
+    
+    public void setTitle(String title){
+        this.title.setText(title);
+    }
+    
+    public void setAuthor(String author){
+        this.author.setText(author);
+    }
+    
+    public void setDescrition(String desc){
+        this.description.setText(desc);
+    }
+    
+    public void setTags(String tags){
+        this.tags.setText(tags);
+    }
+    
+    private void doShowMenu(){
+        menuVisible = true;
+        categoryMenu.setVisible(menuVisible);
+    }
+    
+    private void doHideMenu(){
+        menuVisible = false;
+        categoryMenu.setVisible(menuVisible);
+    }
 
+    private void doCategoryButtons(){
+        categoryButtons.getChildren().clear();
+        
+        categoryButtons.setSpacing(10); 
+
+        for(Category category : lib.getAllCategories()){
+            CheckBox chkCategory = new CheckBox(category.getName());
+            
+            chkCategory.getStyleClass().add("category-checkbox"); 
+
+            chkCategory.setMaxSize(Double.MAX_VALUE, 30);
+            
+            // Si el manga está en la categoría, el CheckBox se marca automáticamente
+            chkCategory.setSelected(lib.onCategory(category, manga));
+
+            // Evento cuando el usuario hace clic en el cuadrito
+            chkCategory.setOnAction(e -> {
+                if (chkCategory.isSelected()) {
+                    if(!lib.onCategory(category, manga)) {
+                        controller.addToLibrary(category.getName());
+                    }
+                } else {
+                    controller.removeManga(this.manga, category);
+                }
+            });
+            
+            categoryButtons.getChildren().add(chkCategory);
+        }
+    }
+    
+    
     @Override
     public String getName() {
         return manga.getTitle();

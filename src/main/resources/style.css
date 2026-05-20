@@ -39,13 +39,33 @@
     -fx-background-color: transparent;
 }
 
+.category-pane{
+    -fx-background-color: -fx-main-bg;
+    -fx-border-color: -fx-third-bg;
+    -fx-border-width: 0 0 1 0;
+}
+
+.category-pane .button{
+    -fx-font-family: "Lato";
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+    -fx-font-size: 14px;
+    -fx-wrap-text: true;
+    -fx-background-color: -fx-third-bg;
+}
+
+.category-pane .button:hover{
+    -fx-text-fill: -fx-third-bg;
+    -fx-background-color: -fx-accent;
+}
+
 /* =========================
    MENÚ LATERAL
 ========================= */
 
 .side-menu {
     -fx-background-color: -fx-main-bg;
-    -fx-border-color: -fx-accent;
+    -fx-border-color: -fx-third-bg;
     -fx-border-width: 0 1 0 0;
     -fx-padding: 20;
     -fx-spacing: 2;
@@ -103,6 +123,37 @@
 /* =========================
    LISTA DE CAPÍTULOS
 ========================= */
+
+.category-option{
+    -fx-border-color: -fx-third-bg;
+    -fx-border-width: 1;
+    -fx-background-color: -fx-main-bg;
+    -fx-background-radius: 10; 
+    -fx-border-radius: 10;
+}
+.category-checkbox{
+    
+}
+
+.category-checkbox .box {
+    -fx-background-color: transparent;
+    -fx-border-color: -fx-third-bg; /* Puedes usar tu variable o un color como #4A90E2 */
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+}
+
+.category-checkbox .mark {
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 2;
+}
+
+.category-option .button{
+    -fx-background-color: transparent;
+}
+.category-option .button:hover{
+    -fx-background-color: -fx-secondary-bg;
+}
+
 
 .button.mangamenu-button{
     -fx-background-color: -fx-secondary-bg;

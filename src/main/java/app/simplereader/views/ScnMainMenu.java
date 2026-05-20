@@ -43,6 +43,8 @@ public class ScnMainMenu implements AppScene{
     private ScrollPane scroll;
     private TilePane activePane;
     private String currentCategory = "Default";
+    private HBox categoryButtons;
+    
     
     private final MainMenuController controller;
     
@@ -132,7 +134,7 @@ public class ScnMainMenu implements AppScene{
         btnConfig.setMinSize(24, 24);
         btnConfig.setMaxSize(24,24);
         btnConfig.setOnAction(e -> { 
-            nav.goTo(new ScnConfig(this.nav));
+            nav.goTo(new ScnConfig());
         });
         btnAdd.setMinSize(24, 24);
         btnAdd.setMaxSize(24, 24);
@@ -149,36 +151,21 @@ public class ScnMainMenu implements AppScene{
         
         // Menu con las categorias
         
-        HBox categoryButtons = new HBox(hgap);
-        Button btnDefCat = new Button("Default");
-        btnDefCat.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(btnDefCat, Priority.ALWAYS);
-        btnDefCat.setOnAction(e -> {
-            controller.showCategory("Default");
-        });
-        categoryButtons.getChildren().add(btnDefCat);
-        categoryButtons.setPadding(new Insets(15, 15, 0, 15));
+        categoryButtons = new HBox(hgap);
         categoryButtons.setSpacing(2);
 
-        for (Category cat : lib.getAllCategories()) {
-            if (!cat.getName().equals("Default")) {
-                Button btnCategory = new Button(cat.getName());
-                HBox.setHgrow(btnCategory, Priority.ALWAYS);
-                btnCategory.setMaxWidth(Double.MAX_VALUE);
-                btnCategory.setOnAction(e -> {
-                    controller.showCategory(cat.getName());
-                });
-                categoryButtons.getChildren().add(btnCategory);
-            }
-        }
+        createCategoryTabs();
         
         BorderPane categoriesPane = new BorderPane();
+        categoriesPane.setPadding(new Insets(15));
+        categoriesPane.getStyleClass().add("category-pane");
         categoriesPane.setCenter(categoryButtons);
-        categoriesPane.setMinHeight(30);
-        categoriesPane.setMaxHeight(30);
+        categoriesPane.setMinHeight(50);
+        categoriesPane.setMaxHeight(50);
+        StackPane.setAlignment(categoriesPane, Pos.TOP_CENTER);
+        //VBox scrlandpane = new VBox(categoriesPane, scroll);
         
-        VBox scrlandpane = new VBox(categoriesPane, scroll);
-        
+        StackPane center = new StackPane(scroll,categoriesPane);
         // Menu lateral
         
         SideMenu lateralmenu = new SideMenu();
@@ -187,7 +174,7 @@ public class ScnMainMenu implements AppScene{
         lateralmenu.addBottom(btnConfig);
 
         BorderPane panel = new BorderPane();
-        panel.setCenter(scrlandpane);
+        panel.setCenter(center);
         panel.setLeft(lateralmenu.getPane());
         
         StackPane root = new StackPane();
@@ -198,7 +185,7 @@ public class ScnMainMenu implements AppScene{
 
             nav.goTo(new ScnSourceMenu());
         });
-        
+        StackPane.setMargin(scroll, new Insets(50, 0, 0, 0));
         Scene rootCache = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         rootCache.getStylesheets().add(nav.getCss());
         rootCache.setOnKeyPressed( e -> {
@@ -214,6 +201,27 @@ public class ScnMainMenu implements AppScene{
         });
         
         return rootCache;
+    }
+    
+    public void createCategoryTabs(){
+        Button btnDefCat = new Button("Default");
+        btnDefCat.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnDefCat, Priority.ALWAYS);
+        btnDefCat.setOnAction(e -> {
+            controller.showCategory("Default");
+        });
+        categoryButtons.getChildren().add(btnDefCat);
+        for (Category cat : lib.getAllCategories()) {
+            if (!cat.getName().equals("Default")) {
+                Button btnCategory = new Button(cat.getName());
+                HBox.setHgrow(btnCategory, Priority.ALWAYS);
+                btnCategory.setMaxWidth(Double.MAX_VALUE);
+                btnCategory.setOnAction(e -> {
+                    controller.showCategory(cat.getName());
+                });
+                categoryButtons.getChildren().add(btnCategory);
+            }
+        }
     }
     
     private StackPane createSourcePickerOverlay() {
@@ -268,7 +276,11 @@ public class ScnMainMenu implements AppScene{
         Logger.info("Import folder - pending implementation");
     }
 
-        
+       
+    public HBox getCategoryButtons(){
+        return this.categoryButtons;
+    }
+    
     public Map<String, TilePane> getCategoriesPanes(){
         return ScnMainMenu.categoryPanes;
     }

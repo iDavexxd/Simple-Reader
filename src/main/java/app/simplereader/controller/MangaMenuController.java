@@ -1,10 +1,12 @@
 package app.simplereader.controller;
 
+import app.simplereader.model.Category;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
 import app.simplereader.views.ScnMangaMenu;
 import app.simplereader.views.ScnReader;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,6 +20,8 @@ public class MangaMenuController {
     private final SceneController nav = SceneController.getInstance();
     private final LibraryController library = LibraryController.getInstance();
     private final MainMenuController mainMenuController = MainMenuController.getInstance();
+    
+    private final SourceManager source = SourceManager.getInstance();
     
     private Manga manga;
     private boolean isReversed = false;
@@ -38,9 +42,15 @@ public class MangaMenuController {
         this.manga = manga;
     }
     
-    public void addToLibrary() {
+    public void addToLibrary(String category) {
         SourceManager.getInstance().saveManga(this.manga);
-        library.addManga(this.manga, "Default");
+        library.addManga(this.manga, category);
+        library.saveLibrary();
+        mainMenuController.reloadMangas();
+    }
+    
+    public void removeManga(Manga manga, Category category){
+        library.removeMangaFrom(category, manga);
         library.saveLibrary();
         mainMenuController.reloadMangas();
     }
@@ -97,4 +107,67 @@ public class MangaMenuController {
     public Manga getManga(){
         return manga;
     }
+    
+    
+    
+    public void reloadManga(){
+        // 1. Respaldamos las INSTANCIAS VIEJAS
+        List<Chapter> oldChapters = this.manga.getChapters();
+
+        source.fetchMangaData(this.manga);
+
+        // 2. Traemos las INSTANCIAS NUEVAS
+        MangaSource src = source.getSource(manga.getSourceID());
+        List<Chapter> newChapters = src.getChapters(this.manga.getMangaID());
+        for(Chapter chapter : newChapters){
+            Logger.info("New chapter: "+chapter.getTitle());
+        }
+        
+        // 3. Creamos una lista para meter los objetos definitivos
+        List<Chapter> finalChapters = new ArrayList<>();
+
+        if (newChapters != null) {
+            for (Chapter newCap : newChapters) {
+                Chapter matchingOldCap = null;
+
+                // Buscamos manualmente si el capítulo ya existía usando el ChapterID
+                if (oldChapters != null) {
+                    for (Chapter oldCap : oldChapters) {
+                        if (oldCap.getChapterID().equals(newCap.getChapterID())) {
+                            matchingOldCap = oldCap;
+                            break;
+                        }
+                    }
+                }
+
+                if (matchingOldCap != null) {
+                    // Conservamos la INSTANCIA VIEJA. 
+                    // Su estado interno (como la última página leída) se mantiene intacto.
+                    finalChapters.add(matchingOldCap);
+                    Logger.info("Reload chapter: "+matchingOldCap.getTitle());
+                } else {
+                    // Si no hubo coincidencia, es un capítulo recién salido.
+                    finalChapters.add(newCap);
+                    Logger.info(("Loaded NEW chapter: " + newCap.getTitle()));
+                }
+            }
+        }
+
+        // 4. Guardamos los capítulos actualizados en el manga
+        manga.setChapters(finalChapters);
+        source.saveManga(this.manga);
+
+        // 5. IMPORTANTE: Guardar en la biblioteca para asegurar la persistencia
+        if (library.onLibrary(this.manga)) {
+            library.saveLibrary();
+        }
+
+        // 6. Refrescar la vista con los nuevos metadatos y la lista fusionada
+        view.setTitle(manga.getTitle());
+        view.setAuthor(manga.getAuthor());
+        view.setDescrition(manga.getDescription());
+        view.setTags(getTags());
+        view.doReloadChapters();
+    }
+    
 }

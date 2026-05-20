@@ -60,6 +60,11 @@ public class MainMenuController {
         }
     }
     
+    public void reloadCategoryTabs(){
+        scene.getCategoryButtons().getChildren().clear();
+        scene.createCategoryTabs();
+    }
+    
     public void loadAllTiles() {
         if(tilesLoaded) return;
         

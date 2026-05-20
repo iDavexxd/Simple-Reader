@@ -27,9 +27,9 @@ public class LibraryController {
     
     private static LibraryController instance;
     
-    private Map<String, Category> categories = new HashMap<>();
+    private final Map<String, Category> categories = new HashMap<>();
     
-    private Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String LIBRARY_FILE = AppConfig.DATA_FOLDER + "library.json";
     
     public static LibraryController getInstance(){
@@ -53,6 +53,9 @@ public class LibraryController {
         }
     }
     
+    public boolean onCategory(Category category, Manga manga){
+        return category.getMangas().contains(manga);
+    }
     public void removeCategory(String name){
         if (name.equals("Default")) return;
         Category cat = categories.get(name);
@@ -85,10 +88,18 @@ public class LibraryController {
         cat.addManga(manga);
     }
     
+    public void removeMangaFrom(Category category, Manga manga){
+        if(category != null) category.removeManga(manga);
+    }
+    
     public void removeManga(Manga manga){
         for (Category cat : categories.values()) {
             cat.removeManga(manga);
         }
+    }
+    
+    public boolean onLibrary(Manga manga){
+        return getAllMangas().contains(manga);
     }
     
     public void moveManga(Manga manga, String newCategory){
