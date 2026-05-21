@@ -10,28 +10,37 @@ import java.util.List;
 public class Category {
     private final String name;
     
-    private List<Manga> mangaList;
+    private final List<Manga> mangaList;
+    private boolean hide = false;
     
     public Category(String name){
         this.name = name;
         mangaList = new ArrayList<>();
     }
     
+    public boolean isHide(){
+        return this.hide;
+    }
+    
+    public void setHide(boolean bool){
+        this.hide = bool;
+    }
+    
     public String getName(){
-        return name;
+        return this.name;
     }
     
     public List<Manga> getMangas(){
-        return mangaList;
+        return this.mangaList;
     }
     
     public void addManga(Manga manga){
-        if (!mangaList.contains(manga)) {
-            mangaList.add(manga);
+        if (!this.mangaList.contains(manga)) {
+            this.mangaList.add(manga);
         }
     }
     
     public void removeManga(Manga manga){
-        mangaList.remove(manga);
+        this.mangaList.remove(manga);
     }
 }

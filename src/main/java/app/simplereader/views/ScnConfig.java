@@ -1,6 +1,7 @@
 package app.simplereader.views;
 
 import app.simplereader.controller.ConfigSceneController;
+import app.simplereader.controller.MainMenuController;
 import app.simplereader.views.components.SideMenu;
 import app.simplereader.model.AppConfig;
 import app.simplereader.controller.SceneController;
@@ -115,6 +116,10 @@ public class ScnConfig implements AppScene {
         btnAdd.setMinSize(50, 50);
         btnAdd.setMaxSize(50, 50);
         
+        Button btnHide = new Button("Hide");
+        btnHide.setMinSize(50, 50);
+        btnHide.setMaxSize(50, 50);
+        
         Button btnRemove = new Button("Remove");
         btnRemove.setMinSize(50, 50);
         btnRemove.setMaxSize(50, 50);
@@ -157,11 +162,32 @@ public class ScnConfig implements AppScene {
             }
         });
         
+        btnHide.setOnAction(e->{ 
+            Category selectedCategory = categoryListView.getSelectionModel().getSelectedItem();
+            if (selectedCategory != null) {
+                if(!selectedCategory.getName().equalsIgnoreCase("default")){
+                    if(selectedCategory.isHide()){
+                        selectedCategory.setHide(false);
+                    }else{
+                        selectedCategory.setHide(true);
+                    }
+                    MainMenuController.getInstance().reloadCategoryTabs();
+
+                }
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("No selection");
+                alert.setHeaderText(null);
+                alert.setContentText("Please select a category from the list to hide.");
+                alert.showAndWait();
+            }
+        });
+        
         // Disposición visual de los botones de la lista
         Region buttonSpacer = new Region();
         VBox.setVgrow(buttonSpacer, Priority.ALWAYS);
         
-        VBox categoryButtons = new VBox(5, btnAdd, buttonSpacer, btnRemove);
+        VBox categoryButtons = new VBox(5, btnAdd, buttonSpacer, btnHide,btnRemove);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS); // Este Hgrow funciona correctamente ahora gracias al fitToWidth del ScrollPane
         HBox listAndButtons = new HBox(categoryListView, spacer, categoryButtons);

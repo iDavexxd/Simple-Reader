@@ -212,7 +212,7 @@ public class ScnMainMenu implements AppScene{
         });
         categoryButtons.getChildren().add(btnDefCat);
         for (Category cat : lib.getAllCategories()) {
-            if (!cat.getName().equals("Default")) {
+            if (!cat.getName().equals("Default") && cat.isHide() == false) {
                 Button btnCategory = new Button(cat.getName());
                 HBox.setHgrow(btnCategory, Priority.ALWAYS);
                 btnCategory.setMaxWidth(Double.MAX_VALUE);

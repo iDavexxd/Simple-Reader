@@ -8,6 +8,7 @@ import app.simplereader.views.ScnMangaMenu;
 import app.simplereader.views.ScnReader;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.concurrent.Task;
 
 /**
  *
@@ -111,63 +112,74 @@ public class MangaMenuController {
     
     
     public void reloadManga(){
-        // 1. Respaldamos las INSTANCIAS VIEJAS
-        List<Chapter> oldChapters = this.manga.getChapters();
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                // 1. Respaldamos las INSTANCIAS VIEJAS
+                List<Chapter> oldChapters = manga.getChapters();
 
-        source.fetchMangaData(this.manga);
+                source.fetchMangaData(manga);
 
-        // 2. Traemos las INSTANCIAS NUEVAS
-        MangaSource src = source.getSource(manga.getSourceID());
-        List<Chapter> newChapters = src.getChapters(this.manga.getMangaID());
-        for(Chapter chapter : newChapters){
-            Logger.info("New chapter: "+chapter.getTitle());
-        }
-        
-        // 3. Creamos una lista para meter los objetos definitivos
-        List<Chapter> finalChapters = new ArrayList<>();
+                // 2. Traemos las INSTANCIAS NUEVAS
+                MangaSource src = source.getSource(manga.getSourceID());
+                List<Chapter> newChapters = src.getChapters(manga.getMangaID());
 
-        if (newChapters != null) {
-            for (Chapter newCap : newChapters) {
-                Chapter matchingOldCap = null;
+                // 3. Creamos una lista para meter los objetos definitivos
+                List<Chapter> finalChapters = new ArrayList<>();
 
-                // Buscamos manualmente si el capítulo ya existía usando el ChapterID
-                if (oldChapters != null) {
-                    for (Chapter oldCap : oldChapters) {
-                        if (oldCap.getChapterID().equals(newCap.getChapterID())) {
-                            matchingOldCap = oldCap;
-                            break;
+                if (newChapters != null) {
+                    for (Chapter newCap : newChapters) {
+                        Chapter matchingOldCap = null;
+
+                        if (oldChapters != null) {
+                            for (Chapter oldCap : oldChapters) {
+                                if (oldCap.getChapterID().equals(newCap.getChapterID())) {
+                                    matchingOldCap = oldCap;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (matchingOldCap != null) {
+                            finalChapters.add(matchingOldCap);
+                            Logger.info("Reload chapter: "+matchingOldCap.getTitle());
+                        } else {
+                            finalChapters.add(newCap);
+                            Logger.info("Loaded NEW chapter: " + newCap.getTitle());
                         }
                     }
                 }
 
-                if (matchingOldCap != null) {
-                    // Conservamos la INSTANCIA VIEJA. 
-                    // Su estado interno (como la última página leída) se mantiene intacto.
-                    finalChapters.add(matchingOldCap);
-                    Logger.info("Reload chapter: "+matchingOldCap.getTitle());
-                } else {
-                    // Si no hubo coincidencia, es un capítulo recién salido.
-                    finalChapters.add(newCap);
-                    Logger.info(("Loaded NEW chapter: " + newCap.getTitle()));
+                // 4. Guardamos los capítulos actualizados en el manga
+                manga.setChapters(finalChapters);
+                source.saveManga(manga);
+
+                // 5. Guardar en la biblioteca para asegurar la persistencia
+                if (library.onLibrary(manga)) {
+                    library.saveLibrary();
                 }
+
+                return null;
             }
-        }
 
-        // 4. Guardamos los capítulos actualizados en el manga
-        manga.setChapters(finalChapters);
-        source.saveManga(this.manga);
+            @Override
+            protected void succeeded() {
+                // 6. Refrescar la vista en el hilo de la UI
+                view.setTitle(manga.getTitle());
+                view.setAuthor(manga.getAuthor());
+                view.setDescrition(manga.getDescription());
+                view.setTags(getTags());
+                view.doReloadChapters();
+                view.loadCover(manga.getCoverURL());
+            }
 
-        // 5. IMPORTANTE: Guardar en la biblioteca para asegurar la persistencia
-        if (library.onLibrary(this.manga)) {
-            library.saveLibrary();
-        }
+            @Override
+            protected void failed() {
+                Logger.error("Error reloading manga: " + getException().getMessage());
+            }
+        };
 
-        // 6. Refrescar la vista con los nuevos metadatos y la lista fusionada
-        view.setTitle(manga.getTitle());
-        view.setAuthor(manga.getAuthor());
-        view.setDescrition(manga.getDescription());
-        view.setTags(getTags());
-        view.doReloadChapters();
+        new Thread(task).start();
     }
     
 }
