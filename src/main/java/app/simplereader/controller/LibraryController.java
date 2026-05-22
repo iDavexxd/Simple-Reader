@@ -6,6 +6,9 @@ import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileReader;
@@ -54,14 +57,19 @@ public class LibraryController {
     }
     
     public boolean onCategory(Category category, Manga manga){
-        return category.getMangas().contains(manga);
+        
+        if(category.getMangas().containsKey(manga.getMangaID())){
+            return true;
+        }
+        return false;
+        
     }
     public void removeCategory(String name){
         if (name.equals("Default")) return;
         Category cat = categories.get(name);
         if (cat != null) {
             Category defaultCat = categories.get("Default");
-            for (Manga manga : cat.getMangas()) {
+            for (Manga manga : cat.getMangas().values()) {
                 defaultCat.addManga(manga);
             }
             categories.remove(name);
@@ -109,15 +117,17 @@ public class LibraryController {
         addManga(manga, newCategory);
     }
     
-    public List<Manga> getMangasByCategory(String c){
+    public HashMap<String,Manga> getMangasByCategory(String c){
         Category cat = categories.get(c);
-        return cat != null ? cat.getMangas() : new ArrayList<>();
+        if (cat == null) return new HashMap<>();
+        HashMap<String, Manga> mangas = cat.getMangas();
+        return mangas != null ? mangas : new HashMap<>();
     }
     
     public List<Manga> getAllMangas(){
         List<Manga> all = new ArrayList<>();
         for (Category cat : categories.values()) {
-            all.addAll(cat.getMangas());
+            all.addAll(cat.getMangas().values());
         }
         return all;
     }
@@ -127,28 +137,51 @@ public class LibraryController {
         if (!file.exists()) return;
         
         try (FileReader reader = new FileReader(file)) {
-            Type type = new TypeToken<Map<String, List<Manga>>>(){}.getType();
-            Map<String, List<Manga>> data = gson.fromJson(reader, type);
+            JsonObject raw = gson.fromJson(reader, JsonObject.class);
+            if (raw == null) return;
             
-            if (data != null) {
-                for (Map.Entry<String, List<Manga>> entry : data.entrySet()) {
-                    String catName = entry.getKey();
-                    List<Manga> mangaList = entry.getValue();
-                    
-                    Category cat = categories.get(catName);
-                    if (cat == null) {
-                        cat = new Category(catName);
-                        categories.put(catName, cat);
+            boolean migrated = false;
+            for (Map.Entry<String, JsonElement> entry : raw.entrySet()) {
+                JsonObject catObj = entry.getValue().getAsJsonObject();
+                
+                if (catObj.has("mangaList") && !catObj.has("mangas")) {
+                    JsonArray mangaList = catObj.getAsJsonArray("mangaList");
+                    JsonObject mangasMap = new JsonObject();
+                    for (JsonElement elem : mangaList) {
+                        JsonObject mangaObj = elem.getAsJsonObject();
+                        String id = mangaObj.get("mangaID").getAsString();
+                        mangasMap.add(id, mangaObj);
                     }
-                    
-                    for (Manga manga : mangaList) {
-                        // REPARAR REFERENCIAS DE CAPÍTULOS
-                        restoreChapterRefs(manga);
-                        cat.addManga(manga);
-                    }
+                    catObj.add("mangas", mangasMap);
+                    catObj.remove("mangaList");
+                    migrated = true;
                 }
             }
-        } catch (IOException e) {
+            
+            if (migrated) {
+                try (FileWriter writer = new FileWriter(file)) {
+                    gson.toJson(raw, writer);
+                }
+            }
+            
+            Type type = new TypeToken<Map<String, Category>>(){}.getType();
+            Map<String, Category> data = gson.fromJson(raw, type);
+            
+            if (data != null) {
+                for (Map.Entry<String, Category> entry : data.entrySet()) {
+                    String catName = entry.getKey();
+                    Category cat = entry.getValue();
+                    
+                    if (cat.getMangas() != null) {
+                        for (Manga manga : cat.getMangas().values()) {
+                            restoreChapterRefs(manga);
+                        }
+                    }
+                    
+                    categories.put(catName, cat);
+                }
+            }
+        } catch (Exception e) {
             Logger.error("Error cargando biblioteca: " + e.getMessage());
         }
     }
@@ -166,13 +199,9 @@ public class LibraryController {
         try {
             Files.createDirectories(Paths.get(LIBRARY_FILE).getParent());
             
-            Map<String, List<Manga>> data = new HashMap<>();
-            for (Category cat : categories.values()) {
-                data.put(cat.getName(), cat.getMangas());
-            }
-            
+            // 4. Guardamos directamente nuestro mapa de categorías entero
             try (FileWriter writer = new FileWriter(LIBRARY_FILE)) {
-                gson.toJson(data, writer);
+                gson.toJson(categories, writer);
             }
         } catch (IOException e) {
             Logger.error("Error guardando biblioteca: " + e.getMessage());

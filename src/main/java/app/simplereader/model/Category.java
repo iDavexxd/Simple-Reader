@@ -1,6 +1,6 @@
 package app.simplereader.model;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -10,12 +10,12 @@ import java.util.List;
 public class Category {
     private final String name;
     
-    private final List<Manga> mangaList;
+    private final HashMap<String, Manga> mangas;
     private boolean hide = false;
     
     public Category(String name){
         this.name = name;
-        mangaList = new ArrayList<>();
+        this.mangas = new HashMap<>();
     }
     
     public boolean isHide(){
@@ -30,17 +30,17 @@ public class Category {
         return this.name;
     }
     
-    public List<Manga> getMangas(){
-        return this.mangaList;
+    public HashMap<String, Manga> getMangas(){
+        return this.mangas;
     }
     
     public void addManga(Manga manga){
-        if (!this.mangaList.contains(manga)) {
-            this.mangaList.add(manga);
+        if(!this.mangas.containsKey(manga.getMangaID())){
+            this.mangas.put(manga.getMangaID(), manga);
         }
     }
     
     public void removeManga(Manga manga){
-        this.mangaList.remove(manga);
+        this.mangas.remove(manga.getMangaID());
     }
 }

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Region;
 
 /**
  *
@@ -41,10 +42,13 @@ public class ScnMainMenu implements AppScene{
     private final LibraryController lib = LibraryController.getInstance();
     
     private ScrollPane scroll;
-    private TilePane activePane;
+    private static TilePane activePane;
     private String currentCategory = "Default";
     private HBox categoryButtons;
+    private BorderPane sourceBorderPane;
+    private VBox sourceButtons;
     
+    private boolean sourceMenuVisible = false;
     
     private final MainMenuController controller;
     
@@ -177,14 +181,18 @@ public class ScnMainMenu implements AppScene{
         panel.setCenter(center);
         panel.setLeft(lateralmenu.getPane());
         
+        doCreateSourcePane();
+        sourceBorderPane.setVisible(sourceMenuVisible);
+        
         StackPane root = new StackPane();
         root.getChildren().add(panel);
-        StackPane overlay = createSourcePickerOverlay();
-        root.getChildren().add(overlay);
+        root.getChildren().add(sourceBorderPane);
+        
         btnAdd.setOnAction(e -> {
-
-            nav.goTo(new ScnSourceMenu());
+            //nav.goTo(new ScnSourceMenu());
+            doShowSourceMenu();
         });
+        
         StackPane.setMargin(scroll, new Insets(50, 0, 0, 0));
         Scene rootCache = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         rootCache.getStylesheets().add(nav.getCss());
@@ -224,51 +232,74 @@ public class ScnMainMenu implements AppScene{
         }
     }
     
-    private StackPane createSourcePickerOverlay() {
-        StackPane overlay = new StackPane();
-        overlay.setVisible(false); // Oculto por defecto
-        overlay.setManaged(false); // No afecta al layout cuando está oculto
-        // Fondo oscuro semitransparente
-        javafx.scene.shape.Rectangle bg = new javafx.scene.shape.Rectangle();
-        bg.setFill(javafx.scene.paint.Color.rgb(0, 0, 0, 0.6));
-        bg.widthProperty().bind(overlay.widthProperty());
-        bg.heightProperty().bind(overlay.heightProperty());
-        // La "tarjeta" central
-        VBox card = new VBox(15);
-        card.getStyleClass().add("picker-card"); // Para CSS
-        card.setPadding(new Insets(20));
-        card.setAlignment(Pos.CENTER);
-        card.setMaxWidth(300);
-        Label title = new Label("Selecciona una fuente");
-        title.getStyleClass().add("picker-title");
-        VBox sourcesList = new VBox(10);
-        sourcesList.setAlignment(Pos.CENTER);
-        // Botones para cada Source
-        for (MangaSource src : SourceManager.getInstance().getAllSources()) {
-            Button btn = new Button(src.getName());
-            btn.getStyleClass().add("picker-btn");
-            btn.setMaxWidth(Double.MAX_VALUE);
-
-            btn.setOnAction(e -> {
-                overlay.setVisible(false);
-                overlay.setManaged(false);
-                controller.doGoToSource(src);
+    public void doCreateSourceButtons(){
+        for(MangaSource source : SourceManager.getInstance().getAllSources()){
+            Button btnSource = new Button(source.getName());
+            btnSource.setOnAction(e -> {
+                nav.goTo(new ScnSourceSearch(source));
+                doHideSourceMenu();
             });
-
-            sourcesList.getChildren().add(btn);
+            sourceButtons.getChildren().add(btnSource);
         }
-        // Botón cancelar
-        Button btnCancel = new Button("Cancelar");
-        btnCancel.getStyleClass().add("picker-btn-cancel");
-        btnCancel.setOnAction(e -> {
-            overlay.setVisible(false);
-            overlay.setManaged(false);
-        });
-        card.getChildren().addAll(title, sourcesList, btnCancel);
-        overlay.getChildren().addAll(bg, card);
-        return overlay;
+    }
+    
+    private void doShowSourceMenu(){
+        sourceMenuVisible = true;
+        sourceBorderPane.setVisible(sourceMenuVisible);
+    }
+    
+    private void doHideSourceMenu(){
+        sourceMenuVisible = false;
+        sourceBorderPane.setVisible(sourceMenuVisible);
+    }
+    
+    public void doCreateSourcePane(){
+        //top
+        Label menuTitle = new Label();
+        menuTitle.setText("Sources");
+        
+        Button btnClose = new Button("x");
+        btnClose.setMinSize(30, 30);
+        btnClose.setMaxSize(30, 30);
+        btnClose.setOnAction(e -> doHideSourceMenu());
+        
+        Region topSpacer = new Region();
+        HBox.setHgrow(topSpacer, Priority.ALWAYS);
+        
+        HBox topcontent = new HBox(menuTitle,topSpacer,btnClose);
+        
+
+        // center
+        sourceButtons = new VBox();
+        doCreateSourceButtons();
+        
+        ScrollPane centercontent = new ScrollPane(sourceButtons);
+        centercontent.setFitToWidth(true);
+        
+        //Bottom
+        Button btnImport = new Button("+");
+        btnImport.setMinSize(30, 30);
+        btnImport.setMaxSize(Double.MAX_VALUE, 30);
+        
+        Region bottomSpacer = new Region();
+        VBox.setVgrow(bottomSpacer, Priority.ALWAYS);
+
+        VBox allContent = new VBox(10,topcontent,centercontent,bottomSpacer,btnImport);
+        
+        StackPane sourceMenu = new StackPane(allContent);
+        sourceMenu.getStyleClass().add("source-menu");
+        sourceMenu.setPadding(new Insets(15));
+
+        sourceMenu.setMaxSize(300, 450);
+        sourceMenu.setMinHeight(450);
+
+        sourceBorderPane = new BorderPane();
+        sourceBorderPane.getStyleClass().add("menu-background");
+        sourceBorderPane.setCenter(sourceMenu);
     }
 
+    
+    
     
     
     private void importFolder() {

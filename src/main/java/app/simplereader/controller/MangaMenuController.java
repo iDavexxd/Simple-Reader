@@ -56,6 +56,10 @@ public class MangaMenuController {
         mainMenuController.reloadMangas();
     }
     
+    public void doReloadCategoryButtons(){
+        view.doCategoryButtons();
+    }
+    
     public void openChapter(Chapter chapter){
         if (!chapter.hasPages()) {
             Logger.info("Cargando páginas para: " + chapter.getTitle());

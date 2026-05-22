@@ -35,6 +35,8 @@ import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
@@ -61,12 +63,15 @@ public class ScnMangaMenu implements AppScene{
     private Label description;
     private Label tags;
     
+    private Button btnAddToLibrary;    
+    
     private ImageView coverView;
     private StackPane coverContainer;
     private Rectangle placeholder;
     
     private ListView<Chapter> listaCaps;
     private StackPane categoryMenu;
+    private BorderPane categoryPane;
     private VBox categoryButtons;
     
     public ScnMangaMenu(Manga manga){
@@ -80,6 +85,10 @@ public class ScnMangaMenu implements AppScene{
     
     @Override
     public Scene getScene() {
+        
+        /*
+         *   COVER
+         */
         coverView = new ImageView();
         coverView.setPreserveRatio(true);
         coverView.setManaged(false);
@@ -139,36 +148,98 @@ public class ScnMangaMenu implements AppScene{
         Button btnBack = Buttons.getBackButton();
         
         VBox buttons = new VBox(btnBack);
+        
+        /*
+         *   INFO DEL MANGA
+         */
+        
         title = new Label(manga.getTitle());
         title.getStyleClass().add("manga-info-title");
         title.setWrapText(true);
         author = new Label(manga.getAuthor() != null ? manga.getAuthor() : "");
         author.getStyleClass().add("manga-info-author");
+        
+        // Scrollpane con la descripción
+        
         description = new Label(manga.getDescription() != null ? manga.getDescription() : "");
         description.setWrapText(true);
         description.getStyleClass().add("manga-info-description");
+        
+        ScrollPane descScroll = new ScrollPane();
+        descScroll.getStyleClass().add("description-scroll");
+        descScroll.setContent(description);
+        descScroll.setFitToWidth(true);
+        VBox.setVgrow(descScroll, Priority.ALWAYS); //No funciona
+        
         tags = new Label(controller.getTags());
         tags.getStyleClass().add("manga-info-tags");
         
-        VBox datosmanga = new VBox(10, title, author, description); 
+        VBox datosmanga = new VBox(10, title, author, descScroll); 
         VBox tagsmanga = new VBox(tags);
         BorderPane datos = new BorderPane();
-        datos.setTop(datosmanga);
+        datos.setMaxHeight(450);
+        datos.setCenter(datosmanga);
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20, coverContainer, datos);
         
         
-        
+        /*
+         *   LISTA CON LOS CAPITULOS
+         */
         listaCaps = new ListView<>();
         HBox.setHgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
+        listaCaps.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
         doAddChapters();
 
         listaCaps.setOnMouseClicked(e -> {
+            if (e.getButton() != javafx.scene.input.MouseButton.PRIMARY) return;
+            if (e.getClickCount() < 2) return;
             Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
             if (selChapter != null) {
                 controller.openChapter(selChapter);
             }
         });
+
+        ContextMenu ctxMenu = new ContextMenu();
+        MenuItem markRead = new MenuItem("Mark as read");
+        MenuItem markUnread = new MenuItem("Mark as unread");
+        ctxMenu.getItems().addAll(markRead, markUnread);
+
+        ctxMenu.setOnShowing(e -> {
+            var selected = listaCaps.getSelectionModel().getSelectedItems();
+            if (selected.isEmpty()) {
+                e.consume();
+                return;
+            }
+            boolean anyUnread = false;
+            boolean anyRead = false;
+            for (Chapter ch : selected) {
+                if (ch.isReaded()) anyRead = true;
+                else anyUnread = true;
+            }
+            markRead.setVisible(anyUnread);
+            markUnread.setVisible(anyRead);
+        });
+
+        markRead.setOnAction(e -> {
+            for (Chapter sel : listaCaps.getSelectionModel().getSelectedItems()) {
+                sel.markAsReaded();
+            }
+            lib.saveLibrary();
+            listaCaps.refresh();
+            listaCaps.getSelectionModel().clearSelection();
+        });
+
+        markUnread.setOnAction(e -> {
+            for (Chapter sel : listaCaps.getSelectionModel().getSelectedItems()) {
+                sel.unRead();
+            }
+            lib.saveLibrary();
+            listaCaps.refresh();
+            listaCaps.getSelectionModel().clearSelection();
+        });
+
+        listaCaps.setContextMenu(ctxMenu);
 
         listaCaps.getStyleClass().add("chapter-list");
         listaCaps.setCellFactory(lv -> new ListCell<Chapter>() {
@@ -208,8 +279,16 @@ public class ScnMangaMenu implements AppScene{
         String addLibrary = "M520-400h80v-120h120v-80H600v-120h-80v120H400v80h120v120ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
         String onLibrary = "m508-398 226-226-56-58-170 170-86-84-56 56 142 142ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
         
+        
+
+        
         icnLibrary = new SVGPath();
-        icnLibrary.setContent(addLibrary);
+        if(lib.onLibrary(manga)){
+            icnLibrary.setContent(onLibrary);
+        } 
+        else {
+            icnLibrary.setContent(addLibrary);
+        }
         icnLibrary.getStyleClass().add("icon");
         icnLibrary.setScaleX(scale);
         icnLibrary.setScaleY(scale);
@@ -230,7 +309,7 @@ public class ScnMangaMenu implements AppScene{
         
         VBox botones = new VBox(5);
         
-        Button btnAddToLibrary = new Button("",icnLibrary_pane);
+        btnAddToLibrary = new Button("",icnLibrary_pane);
         btnAddToLibrary.getStyleClass().add("mangamenu-button");
         btnAddToLibrary.setOnAction(e -> {
             doShowMenu();
@@ -241,8 +320,12 @@ public class ScnMangaMenu implements AppScene{
         Button btnKeepReading = new Button("", icon_read);
         btnKeepReading.getStyleClass().add("mangamenu-button");
         btnKeepReading.setOnAction(e -> {
+            Chapter sel = listaCaps.getSelectionModel().getSelectedItem();
+            if (sel != null) {
+                controller.openChapter(sel);
+                return;
+            }
             Chapter selChapter = controller.findFirstUnreadChapter();
-
             if (selChapter != null) {
                 controller.openChapter(selChapter);
             } else {
@@ -280,6 +363,16 @@ public class ScnMangaMenu implements AppScene{
         VBox coverlista = new VBox(10, top, bottom);
         
         coverlista.getStyleClass().add("manga-info");
+        coverlista.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
+            javafx.scene.Node target = (javafx.scene.Node) e.getTarget();
+            javafx.scene.Node p = target;
+            boolean inList = false;
+            while (p != null) {
+                if (p == listaCaps) { inList = true; break; }
+                p = p.getParent();
+            }
+            if (!inList) listaCaps.getSelectionModel().clearSelection();
+        });
         VBox.setVgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
         
         SideMenu lateralmenu = new SideMenu();
@@ -296,7 +389,17 @@ public class ScnMangaMenu implements AppScene{
         categoryMenu.setVisible(menuVisible);
         categoryMenu.setPadding(new Insets(15));
         
-        Button btnClose = new Button("x");
+        SVGPath icnClose = new SVGPath();
+        icnClose.getStyleClass().add("icon");
+        icnClose.setContent("m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z");
+        icnClose.setScaleX(scale);
+        icnClose.setScaleY(scale);
+        
+        Group icnClose_group = new Group(icnClose);
+        StackPane icnClose_container = new StackPane(icnClose_group);
+
+        
+        Button btnClose = new Button("",icnClose_container);
         btnClose.setMinSize(24, 24);
         btnClose.setMaxSize(24,24);
         btnClose.setOnAction(e -> doHideMenu());
@@ -309,16 +412,46 @@ public class ScnMangaMenu implements AppScene{
         categoryButtons = new VBox(5);
         categoryButtons.setAlignment(Pos.TOP_CENTER);
         StackPane.setAlignment(categoryButtons, Pos.TOP_CENTER);
-        
-        
         doCategoryButtons();
+        
         ScrollPane categories = new ScrollPane(categoryButtons);
         
-        VBox content = new VBox(10,topContent,categories);
         
+        Button btnEdit = new Button("Edit");
+        Button btnAccept = new Button("Accept");
+        
+        btnEdit.setMaxSize(Double.MAX_VALUE, 30);
+        btnEdit.setMinHeight(30);
+        
+        btnAccept.setMaxSize(Double.MAX_VALUE, 30);
+        btnAccept.setMinHeight(30);
+        
+        btnAccept.setOnAction(e -> doHideMenu());
+        btnEdit.setOnAction(e -> {
+            nav.goTo(new ScnConfig());
+        });
+        
+        
+        HBox bottomContent = new HBox(10, btnEdit, btnAccept);
+        HBox.setHgrow(btnEdit, Priority.ALWAYS);
+        HBox.setHgrow(btnAccept, Priority.ALWAYS);
+
+        bottomContent.setAlignment(Pos.CENTER_RIGHT); 
+
+        // 2. Le decimos al ScrollPane que ocupe el espacio sobrante (así no empuja los botones fuera)
+        VBox.setVgrow(categories, Priority.ALWAYS);
+
+        // 3. Ya no necesitamos el bottomSpacer, armamos el VBox directamente
+        VBox content = new VBox(10, topContent, categories, bottomContent);
         
         categoryMenu.getChildren().add(content);
-        StackPane panel_menu = new StackPane(panel,categoryMenu);
+        
+        categoryPane = new BorderPane();
+        categoryPane.getStyleClass().add("menu-background");
+
+        categoryPane.setCenter(categoryMenu);
+        categoryPane.setVisible(menuVisible);
+        StackPane panel_menu = new StackPane(panel,categoryPane);
         
         BorderPane fullPanel = new BorderPane();
         fullPanel.setCenter(panel_menu);
@@ -416,14 +549,25 @@ public class ScnMangaMenu implements AppScene{
     private void doShowMenu(){
         menuVisible = true;
         categoryMenu.setVisible(menuVisible);
+        categoryPane.setVisible(menuVisible);
+
     }
     
     private void doHideMenu(){
         menuVisible = false;
         categoryMenu.setVisible(menuVisible);
+        categoryPane.setVisible(menuVisible);
+
     }
 
-    private void doCategoryButtons(){
+    public void doCategoryButtons(){
+        
+        if(categoryButtons == null) return;
+        
+        String addLibrary = "M520-400h80v-120h120v-80H600v-120h-80v120H400v80h120v120ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
+        String onLibrary = "m508-398 226-226-56-58-170 170-86-84-56 56 142 142ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
+        
+        
         categoryButtons.getChildren().clear();
         
         categoryButtons.setSpacing(10); 
@@ -443,9 +587,11 @@ public class ScnMangaMenu implements AppScene{
                 if (chkCategory.isSelected()) {
                     if(!lib.onCategory(category, manga)) {
                         controller.addToLibrary(category.getName());
+                        if(lib.onLibrary(manga)) icnLibrary.setContent(onLibrary);
                     }
                 } else {
                     controller.removeManga(this.manga, category);
+                    if(!lib.onLibrary(manga)) icnLibrary.setContent(addLibrary);
                 }
             });
             

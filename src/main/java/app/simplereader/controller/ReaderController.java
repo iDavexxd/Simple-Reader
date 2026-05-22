@@ -85,6 +85,7 @@ public class ReaderController {
         this.chapterIndex = index;
         this.currentPageIndex = chapter.isReaded() ? 0 : chapter.getLastRead();
         
+        view.setChapter(chapter);
         nav.getStage().setTitle(view.getName());
         
         if (paginaComboBox != null) {

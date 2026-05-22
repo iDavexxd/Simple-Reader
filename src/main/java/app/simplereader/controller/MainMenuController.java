@@ -75,8 +75,8 @@ public class MainMenuController {
                 scene.getCategoriesPanes().put(cat.getName(), pane);
             }
             
-            List<Manga> mangas = lib.getMangasByCategory(cat.getName());
-            for (Manga manga : mangas) {
+            
+            for (Manga manga : lib.getMangasByCategory(cat.getName()).values()) {
                 if (manga.getCoverURL() != null) {
                     VBox tile = MangaTile.create(manga);
                     pane.getChildren().add(tile);

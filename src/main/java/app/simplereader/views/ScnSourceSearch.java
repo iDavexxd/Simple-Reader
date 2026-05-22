@@ -94,8 +94,9 @@ public class ScnSourceSearch implements AppScene {
                 }
             }
         });
-        // Al hacer click en un manga
         resultsList.setOnMouseClicked(e -> {
+            if (e.getButton() != javafx.scene.input.MouseButton.PRIMARY) return;
+            if (e.getClickCount() < 2) return;
             Manga selected = resultsList.getSelectionModel().getSelectedItem();
             if (selected != null) {
                 Logger.info("Cargando detalles de: " + selected.getTitle());
@@ -104,7 +105,7 @@ public class ScnSourceSearch implements AppScene {
                 Manga mangaToRead = null;
                 // 1. Buscar si ya existe en la biblioteca
                 for (Category cat : lib.getAllCategories()) {
-                    for (Manga m : cat.getMangas()) {
+                    for (Manga m : cat.getMangas().values()) {
                         if (m.getMangaID().equals(selected.getMangaID()) && 
                             m.getSourceID().equals(selected.getSourceID())) {
                             mangaToRead = m; 
@@ -153,6 +154,16 @@ public class ScnSourceSearch implements AppScene {
         VBox.setMargin(resultsList, new Insets(10, 20, 20, 20));
         BorderPane root = new BorderPane();
         VBox cosas = new VBox(top,resultsList);
+        cosas.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
+            javafx.scene.Node target = (javafx.scene.Node) e.getTarget();
+            javafx.scene.Node p = target;
+            boolean inList = false;
+            while (p != null) {
+                if (p == resultsList) { inList = true; break; }
+                p = p.getParent();
+            }
+            if (!inList) resultsList.getSelectionModel().clearSelection();
+        });
         root.setCenter(cosas);
         root.setLeft(lateralmenu.getPane());
         Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);

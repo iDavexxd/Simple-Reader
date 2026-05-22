@@ -37,6 +37,7 @@
                 <transformer>
                   <mainClass>app.simplereader.Main</mainClass>
                 </transformer>
+                <transformer />
               </transformers>
               <filters>
                 <filter>
