@@ -80,8 +80,7 @@ public class SourceManager {
                 for (MangaSource source : loader) {
                     registerSource(source);
                     Logger.info("Loaded plugin:  " + source.getName());
-                }
-                child.close();                
+                }                
             } catch (Exception e){
                 Logger.error("Error loading plugin " + jar.getName() + ": " + e.getMessage());
                 e.printStackTrace();

@@ -3,16 +3,30 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>App.Reader</groupId>
     <artifactId>SimpleReader</artifactId>
-    <version>beta-1.1</version>
+    <version>beta-1.5</version>
     <packaging>jar</packaging>
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <exec.mainClass>app.simplereader.Main</exec.mainClass>
+        <api.version>1.2</api.version>
     </properties>
     
     <dependencies>
+        
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.10.1</version> 
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-swing</artifactId>
+            <version>25</version> 
+        </dependency>
+        
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
@@ -38,10 +52,36 @@
             <artifactId>webp-imageio</artifactId>
             <version>0.10.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>jar</goal></goals>
+                        <configuration>
+                            <classifier>api-${api.version}</classifier>
+                            <classesDirectory>target/classes</classesDirectory>
+                            <includes>
+                                <include>app/simplereader/repository/MangaSource.class</include>
+                                <include>app/simplereader/model/Manga.class</include>
+                                <include>app/simplereader/model/Chapter.class</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -89,6 +129,26 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
+                <executions>
+                    <execution>
+                        <id>install-api-jar</id>
+                        <phase>install</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <groupId>app.simplereader</groupId>
+                            <artifactId>api</artifactId>
+                            <version>${api.version}</version>
+                            <packaging>jar</packaging>
+                            <file>${project.build.directory}/${project.build.finalName}-api-${api.version}.jar</file>
                         </configuration>
                     </execution>
                 </executions>

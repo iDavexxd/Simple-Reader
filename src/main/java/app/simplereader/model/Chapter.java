@@ -8,13 +8,16 @@ import java.util.List;
  */
 public class Chapter {
     
-    private String chID;
+    private final String chID;
     private transient Manga manga;
     private String title;
     private String number;
+    private String scan;
+    private String date;
     private transient List<String> pages;
     
     private boolean readed = false;
+    private boolean downloaded = false;
     private int lastRead = 0;
     
     public Chapter(String id, Manga manga){
@@ -23,7 +26,11 @@ public class Chapter {
     }
     
     public boolean isReaded(){
-        return readed;
+        return this.readed;
+    }
+    
+    public boolean isDownloaded(){
+        return this.downloaded;
     }
     
     public void markAsReaded(){
@@ -72,9 +79,33 @@ public class Chapter {
         return this.pages.get(index);
     }
     
+    public String getScane(){
+        return this.scan;
+    }
+    
+    public String getDate(){
+        return this.date;
+    }
+    
+    public Manga getManga(){
+        return this.manga;
+    }
+    
     /*
     Setters:
     */
+    
+    public void setDate(String date){
+        this.date = date;
+    }
+    
+    public void setScan(String scan){
+        this.scan = scan;
+    }
+    
+    public void setDownloaded(boolean bool){
+        this.downloaded = bool;
+    }
     
     public void setTitle(String title){
         this.title = title;

@@ -3,9 +3,30 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>App.Reader</groupId>
   <artifactId>SimpleReader</artifactId>
-  <version>beta-1.1</version>
+  <version>beta-1.5</version>
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>api-${api.version}</classifier>
+              <classesDirectory>target/classes</classesDirectory>
+              <includes>
+                <include>app/simplereader/repository/MangaSource.class</include>
+                <include>app/simplereader/model/Manga.class</include>
+                <include>app/simplereader/model/Chapter.class</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.11.0</version>
@@ -53,11 +74,32 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>3.1.2</version>
+        <executions>
+          <execution>
+            <id>install-api-jar</id>
+            <phase>install</phase>
+            <goals>
+              <goal>install-file</goal>
+            </goals>
+            <configuration>
+              <groupId>app.simplereader</groupId>
+              <artifactId>api</artifactId>
+              <version>${api.version}</version>
+              <packaging>jar</packaging>
+              <file>${project.build.directory}/${project.build.finalName}-api-${api.version}.jar</file>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <api.version>1.2</api.version>
     <exec.mainClass>app.simplereader.Main</exec.mainClass>
   </properties>
 </project>

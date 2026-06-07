@@ -8,7 +8,7 @@
     -fx-fourth-bg: #1C2B3E;  
     
     -fx-accent: #ECE5F0;
-    -fx-reader-bg: #01201D;
+    -fx-reader-bg: #1A1D23;
     -fx-tag-bg: #01332e;
 
     -fx-background-color: -fx-main-bg;
@@ -61,6 +61,68 @@
     -fx-background-color: -fx-accent;
 }
 
+/* 1. Fondo general del contenedor base */
+.category-tabpane {
+    -fx-background-color: -fx-main-bg;
+}
+
+.category-tabpane .tab-header-area {
+    -fx-border-color: -fx-third-bg;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 15 15 0 15; /* Esto mantiene el espacio alrededor de tus pestañas */
+}
+
+.category-tabpane .control-buttons-tab {
+    -fx-padding: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+    -fx-opacity: 0;
+}
+
+/* 2. Quitar el fondo gris por defecto del área de los mangas */
+.category-tabpane .tab-content-area {
+    -fx-background-color: transparent;
+
+}
+
+/* 3. Quitar el fondo de la barra superior (detrás de las pestañas) */
+.category-tabpane .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+/* 4. Estilo de las pestañas inhabilitadas (sin seleccionar) */
+.category-tabpane .tab {
+    -fx-background-color: -fx-main-bg;
+    -fx-background-radius: 5; /* Bordes redondeados solo arriba */
+}
+
+.category-tabpane .tab .tab-label {
+    -fx-text-fill: -fx-accent;
+    -fx-font-family: "Roboto Slab";
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+/* 5. Efecto Hover en la pestaña */
+.category-tabpane .tab:hover {
+    -fx-background-color: -fx-secondary-bg;
+}
+
+/* 6. Estilo de la pestaña activa (seleccionada) */
+.category-tabpane .tab:selected {
+    -fx-border-width: 0 0 2 0;
+
+    -fx-border-color: -fx-accent;
+}
+
+.category-tabpane .tab:selected .tab-label {
+}
+
+/* Opcional: Quitar la línea azul de enfoque que sale al hacer clic */
+.category-tabpane:focused .tab-header-area .headers-region .tab:selected .focus-indicator {
+    -fx-border-color: transparent;
+}
+
 .source-menu{
     -fx-background-color: -fx-main-bg;
     -fx-background-radius: 10px;
@@ -68,6 +130,13 @@
     -fx-border-color: -fx-third-bg;
     -fx-border-width: 1;
 }
+
+.source-menu .button{
+    -fx-text-fill: -fx-accent;
+    -fx-alignment: center-left;
+}
+
+
 
 .source-menu .label{
     -fx-font-family: "Late";

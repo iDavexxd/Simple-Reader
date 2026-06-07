@@ -41,6 +41,8 @@ public class AppConfig {
             +"manga";
             
     
+    
+    
     public static String DATA_FOLDER = System.getProperty("user.home")
             + File.separator
             +"Documents"
@@ -48,6 +50,7 @@ public class AppConfig {
             +"SimpleReader"
             + File.separator
             + "/data/";
+    
     public static String MANGA_DATA_FOLDER = System.getProperty("user.home")
             + File.separator
             +"Documents"

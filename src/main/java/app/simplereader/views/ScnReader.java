@@ -319,18 +319,14 @@ public class ScnReader implements AppScene {
         }
         caps.setValue(this.chapter);
         caps.setOnAction(e -> {
+            if (controller.isProgrammaticNav()) return;
+            
             Chapter selected = caps.getValue();
             MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-            if (src != null) {
-                List<String> pages = src.getPages(manga.getMangaID(), selected.getChapterID());
-                selected.setPages(pages);
-            }
-            
-            if (selected != null) {
+            if (src != null && selected != null) {
                 int index = chapters.indexOf(selected);
                 if (index >= 0) {
                     controller.loadChapter(selected, index);
-                    caps.setValue(selected);
                 }
             }
         });

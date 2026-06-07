@@ -46,6 +46,8 @@ public class MainMenuController {
         nav.goTo(new ScnSourceSearch(src));
     }
     
+    
+    
     public void doCreateCategoryPanes(){
         int columns = 5;
         double hgap = 15;
@@ -61,8 +63,8 @@ public class MainMenuController {
     }
     
     public void reloadCategoryTabs(){
-        scene.getCategoryButtons().getChildren().clear();
-        scene.createCategoryTabs();
+        scene.getCategoryTabPane().getTabs().clear();
+        scene.doCreateCategoryTabs();
     }
     
     public void loadAllTiles() {
@@ -98,18 +100,7 @@ public class MainMenuController {
         return pane;
     }
     
-    public void showCategory(String name) {
-        TilePane pane = scene.getCategoriesPanes().get(name);
-        if (pane == null) {
-            pane = createTilePane(name, 15, 15, 15, 5);
-            scene.getCategoriesPanes().put(name, pane);
-        }
-        
-        scene.setActivePane(pane);
-        scene.getScroll().setContent(scene.getActivePane());
-        scene.setCurrentCategory(name);
-        resizeTiles(scene.getScroll().getWidth());
-    }
+    
     
     public void resizeTiles(double totalWidth) {
         TilePane pane = scene.getActivePane();
@@ -136,14 +127,18 @@ public class MainMenuController {
     }
     
     public void reloadMangas() {
-        // Limpiar todos los panes
         for (TilePane pane : scene.getCategoriesPanes().values()) {
             pane.getChildren().clear();
         }
         tilesLoaded = false;
-        // Recargar desde LibraryController
+
         loadAllTiles();
-        resizeTiles(scene.getScroll().getWidth());
+
+        TilePane currentPane = scene.getActivePane();
+        if (currentPane != null && currentPane.getParent() instanceof javafx.scene.control.ScrollPane) {
+            javafx.scene.control.ScrollPane activeScroll = (javafx.scene.control.ScrollPane) currentPane.getParent();
+            resizeTiles(activeScroll.getWidth());
+        }
     }
     /*
     Setters:

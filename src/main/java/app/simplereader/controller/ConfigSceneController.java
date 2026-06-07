@@ -45,7 +45,9 @@ public class ConfigSceneController {
     }
     
     private void reloadCategories(){
-       MainMenuController.getInstance().reloadCategoryTabs();
-       MangaMenuController.getInstance().doReloadCategoryButtons();
+       MainMenuController mainMenu = MainMenuController.getInstance();
+       if (mainMenu != null) mainMenu.reloadCategoryTabs();
+       MangaMenuController mangaMenu = MangaMenuController.getInstance();
+       if (mangaMenu != null) mangaMenu.doReloadCategoryButtons();
     }
 }

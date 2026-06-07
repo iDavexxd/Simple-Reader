@@ -1,6 +1,6 @@
 # Compilados de Maven
 target/
-
+plugins/
 # Archivos de NetBeans
 nbproject/private/
 /nbbuild/
@@ -14,7 +14,9 @@ nbproject/private/
 .settings/
 .project/
 .classpath/
+.vscode/
 
 # Log y archivos temporales
 *.log
 .DS_Store
+/simple-reader-api.jar

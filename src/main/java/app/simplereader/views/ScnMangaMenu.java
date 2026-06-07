@@ -57,6 +57,7 @@ public class ScnMangaMenu implements AppScene{
     
     private SVGPath icnArrow;
     private SVGPath icnLibrary;
+    private SVGPath icnDownload;
     
     private Label title;
     private Label author;
@@ -64,6 +65,7 @@ public class ScnMangaMenu implements AppScene{
     private Label tags;
     
     private Button btnAddToLibrary;    
+    private Button btnDownloadChapter;
     
     private ImageView coverView;
     private StackPane coverContainer;
@@ -173,11 +175,11 @@ public class ScnMangaMenu implements AppScene{
         
         tags = new Label(controller.getTags());
         tags.getStyleClass().add("manga-info-tags");
-        
+        VBox.setVgrow(tags, Priority.ALWAYS);
         VBox datosmanga = new VBox(10, title, author, descScroll); 
         VBox tagsmanga = new VBox(tags);
         BorderPane datos = new BorderPane();
-        datos.setMaxHeight(450);
+        datos.setMaxHeight(500);
         datos.setCenter(datosmanga);
         datos.setBottom(tagsmanga);
         HBox top = new HBox(20, coverContainer, datos);
@@ -190,7 +192,8 @@ public class ScnMangaMenu implements AppScene{
         HBox.setHgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
         listaCaps.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
         doAddChapters();
-
+        
+        
         listaCaps.setOnMouseClicked(e -> {
             if (e.getButton() != javafx.scene.input.MouseButton.PRIMARY) return;
             if (e.getClickCount() < 2) return;
@@ -203,6 +206,7 @@ public class ScnMangaMenu implements AppScene{
         ContextMenu ctxMenu = new ContextMenu();
         MenuItem markRead = new MenuItem("Mark as read");
         MenuItem markUnread = new MenuItem("Mark as unread");
+        
         ctxMenu.getItems().addAll(markRead, markUnread);
 
         ctxMenu.setOnShowing(e -> {
@@ -307,6 +311,15 @@ public class ScnMangaMenu implements AppScene{
         StackPane icon_arrow = new StackPane(icon_arrow_group);
         
         
+        icnDownload = new SVGPath();
+        doChangeDownloadIcon(0);
+        icnDownload.getStyleClass().add("icon");
+        icnDownload.setScaleX(scale);
+        icnDownload.setScaleY(scale);
+        
+        Group icnDownload_group = new Group(icnDownload);
+        StackPane icnDownload_container = new StackPane(icnDownload_group);
+        
         VBox botones = new VBox(5);
         
         btnAddToLibrary = new Button("",icnLibrary_pane);
@@ -333,6 +346,30 @@ public class ScnMangaMenu implements AppScene{
             }
         });
         
+        if(!manga.getSourceID().equals("local")){
+            btnDownloadChapter = new Button("",icnDownload_container);
+            doChangeDownloadIcon(0);
+            listaCaps.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue != null) {
+                    if(newValue.isDownloaded()){
+                        doChangeDownloadIcon(1);
+                    } else{
+                        doChangeDownloadIcon(0);
+                    }
+                    
+                } else {
+                    // No hay ningún capítulo seleccionado en la lista.
+                    doChangeDownloadIcon(0);
+                }
+            });
+            btnDownloadChapter.getStyleClass().add("mangamenu-button");
+            btnDownloadChapter.setMaxSize(40, 40);
+            btnDownloadChapter.setMinSize(40, 40);
+            btnDownloadChapter.disableProperty().bind(listaCaps.getSelectionModel().selectedItemProperty().isNull());
+            btnDownloadChapter.setOnAction(e -> controller.downloadChapter(this.listaCaps.getSelectionModel().getSelectedItem()));
+        }
+        
+        
         Button btnInvertir = new Button("", icon_arrow);
         btnInvertir.getStyleClass().add("mangamenu-button");
         btnInvertir.setOnAction(e -> {
@@ -349,6 +386,7 @@ public class ScnMangaMenu implements AppScene{
         Region spacer = new Region();
         VBox.setVgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
         botones.getChildren().add(btnKeepReading);
+        if(!manga.getSourceID().equals("local")) botones.getChildren().add(btnDownloadChapter);
         botones.getChildren().add(spacer);
         botones.getChildren().add(btnAddToLibrary);
         botones.getChildren().add(btnInvertir);
@@ -558,6 +596,20 @@ public class ScnMangaMenu implements AppScene{
         categoryMenu.setVisible(menuVisible);
         categoryPane.setVisible(menuVisible);
 
+    }
+    
+    private void doChangeDownloadIcon(int op){
+        
+        // 0 = hide
+        // 1 = Downloaded
+        // 2 = download
+        
+        switch (op){
+            case 0 -> icnDownload.setContent("M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z");
+            case 1 -> icnDownload.setContent("M382-320 155-547l57-57 170 170 366-366 57 57-423 423ZM200-160v-80h560v80H200Z");
+            case 2 -> icnDownload.setContent("M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z");
+            default -> Logger.info("iccon "+op+" does not exist.");
+        }
     }
 
     public void doCategoryButtons(){
