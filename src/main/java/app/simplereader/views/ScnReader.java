@@ -90,6 +90,7 @@ public class ScnReader implements AppScene {
                 }
                 case ESCAPE -> {
                     controller.cleanupResources();
+                    nav.getStage().setFullScreen(false);
                     nav.getStage().setResizable(false);
                     nav.getStage().setOnCloseRequest(null);
                     nav.getStage().setMaximized(false);
@@ -267,6 +268,7 @@ public class ScnReader implements AppScene {
         btnBackToMenu.setOnAction(e -> {
             controller.cleanupResources();
             nav.getStage().setOnCloseRequest(originalCloseHandler); 
+            nav.getStage().setFullScreen(false);
             nav.getStage().setResizable(false);
             nav.getStage().setMaximized(false);
             nav.backScene();

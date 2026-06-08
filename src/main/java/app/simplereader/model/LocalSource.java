@@ -114,7 +114,14 @@ public class LocalSource implements MangaSource {
         List<Chapter> chapters = new ArrayList<>();
         for (File item : validChapters) {
             Chapter ch = new Chapter(item.getName(), null);
-            ch.setTitle(item.getName()); // Por defecto usa el nombre del archivo
+            ch.setTitle(item.getName());
+            try {
+                java.nio.file.attribute.BasicFileAttributes attr = java.nio.file.Files.readAttributes(
+                        item.toPath(), java.nio.file.attribute.BasicFileAttributes.class);
+                ch.setDate(attr.creationTime().toString().substring(0, 10));
+            } catch (Exception e) {
+                ch.setDate("");
+            }
             // Si es un archivo zip/cbz, intentamos leer el XML
             String name = item.getName().toLowerCase();
             if (name.endsWith(".cbz") || name.endsWith(".zip")) {

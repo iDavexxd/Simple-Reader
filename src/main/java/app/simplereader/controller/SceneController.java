@@ -64,6 +64,7 @@ public class SceneController {
         AppScene anterior = scnList.get(scnList.size() - 1);
         ActualSceneName = anterior.getName();
         stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
+        stage.setResizable(false);
         stage.setScene(anterior.getScene());
         Logger.info("Scene --> " + anterior.getName());
     }

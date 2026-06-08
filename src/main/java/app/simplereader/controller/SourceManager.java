@@ -127,7 +127,14 @@ public class SourceManager {
             
             String currentCover = manga.getCoverURL();
             if (currentCover != null && currentCover.startsWith("http")) {
-                String localCoverPath = coverDir + mangaId + ".jpg";
+                String fileName = currentCover.substring(currentCover.lastIndexOf('/') + 1);
+                if (fileName.contains("?")) {
+                    fileName = fileName.substring(0, fileName.indexOf('?'));
+                }
+                if (fileName.isEmpty() || !fileName.contains(".")) {
+                    fileName = mangaId + ".jpg";
+                }
+                String localCoverPath = coverDir + fileName;
                 File localCoverFile = new File(localCoverPath);
                 
                 if (!localCoverFile.exists()) {

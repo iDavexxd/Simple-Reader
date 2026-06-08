@@ -1,5 +1,4 @@
-/* 
-    Tema global (variables)
+/* Tema global (variables)
 */
 .root{
     -fx-main-bg: #1A1D23;
@@ -54,12 +53,14 @@
     -fx-background-color: -fx-third-bg;
 }
 
-
-
 .category-pane .button:hover{
     -fx-text-fill: -fx-third-bg;
     -fx-background-color: -fx-accent;
 }
+
+/* =========================
+   TABS Y CATEGORIAS
+========================= */
 
 /* 1. Fondo general del contenedor base */
 .category-tabpane {
@@ -69,7 +70,7 @@
 .category-tabpane .tab-header-area {
     -fx-border-color: -fx-third-bg;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 15 15 0 15; /* Esto mantiene el espacio alrededor de tus pestañas */
+    -fx-padding: 15 15 0 15; /* Mantiene el espacio de 15px a izquierda y derecha */
 }
 
 .category-tabpane .control-buttons-tab {
@@ -82,18 +83,20 @@
 /* 2. Quitar el fondo gris por defecto del área de los mangas */
 .category-tabpane .tab-content-area {
     -fx-background-color: transparent;
-
 }
 
 /* 3. Quitar el fondo de la barra superior (detrás de las pestañas) */
 .category-tabpane .tab-header-background {
     -fx-background-color: transparent;
+    -fx-background-insets: 0; /* NUEVO: Quita el padding interno oculto de JavaFX */
 }
 
 /* 4. Estilo de las pestañas inhabilitadas (sin seleccionar) */
 .category-tabpane .tab {
     -fx-background-color: -fx-main-bg;
     -fx-background-radius: 5; /* Bordes redondeados solo arriba */
+    -fx-background-insets: 0; /* NUEVO: Elimina márgenes extra en cada pestaña individual */
+    -fx-padding: 5 0 5 0;     /* NUEVO: Solo dejamos padding vertical, el ancho lo controla Java */
 }
 
 .category-tabpane .tab .tab-label {
@@ -111,7 +114,6 @@
 /* 6. Estilo de la pestaña activa (seleccionada) */
 .category-tabpane .tab:selected {
     -fx-border-width: 0 0 2 0;
-
     -fx-border-color: -fx-accent;
 }
 
@@ -122,6 +124,10 @@
 .category-tabpane:focused .tab-header-area .headers-region .tab:selected .focus-indicator {
     -fx-border-color: transparent;
 }
+
+/* =========================
+   SOURCE MENU
+========================= */
 
 .source-menu{
     -fx-background-color: -fx-main-bg;
@@ -136,21 +142,30 @@
     -fx-alignment: center-left;
 }
 
-
-
 .source-menu .label{
     -fx-font-family: "Late";
     -fx-font-weight: bold;
-
     -fx-text-fill: -fx-accent;
     -fx-font-size: 18px;
-
-
-
 }
 
 .menu-background{
     -fx-background-color: rgba(0, 0, 0, 0.5);
+}
+
+.menu-mangatile{
+    
+}
+
+.menu-mangatile:hover{
+}
+
+.manga-icon {
+    -fx-background-radius: 10;
+}
+
+.manga-icon:hover {
+    -fx-effect: dropshadow(gaussian, rgba(236, 229, 240, 0.35), 15, 0.3, 0, 0);
 }
 
 /* =========================
@@ -184,7 +199,7 @@
     -fx-padding: 17;
 }
 
-.manga-info .label {    
+.manga-info .label {   
     -fx-text-fill: -fx-accent;
 }
 
@@ -221,8 +236,6 @@
 .category-option{
     -fx-font-family: "Late";
     -fx-font-size: 12px;
-    
-
     -fx-border-color: -fx-third-bg;
     -fx-border-width: 1;
     -fx-background-color: -fx-main-bg;
@@ -233,27 +246,24 @@
 .category-option .label{
     -fx-font-family: "Late";
     -fx-font-weight: bold;
-
     -fx-text-fill: -fx-accent;
     -fx-font-size: 18px;
-
 }
 
 .category-option .button{
     -fx-font-family: "Late";
-
     -fx-text-fill: -fx-accent;
     -fx-font-size: 14px;
-    
-    -fx-backfround-color: transparent;    
+    -fx-background-color: transparent;    
 }
+
 .category-checkbox{
     
 }
 
 .category-checkbox .box {
     -fx-background-color: -fx-main-bg;
-    -fx-border-color: -fx-third-bg; /* Puedes usar tu variable o un color como #4A90E2 */
+    -fx-border-color: -fx-third-bg;
     -fx-border-width: 1px;
     -fx-border-radius: 3px;
 }
@@ -275,7 +285,6 @@
 .category-option .button:hover{
     -fx-background-color: -fx-secondary-bg;
 }
-
 
 .button.mangamenu-button{
     -fx-background-color: -fx-secondary-bg;
@@ -323,8 +332,6 @@
     -fx-background-color: transparent;
 }
 
-
-
 .chapter-list {
     -fx-font-family: "Lato";
     -fx-background-color: transparent;
@@ -345,7 +352,6 @@
     -fx-background-radius: 10;
 }
 
-/* En hover, el scrollbar se ensancha y el thumb ocupa todo el ancho */
 /* En hover o mientras está presionado (arrastrando), el scrollbar se ensancha */
 .chapter-list .scroll-bar:vertical:hover,
 .chapter-list .scroll-bar:vertical:pressed {
@@ -380,7 +386,6 @@
 .chapter-list .list-cell:hover {
     -fx-background-color: -fx-secondary-bg;
     -fx-text-fill: -fx-accent;
-
     -fx-background-radius: 10;
 }
 
@@ -388,7 +393,6 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
 }
-
 
 .chapter-list .list-cell.chapter-read {
     -fx-text-fill: rgba(236, 229, 240, 0.35); /* #ECE5F0 al 35% */
@@ -413,6 +417,38 @@
     -fx-background-radius: 10;
 }
 
+.chapter-list .list-cell .chapter-title {
+    -fx-font-size: 14px;
+}
+
+.chapter-list .list-cell .chapter-sub {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(236, 229, 240, 0.6);
+}
+
+.chapter-list .list-cell.chapter-read .chapter-title,
+.chapter-list .list-cell.chapter-read .chapter-sub {
+    -fx-text-fill: rgba(236, 229, 240, 0.35);
+}
+
+.chapter-list .list-cell.chapter-read:hover .chapter-title,
+.chapter-list .list-cell.chapter-read:hover .chapter-sub,
+.chapter-list .list-cell.chapter-unread:hover .chapter-title,
+.chapter-list .list-cell.chapter-unread:hover .chapter-sub {
+    -fx-text-fill: -fx-accent;
+}
+
+.chapter-list .list-cell:selected .chapter-title,
+.chapter-list .list-cell:selected .chapter-sub,
+.chapter-list .list-cell:selected:hover .chapter-title,
+.chapter-list .list-cell:selected:hover .chapter-sub,
+.chapter-list .list-cell.chapter-read:selected:hover .chapter-title,
+.chapter-list .list-cell.chapter-read:selected:hover .chapter-sub,
+.chapter-list .list-cell.chapter-unread:selected:hover .chapter-title,
+.chapter-list .list-cell.chapter-unread:selected:hover .chapter-sub {
+    -fx-text-fill: -fx-main-bg;
+}
+
 /* =========================
    ICONOS Y BOTONES
 ========================= */
@@ -430,9 +466,10 @@
     -fx-background-color: -fx-third-bg;
     -fx-transition: fill 0.2s;
 }
-/* 
+
+/* =========================
    LECTOR
-*/
+========================= */
 
 .reader{
     -fx-background-color: -fx-reader-bg;
@@ -441,7 +478,6 @@
 .reader-menu {
     -fx-padding: 9;
     -fx-background-color: -fx-main-bg;
-
     -fx-border-color: -fx-third-bg;
     -fx-border-width: 0 2 0 0; /* top right bottom left */
 }
@@ -450,20 +486,18 @@
     -fx-font-family: "Roboto Slab";
     -fx-font-size: 24px;
     -fx-text-fill: -fx-accent;
-    
     -fx-padding: 5;
     -fx-background-color: -fx-main-bg;
     -fx-background-radius: 5;
 }
+
 .reader-menu-chname{
     -fx-font-family: "Roboto Slab";
     -fx-font-size: 14px;
     -fx-text-fill: -fx-accent;
-    
     -fx-padding: 5;
     -fx-background-color: -fx-main-bg;
     -fx-background-radius: 5;
-
 }
 
 .button.reader-button{
@@ -492,8 +526,6 @@
     -fx-padding: 8px;
 }
 
-
-
 .reader-combobox:hover{
     -fx-background-color: -fx-secondary-bg;
 }
@@ -506,21 +538,11 @@
     -fx-font-family: "Lato";
 }
 
-/*.reader-combobox .arrow-button {
-    -fx-padding: 0;
-    -fx-background-color: transparent;
-    -fx-shape: "";
-    -fx-opacity: 0;
-    -fx-pref-width: 0;
-    -fx-max-width: 0;
-    -fx-min-width: 0;
-    -fx-padding: 0;
-}*/
-
 .reader-combobox .list-view{
     -fx-background-color: -fx-third-bg;
     -fx-background-radius: 5;
 }
+
 .reader-combobox .list-cell {
     -fx-text-fill: -fx-accent;
     -fx-background-radius: 5;
@@ -531,7 +553,6 @@
     -fx-background-color: transparent;
     -fx-background-radius: 5;
 }
-
 
 .reader-combobox .list-cell:hover {
     -fx-background-color: -fx-fourth-bg;
@@ -592,18 +613,17 @@
     -fx-padding: 10 0 10 0;
 }
 
-
-/* Configuración */
+/* =========================
+   CONFIGURACIÓN
+========================= */
 
 .conf-root{
     -fx-background-color: -fx-main-bg;
 }
 
-
-/*
-    Menu de los sources
-*/
-
+/* =========================
+   MENU DE LOS SOURCES
+========================= */
 
 .source-title{
     -fx-font-family: "Roboto Slab";
@@ -673,9 +693,9 @@
     -fx-background-insets: 0;
 }
 
-/*
-    Menu de busqueda de los sources
-*/
+/* =========================
+   MENU DE BUSQUEDA DE LOS SOURCES
+========================= */
 
 .search-title{
     -fx-font-family: "Roboto Slab";
@@ -691,7 +711,6 @@
     -fx-background-color: #F4F7FB;
     -fx-background-radius: 8px;
     -fx-border-color: transparent;
-    
     -fx-font-family: "Lato";
     -fx-font-size: 14px;
     -fx-text-fill: -fx-secondary-bg;
@@ -755,6 +774,10 @@
     -fx-background-color: -fx-third-bg;;
     -fx-background-insets: 0;
 }
+
+/* =========================
+   CONTEXT MENU
+========================= */
 
 .context-menu {
     -fx-background-color: -fx-main-bg;

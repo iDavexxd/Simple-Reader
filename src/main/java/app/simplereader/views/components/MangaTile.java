@@ -30,7 +30,7 @@ public class MangaTile {
         // 1. Instanciamos el contenedor vacío
         StackPane coverContainer = new StackPane();
         coverContainer.setMaxSize(250, Double.MAX_VALUE);
-
+        
         // 2. Creamos el Placeholder (rectángulo semitransparente)
         Rectangle placeholder = new Rectangle();
         placeholder.setFill(Color.rgb(255, 255, 255, 0.1)); 
@@ -109,7 +109,7 @@ public class MangaTile {
         recorte.heightProperty().bind(coverContainer.heightProperty());
 
         coverContainer.setClip(recorte);
-        
+        coverContainer.getStyleClass().add("menu-mangatile");
         // 6. Solución al crasheo: Mantener ratio 2:3 usando un listener sin bloquear la propiedad
         coverContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
             coverContainer.setPrefHeight(newVal.doubleValue() * 1.5);

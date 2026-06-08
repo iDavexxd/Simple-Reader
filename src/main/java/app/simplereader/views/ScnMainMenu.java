@@ -138,11 +138,15 @@ public class ScnMainMenu implements AppScene{
         categoryTabPane.widthProperty().addListener((obs, oldVal, newVal) -> {
             int totalTabs = categoryTabPane.getTabs().size();
             if (totalTabs > 0) {
-                // Restamos 25 píxeles para compensar el padding interno de JavaFX
-                double tabWidth = (newVal.doubleValue() / totalTabs) - 25;
+                // Asumimos un margen/padding global pequeño del área de pestañas (ej. 5 a 10 píxeles en total)
+                double totalPadding = 10; 
 
-                categoryTabPane.setTabMinWidth(tabWidth);
-                categoryTabPane.setTabMaxWidth(tabWidth);
+                // Restamos el padding global al ancho total, y LUEGO dividimos equitativamente
+                double tabWidth = (newVal.doubleValue() - totalPadding) / totalTabs;
+
+                // JavaFX añade bordes internos a los tabs, restamos un valor mínimo (ej. 1 o 2 px) para evitar overflow
+                categoryTabPane.setTabMinWidth(tabWidth - 2);
+                categoryTabPane.setTabMaxWidth(tabWidth - 2);
             }
         });
         doCreateCategoryTabs();

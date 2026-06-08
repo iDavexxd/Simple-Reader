@@ -53,7 +53,7 @@ public class ScnMangaMenu implements AppScene{
     
     private boolean isdown = true;
     private boolean menuVisible = false;
-    
+    private boolean covermenuvisible = false;
     
     private SVGPath icnArrow;
     private SVGPath icnLibrary;
@@ -74,6 +74,7 @@ public class ScnMangaMenu implements AppScene{
     private ListView<Chapter> listaCaps;
     private StackPane categoryMenu;
     private BorderPane categoryPane;
+    private BorderPane coverPane;
     private VBox categoryButtons;
     
     public ScnMangaMenu(Manga manga){
@@ -181,7 +182,7 @@ public class ScnMangaMenu implements AppScene{
         BorderPane datos = new BorderPane();
         datos.setMaxHeight(500);
         datos.setCenter(datosmanga);
-        datos.setBottom(tagsmanga);
+        if(!controller.getTags().equals("")) datos.setBottom(tagsmanga);
         HBox top = new HBox(20, coverContainer, datos);
         
         
@@ -247,15 +248,29 @@ public class ScnMangaMenu implements AppScene{
 
         listaCaps.getStyleClass().add("chapter-list");
         listaCaps.setCellFactory(lv -> new ListCell<Chapter>() {
+            private final Label titleLabel = new Label();
+            private final Label subLabel = new Label();
+            private final VBox cellBox = new VBox(2, titleLabel, subLabel);
+
+            {
+                titleLabel.getStyleClass().add("chapter-title");
+                subLabel.getStyleClass().add("chapter-sub");
+            }
+
             @Override
             protected void updateItem(Chapter cap, boolean empty) {
                 super.updateItem(cap, empty);
                 getStyleClass().removeAll("chapter-read", "chapter-unread");
                 if (empty || cap == null) {
+                    setGraphic(null);
                     setText(null);
-                    getStyleClass().removeAll("chapter-read", "chapter-unread");
                 } else {
-                    setText(cap.getTitle());
+                    titleLabel.setText(cap.getTitle());
+                    String date = cap.getDate();
+                    if (date != null && date.length() >= 10) date = date.substring(0, 10);
+                    String scan = cap.getScane();
+                    subLabel.setText((date != null ? date : "") + (scan != null ? " | " + scan : ""));
+                    setGraphic(cellBox);
                     if (cap.isReaded()) {
                         getStyleClass().add("chapter-read");
                         getStyleClass().remove("chapter-unread");
@@ -366,7 +381,11 @@ public class ScnMangaMenu implements AppScene{
             btnDownloadChapter.setMaxSize(40, 40);
             btnDownloadChapter.setMinSize(40, 40);
             btnDownloadChapter.disableProperty().bind(listaCaps.getSelectionModel().selectedItemProperty().isNull());
-            btnDownloadChapter.setOnAction(e -> controller.downloadChapter(this.listaCaps.getSelectionModel().getSelectedItem()));
+            btnDownloadChapter.setOnAction(e -> {
+                for (Chapter ch : listaCaps.getSelectionModel().getSelectedItems()) {
+                    controller.downloadChapter(ch);
+                }
+            });
         }
         
         
@@ -489,7 +508,13 @@ public class ScnMangaMenu implements AppScene{
 
         categoryPane.setCenter(categoryMenu);
         categoryPane.setVisible(menuVisible);
-        StackPane panel_menu = new StackPane(panel,categoryPane);
+        
+        coverPane = new BorderPane();
+        doConfigCoverMenu();
+        coverPane.getStyleClass().add("menu-background");
+        coverPane.setVisible(covermenuvisible);
+
+        StackPane panel_menu = new StackPane(panel,categoryPane,coverPane);
         
         BorderPane fullPanel = new BorderPane();
         fullPanel.setCenter(panel_menu);
@@ -503,13 +528,45 @@ public class ScnMangaMenu implements AppScene{
                     e.consume();
                 }
                 case ESCAPE -> {
-                    nav.backScene();
+                    if(covermenuvisible == false && menuVisible == false) nav.backScene();
                     e.consume();
                 }
             }
         });
         
         return scene;
+    }
+    
+    public void doConfigCoverMenu(){
+        Image cover = new Image(manga.getCoverURL(),true);
+        
+        ImageView coverImageView = new ImageView(cover);
+        coverImageView.setPreserveRatio(true);
+        coverImageView.fitHeightProperty().bind(coverPane.heightProperty());
+        StackPane stackpane = new StackPane(coverImageView);
+        
+        SVGPath svg = new SVGPath();
+        double scale = 24.0 / 960.0;
+        svg.setContent("m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z");
+        svg.getStyleClass().add("icon");
+        svg.setScaleX(scale);
+        svg.setScaleY(scale);
+        Group icon_group = new Group(svg);
+        StackPane icon = new StackPane(icon_group);
+        
+        Button btnBack = new Button("",icon);
+        
+        btnBack.setOnAction(e -> doHideCoverMenu());
+        btnBack.setMinSize(24, 24);
+        btnBack.setMaxSize(24, 24);
+        Region spacer = new Region();
+        
+        
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        VBox left = new VBox(btnBack,spacer);
+        left.setPadding(new Insets(15));
+        coverPane.setCenter(stackpane);
+        coverPane.setRight(left);
     }
     
     public void doAddChapters(){
@@ -559,7 +616,11 @@ public class ScnMangaMenu implements AppScene{
 
         coverContainer.widthProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
         coverContainer.heightProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
-
+        
+        coverContainer.setOnMouseClicked(e -> {
+            doShowCoverMenu();
+        });
+        
         icon.progressProperty().addListener((obs, old, progress) -> {
             if (progress.doubleValue() >= 1.0) {
                 updateImageFit.run();
@@ -596,6 +657,16 @@ public class ScnMangaMenu implements AppScene{
         categoryMenu.setVisible(menuVisible);
         categoryPane.setVisible(menuVisible);
 
+    }
+    
+    private void doShowCoverMenu(){
+        covermenuvisible = true;
+        coverPane.setVisible(covermenuvisible);
+    }
+    
+    private void doHideCoverMenu(){
+        covermenuvisible = false;
+        coverPane.setVisible(covermenuvisible);
     }
     
     private void doChangeDownloadIcon(int op){

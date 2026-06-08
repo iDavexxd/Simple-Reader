@@ -5,20 +5,17 @@ import app.simplereader.model.Category;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
+import app.simplereader.service.Downloader;
 import app.simplereader.views.ScnMangaMenu;
 import app.simplereader.views.ScnReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,7 +30,7 @@ public class MangaMenuController {
     
    
     
-    private String DOWNLOADS_FOLDER = AppConfig.DATA_FOLDER;
+    private final String DOWNLOADS_FOLDER = AppConfig.DATA_FOLDER;
     
     private final ScnMangaMenu view;
     private static MangaMenuController instance;
@@ -42,8 +39,6 @@ public class MangaMenuController {
     private final MainMenuController mainMenuController = MainMenuController.getInstance();
     
     private final SourceManager source = SourceManager.getInstance();
-    
-    private final HashSet<String> isDownloading;
     
     private Manga manga;
     private boolean isReversed = false;
@@ -56,7 +51,6 @@ public class MangaMenuController {
     
     public MangaMenuController(ScnMangaMenu view){
         this.view = view;
-        isDownloading  = new HashSet<>();
     }
     
     public static void doInstance(ScnMangaMenu view){
@@ -177,6 +171,37 @@ public class MangaMenuController {
         // Trabajo lento (HTTP) en el pool, no en un Thread suelto
         preloader.submit(() -> {
             try {
+                String remoteCover = source.getSource(manga.getSourceID()).getCoverURL(manga.getMangaID());
+                if (remoteCover != null && remoteCover.startsWith("http")) {
+                    String currentURL = manga.getCoverURL();
+                    if (currentURL == null || !currentURL.equals(remoteCover)) {
+                        String fileName = remoteCover.substring(remoteCover.lastIndexOf('/') + 1);
+                        if (fileName.contains("?")) {
+                            fileName = fileName.substring(0, fileName.indexOf('?'));
+                        }
+                        if (fileName.isEmpty() || !fileName.contains(".")) {
+                            fileName = manga.getMangaID() + ".jpg";
+                        }
+                        String coverDir = AppConfig.DATA_FOLDER + manga.getSourceID() + "/covers/";
+                        String localCoverPath = coverDir + fileName;
+                        try {
+                            Files.createDirectories(Paths.get(coverDir));
+                            try (InputStream in = new URL(remoteCover).openStream()) {
+                                Files.copy(in, Paths.get(localCoverPath), StandardCopyOption.REPLACE_EXISTING);
+                            }
+                            if (currentURL != null && currentURL.startsWith("file://")) {
+                                try {
+                                    Files.deleteIfExists(Paths.get(URI.create(currentURL)));
+                                } catch (Exception e) { /* ignore */ }
+                            }
+                            manga.setCoverURL("file://" + new File(localCoverPath).getAbsolutePath());
+                        } catch (Exception e) {
+                            Logger.info("Could not download new cover, keeping the old one");
+                        }
+                    }
+                }
+            
+                
                 // 1. Respaldamos las INSTANCIAS VIEJAS
                 List<Chapter> oldChapters = manga.getChapters();
 
@@ -237,125 +262,7 @@ public class MangaMenuController {
     }
     
     public void downloadChapter(Chapter chapter){
-        // 1. Validaciones iniciales en el hilo de UI
-        if(chapter == null || manga == null) return;
-        File folder = new File(DOWNLOADS_FOLDER + manga.getSourceID() + "/downloads/" + manga.getMangaID() + "/" + chapter.getChapterID());
-        
-        // --- INICIO DE LA MODIFICACIÓN ---
-        // Ya no cancelamos aquí si hay *algún* archivo, porque queremos poder reanudar
-        // Solo verificamos si la carpeta existe. Si no, se creará después.
-        // --- FIN DE LA MODIFICACIÓN ---
-        
-        if(isDownloading.contains(chapter.getChapterID())){
-            Logger.error("Ya estas descargando ese capitulo.");
-            return;
-        }else{
-            isDownloading.add(chapter.getChapterID());
-        }
-        if(manga.getSourceID().equals("local")) return;
-
-        preloader.submit(() -> {
-            try {
-                // 2. Creación del directorio
-                if(!folder.exists()) {
-                    folder.mkdirs();
-                }
-
-                // 3. Obtener las URLs de las páginas
-                List<String> pagesURL = source.getSource(manga.getSourceID()).getPages(manga.getMangaID(), chapter.getChapterID());
-                
-                // Si ya están todas las páginas descargadas, evitamos procesar y avisamos
-                File[] existingFiles = folder.listFiles();
-                if (existingFiles != null && existingFiles.length >= pagesURL.size()) {
-                    Logger.info("El capítulo ya está descargado por completo.");
-                    chapter.setDownloaded(true);
-                    return; // Terminamos la tarea aquí
-                }
-
-                // 4. Descargar cada página
-                int pageNumber = 1;
-                HttpClient httpClient = HttpClient.newBuilder()
-                        .followRedirects(HttpClient.Redirect.ALWAYS)
-                        .connectTimeout(Duration.ofSeconds(10))
-                        .build();
-                
-                for (String urlString : pagesURL) {
-                    
-                    // Definir la extensión y el nombre del archivo primero
-                    String extension = ".jpg";
-                    int lastDot = urlString.lastIndexOf('.');
-                    if (lastDot > 0 && lastDot < urlString.length() - 1) {
-                        String potentialExt = urlString.substring(lastDot);
-                        if(potentialExt.contains("?")) potentialExt = potentialExt.split("\\?")[0];
-                        if(potentialExt.length() <= 5) extension = potentialExt;
-                    }
-                    
-                    String fileName = String.format("%03d%s", pageNumber, extension);
-                    File outputFile = new File(folder, fileName);
-
-                    // --- NUEVA VALIDACIÓN: Saltar si ya existe ---
-                    if (outputFile.exists() && outputFile.length() > 0) {
-                        Logger.info("Página ya existe, omitiendo: " + fileName);
-                        pageNumber++;
-                        continue; // Salta a la siguiente iteración del loop for
-                    }
-                    
-                    boolean downloaded = false;
-                    for (int attempt = 1; attempt <= 3 && !downloaded; attempt++) {
-                        try {
-                            if (attempt > 1) {
-                                pagesURL = source.getSource(manga.getSourceID()).getPages(manga.getMangaID(), chapter.getChapterID());
-                                urlString = pagesURL.get(pageNumber - 1);
-                                fileName = String.format("%03d%s", pageNumber, extension);
-                                outputFile = new File(folder, fileName);
-                            }
-                            
-                            HttpRequest request = HttpRequest.newBuilder()
-                                    .uri(URI.create(urlString))
-                                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                                    .header("Referer", "https://mangadex.org/")
-                                    .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
-                                    .timeout(Duration.ofSeconds(15))
-                                    .GET()
-                                    .build();
-                            
-                            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-                            
-                            if (response.statusCode() == 200) {
-                                try (InputStream in = response.body()) {
-                                    Files.copy(in, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                                    Logger.info("Downloaded: " + fileName);
-                                    downloaded = true;
-                                }
-                            } else {
-                                throw new IOException("HTTP " + response.statusCode());
-                            }
-                        } catch (IOException | InterruptedException e) {
-                            Logger.error("Error (intento " + attempt + "/3) página " + pageNumber + ": " + urlString);
-                            if (attempt < 3) {
-                                try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
-                            } else {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                    if (!downloaded) break;
-                    pageNumber++;
-                    
-                } 
-                File[] downloadedFiles = folder.listFiles();
-                if (downloadedFiles != null && downloadedFiles.length >= pagesURL.size()) {
-                    chapter.setDownloaded(true);
-                    Logger.info("Proceso de descarga finalizado para "+chapter.getTitle()+".");
-                }
-                
-            } finally {
-                // 5. Limpieza garantizada
-                Platform.runLater(() -> {
-                    isDownloading.remove(chapter.getChapterID());
-                });
-            }
-        });
+        Downloader.getInstance().enqueue(chapter, manga);
     }
     
     
