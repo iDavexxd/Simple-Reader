@@ -1,7 +1,6 @@
 package app.simplereader.controller;
 
 import app.simplereader.model.AppConfig;
-import app.simplereader.controller.Logger;
 import javafx.stage.Stage;
 import app.simplereader.repository.AppScene;
 import java.util.ArrayList;
@@ -15,7 +14,6 @@ public class SceneController {
     
     private static String ActualSceneName;
    
-    
     private List<AppScene> scnList = new ArrayList<>();
     
     private final Stage stage;
@@ -45,7 +43,6 @@ public class SceneController {
         }
     }
     
-    
     public void goTo(AppScene s){
         ActualSceneName = s.getName();
         
@@ -55,14 +52,13 @@ public class SceneController {
         Logger.info("Scene --> "+s.getName());
     }
     
- 
-    
     public void backScene(){
         if (scnList.size() < 2) return; // evita crash si no hay dónde volver
         int indice = scnList.size() - 1;
         scnList.remove(indice);                              // elimina la actual primero
         AppScene anterior = scnList.get(scnList.size() - 1);
         ActualSceneName = anterior.getName();
+        
         stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
         stage.setResizable(false);
         stage.setScene(anterior.getScene());

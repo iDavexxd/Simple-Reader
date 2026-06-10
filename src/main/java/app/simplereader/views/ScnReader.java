@@ -31,6 +31,7 @@ import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
 import app.simplereader.repository.MangaSource;
 import java.util.List;
+import javafx.application.Platform;
 
 /**
  *
@@ -90,12 +91,23 @@ public class ScnReader implements AppScene {
                 }
                 case ESCAPE -> {
                     controller.cleanupResources();
+                    e.consume();
+
+                    // 1. Quitamos la pantalla completa inmediatamente
                     nav.getStage().setFullScreen(false);
-                    nav.getStage().setResizable(false);
-                    nav.getStage().setOnCloseRequest(null);
-                    nav.getStage().setMaximized(false);
-                    nav.getStage().setOnCloseRequest(originalCloseHandler); 
-                    nav.backScene();
+
+                    // 2. Damos un margen de tiempo un poco mayor (200ms suele ser infalible)
+                    javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+                    delay.setOnFinished(event -> {
+                        // 3. Restauramos las propiedades de la ventana cuando ya no está en transición
+                        nav.getStage().setMaximized(false);
+                        nav.getStage().setResizable(false);
+                        nav.getStage().setOnCloseRequest(originalCloseHandler);
+
+                        // 4. CAMBIAMOS DE ESCENA al final, cuando la ventana ya es estable
+                        nav.backScene(); 
+                    });
+                    delay.play();
                 }
                 case RIGHT -> {
                     if (e.isShiftDown()) {

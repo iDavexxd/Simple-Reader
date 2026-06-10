@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -183,6 +184,18 @@ public class ScnConfig implements AppScene {
             }
         });
         
+        // Coso de configuraciones
+        BorderPane coso = new BorderPane();
+        coso.setMaxWidth(300);
+        coso.setMinWidth(300);
+        coso.setPadding(new Insets(15));
+        
+        Button btnCategories = new Button("prueba");
+        btnCategories.setMaxWidth(Double.MAX_VALUE);
+        VBox botones = new VBox(5,btnCategories);
+        
+        coso.setCenter(botones);
+        
         // Disposición visual de los botones de la lista
         Region buttonSpacer = new Region();
         VBox.setVgrow(buttonSpacer, Priority.ALWAYS);
@@ -200,11 +213,13 @@ public class ScnConfig implements AppScene {
         ScrollPane Scroll = new ScrollPane();
         Scroll.setContent(allConfig);
         
-        // Solución al problema del scroll infinito horizontal
         Scroll.setFitToWidth(true); 
-
+        BorderPane content = new BorderPane();
+        content.setCenter(Scroll);
+        content.setLeft(coso);
+        
         BorderPane root = new BorderPane();
-        root.setCenter(Scroll);
+        root.setCenter(content);
         root.setLeft(lateralmenu.getPane());
         root.getStyleClass().add("conf-root");
         

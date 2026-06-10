@@ -143,7 +143,7 @@
 }
 
 .source-menu .label{
-    -fx-font-family: "Late";
+    -fx-font-family: "Late"; /* Posible error tipográfico tuyo, revisa si es "Lato" */
     -fx-font-weight: bold;
     -fx-text-fill: -fx-accent;
     -fx-font-size: 18px;
@@ -184,6 +184,15 @@
    MANGA INFO
 ========================= */
 
+.manga-header{
+    /* blur-type, color, radius, spread, offsetX, offsetY */
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.7), 80, 0.2, 0, 0);
+    
+    /* Mantenemos los bordes redondeados si los necesitas aquí también */
+    -fx-background-radius: 25px;
+    -fx-border-radius: 25px;
+}
+
 .manga-title {
     -fx-font-family: "Roboto Slab";
     -fx-font-weight: bold;
@@ -194,7 +203,7 @@
     -fx-max-width: 200;
 }
 
-.manga-info{
+.manga-info {
     -fx-font-family: "Lato";
     -fx-padding: 17;
 }
@@ -203,20 +212,23 @@
     -fx-text-fill: -fx-accent;
 }
 
-.manga-info-title{
+.manga-info-title {
     -fx-font-size: 48px;
     -fx-font-weight: bold;
     -fx-font-family: "Roboto Slab";
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 12, 0.2, 2, 2);
 }
 
-.manga-info-description{
-    -fx-font-size: 16px;
-}
-
-.manga-info-author{
+.manga-info-author {
     -fx-font-family: "Lato";
     -fx-font-weight: bold;
     -fx-font-size: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 6, 0.0, 1, 2);
+}
+
+.manga-info-description {
+    -fx-font-size: 16px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 3, 0.0, 1, 1);
 }
 
 .manga-info-tags {
@@ -234,7 +246,7 @@
 ========================= */
 
 .category-option{
-    -fx-font-family: "Late";
+    -fx-font-family: "Late"; /* Posible error tipográfico tuyo, revisa si es "Lato" */
     -fx-font-size: 12px;
     -fx-border-color: -fx-third-bg;
     -fx-border-width: 1;
@@ -438,8 +450,13 @@
     -fx-text-fill: -fx-accent;
 }
 
+/* Forzar el color oscuro en el texto cuando CUALQUIER tipo de celda está seleccionada o en hover */
 .chapter-list .list-cell:selected .chapter-title,
 .chapter-list .list-cell:selected .chapter-sub,
+.chapter-list .list-cell.chapter-read:selected .chapter-title,
+.chapter-list .list-cell.chapter-read:selected .chapter-sub,
+.chapter-list .list-cell.chapter-unread:selected .chapter-title,
+.chapter-list .list-cell.chapter-unread:selected .chapter-sub,
 .chapter-list .list-cell:selected:hover .chapter-title,
 .chapter-list .list-cell:selected:hover .chapter-sub,
 .chapter-list .list-cell.chapter-read:selected:hover .chapter-title,

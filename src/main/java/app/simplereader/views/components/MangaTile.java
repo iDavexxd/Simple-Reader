@@ -14,73 +14,61 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
 
-/**
- *
- * @author david
- */
+import javafx.animation.FadeTransition;
+import javafx.util.Duration;
+import javafx.application.Platform;
+
 public class MangaTile {
-    
+
     private static final SceneController nav = SceneController.getInstance();
-    
-    public static VBox create(Manga manga){
+    private static final int COVER_MAX_SIZE = 400;
+
+    public static VBox create(Manga manga) {
         ImageView coverView = new ImageView();
         coverView.setPreserveRatio(true);
         coverView.setManaged(false);
 
-        // 1. Instanciamos el contenedor vacío
         StackPane coverContainer = new StackPane();
-        coverContainer.setMaxSize(250, Double.MAX_VALUE);
-        
-        // 2. Creamos el Placeholder (rectángulo semitransparente)
+        coverContainer.setMaxSize(COVER_MAX_SIZE, Double.MAX_VALUE);
+
         Rectangle placeholder = new Rectangle();
-        placeholder.setFill(Color.rgb(255, 255, 255, 0.1)); 
+        placeholder.setFill(Color.rgb(255, 255, 255, 0.1));
         placeholder.widthProperty().bind(coverContainer.widthProperty());
         placeholder.heightProperty().bind(coverContainer.heightProperty());
 
-        // Añadimos el placeholder al fondo y la imagen por encima
         coverContainer.getChildren().addAll(placeholder, coverView);
 
-        if(manga.getCoverURL() != null){
+        if (manga.getCoverURL() != null) {
+            coverView.setOpacity(0.0);
 
-            Image icon = new Image(manga.getCoverURL(), true);
-            coverView.setImage(icon);
-
-            // 3. Lógica de recorte dinámico
             Runnable updateImageFit = () -> {
-                if (icon.getProgress() < 1.0 || icon.isError()) return;
+                Image img = coverView.getImage();
+                if (img == null || img.isError()) return;
 
-                double imgW = icon.getWidth();
-                double imgH = icon.getHeight();
+                double imgW = img.getWidth();
+                double imgH = img.getHeight();
                 double contW = coverContainer.getWidth();
                 double contH = coverContainer.getHeight();
 
                 if (imgW == 0 || imgH == 0 || contW == 0 || contH == 0) return;
 
                 double imageRatio = imgW / imgH;
-                double realContainerRatio = contW / contH; 
+                double realContainerRatio = contW / contH;
 
                 if (imageRatio < realContainerRatio) {
                     coverView.setFitWidth(contW);
-                    coverView.setFitHeight(0); 
+                    coverView.setFitHeight(0);
                 } else {
                     coverView.setFitHeight(contH);
-                    coverView.setFitWidth(0); 
+                    coverView.setFitWidth(0);
                 }
             };
 
-            // Recalcular al cambiar el tamaño del contenedor
             coverContainer.widthProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
             coverContainer.heightProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
 
-            // Recalcular al terminar de descargar la imagen
-            icon.progressProperty().addListener((obs, old, progress) -> {
-                if(progress.doubleValue() >= 1.0){
-                    updateImageFit.run();
-                    placeholder.setVisible(false); // Ocultamos el placeholder
-                }
-            });
+            loadScaledCoverAsync(coverView, manga.getCoverURL(), updateImageFit, placeholder);
 
-            // 4. Centrado de la imagen
             coverView.layoutXProperty().bind(
                 javafx.beans.binding.Bindings.createDoubleBinding(
                     () -> (coverContainer.getWidth() - coverView.getBoundsInLocal().getWidth()) / 2.0,
@@ -97,10 +85,9 @@ public class MangaTile {
                 )
             );
 
-            Logger.info(manga.getTitle()+" - "+manga.getCoverURL()+" --> Loaded");
+            Logger.info(manga.getTitle() + " - " + manga.getCoverURL() + " --> Loaded");
         }
 
-        // 5. Clip redondeado para el contenedor (y el placeholder)
         Rectangle recorte = new Rectangle();
         recorte.setArcWidth(20);
         recorte.setArcHeight(20);
@@ -110,12 +97,11 @@ public class MangaTile {
 
         coverContainer.setClip(recorte);
         coverContainer.getStyleClass().add("menu-mangatile");
-        // 6. Solución al crasheo: Mantener ratio 2:3 usando un listener sin bloquear la propiedad
+
         coverContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
             coverContainer.setPrefHeight(newVal.doubleValue() * 1.5);
         });
 
-        // 7. Título
         Label title = new Label(manga.getTitle());
 
         title.setWrapText(true);
@@ -137,11 +123,70 @@ public class MangaTile {
 
         iconManga.setAlignment(Pos.TOP_CENTER);
 
-        iconManga.setOnMouseClicked( e -> nav.goTo(new ScnMangaMenu(manga)));
+        iconManga.setOnMouseClicked(e -> nav.goTo(new ScnMangaMenu(manga)));
 
         iconManga.getStyleClass().add("manga-icon");
 
         return iconManga;
     }
-    
+
+    private static void loadScaledCoverAsync(ImageView coverView, String url,
+            Runnable updateImageFit, Rectangle placeholder) {
+
+        // 1. Cargamos la imagen original de forma asíncrona para que no se rompa el WebP
+        Image originalImage = new Image(url, true);
+
+        // 2. Esperamos a que la imagen se descargue y decodifique
+        originalImage.progressProperty().addListener((obs, old, progress) -> {
+            if (progress.doubleValue() >= 1.0 && !originalImage.isError()) {
+                Platform.runLater(() -> processAndSetImage(originalImage, coverView, updateImageFit, placeholder, true));
+            }
+        });
+
+        // 3. Por si la imagen ya estaba descargada en la caché local
+        if (originalImage.getProgress() >= 1.0) {
+            Platform.runLater(() -> processAndSetImage(originalImage, coverView, updateImageFit, placeholder, false));
+        }
+    }
+
+    private static void processAndSetImage(Image originalImage, ImageView coverView, Runnable updateImageFit, Rectangle placeholder, boolean animate) {
+        Image finalImage = originalImage;
+
+        // Si la imagen es más grande que nuestro límite, la achicamos tomando un "snapshot"
+        if (originalImage.getWidth() > COVER_MAX_SIZE || originalImage.getHeight() > COVER_MAX_SIZE) {
+            ImageView tempView = new ImageView(originalImage);
+            tempView.setPreserveRatio(true);
+
+            if (originalImage.getWidth() > originalImage.getHeight()) {
+                tempView.setFitWidth(COVER_MAX_SIZE);
+            } else {
+                tempView.setFitHeight(COVER_MAX_SIZE);
+            }
+
+            // Tomamos una "foto" de la vista escalada con fondo transparente
+            javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+            params.setFill(Color.TRANSPARENT);
+            finalImage = tempView.snapshot(params, null);
+            
+            // La variable "originalImage" dejará de usarse después de esto y el GC liberará la RAM
+        }
+
+        // Asignamos la miniatura a la vista final
+        coverView.setImage(finalImage);
+        coverView.setCache(true);
+        coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
+
+        updateImageFit.run();
+
+        if (animate) {
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(400), coverView);
+            fadeIn.setFromValue(0.0);
+            fadeIn.setToValue(1.0);
+            fadeIn.setOnFinished(e -> placeholder.setVisible(false));
+            fadeIn.play();
+        } else {
+            coverView.setOpacity(1.0);
+            placeholder.setVisible(false);
+        }
+    }
 }
