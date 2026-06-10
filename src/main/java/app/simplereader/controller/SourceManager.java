@@ -142,7 +142,7 @@ public class SourceManager {
                     downloadFile(currentCover, localCoverPath);
                 }
                 
-                manga.setCoverURL("file://" + localCoverFile.getAbsolutePath());
+                manga.setCoverURL(localCoverFile.toURI().toURL().toString());
             }
             
             String path = dir + mangaId + ".json";
