@@ -82,23 +82,65 @@ public class ScnConfig implements AppScene {
         
         lateralmenu.addTop(btnBackToMenu);
         
-        // Título de Categorías
-        Label categoryLabel = new Label("Categories");
-        categoryLabel.setMaxWidth(Double.MAX_VALUE); // Corregido: MaxWidth en lugar de MinWidth
-        categoryLabel.setAlignment(Pos.TOP_CENTER);
+        // El ScrollPane central que cambiará de contenido
+        ScrollPane scrollContent = new ScrollPane();
+        scrollContent.setFitToWidth(true); 
         
-        // Instancia del ListView
+        // Los paneles pre-construidos
+        VBox panelCategories = getCategoriesPanel();
+        VBox panelGeneral = getGeneralPanel();
+        
+        // Por defecto mostramos General
+        scrollContent.setContent(panelGeneral);
+        
+        // Coso de configuraciones (Navegación lateral)
+        BorderPane coso = new BorderPane();
+        coso.setMaxWidth(300);
+        coso.setMinWidth(300);
+        coso.setPadding(new Insets(15));
+        
+        Button btnGeneral = new Button("Lector");
+        btnGeneral.setMaxWidth(Double.MAX_VALUE);
+        btnGeneral.setOnAction(e -> scrollContent.setContent(panelGeneral));
+        
+        Button btnCategories = new Button("Categorías");
+        btnCategories.setMaxWidth(Double.MAX_VALUE);
+        btnCategories.setOnAction(e -> scrollContent.setContent(panelCategories));
+        
+        VBox botones = new VBox(10, btnGeneral, btnCategories);
+        coso.setCenter(botones);
+        
+        BorderPane content = new BorderPane();
+        content.setCenter(scrollContent);
+        content.setLeft(coso);
+        
+        BorderPane root = new BorderPane();
+        root.setCenter(content);
+        root.setLeft(lateralmenu.getPane());
+        root.getStyleClass().add("conf-root");
+        
+        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        scene.getStylesheets().add(nav.getCss());
+        return scene;
+        
+    }
+    
+    private VBox getCategoriesPanel() {                                                                          
+        Label categoryLabel = new Label("Categories");                                                           
+        categoryLabel.setMaxWidth(Double.MAX_VALUE);                                                             
+        categoryLabel.setAlignment(Pos.TOP_CENTER);                                                              
+
         ListView<Category> categoryListView = new ListView<>();
-        
+
         // 1. Obtener la lista base del controlador y crear la ObservableList
         List<Category> categoriasObtenidas = controller.getCategoryList();
         ObservableList<Category> datosObservables = FXCollections.observableArrayList();
-        
+
         if (categoriasObtenidas != null) {
             datosObservables.addAll(categoriasObtenidas);
         }
         categoryListView.setItems(datosObservables); // Asignar la lista al ListView
-        
+
         // 2. CellFactory para mostrar el getName() de cada Categoría
         categoryListView.setCellFactory(param -> new ListCell<Category>() {
             @Override
@@ -111,6 +153,8 @@ public class ScnConfig implements AppScene {
                 }
             }
         });
+                     
+            
         
         // Buttons
         Button btnAdd = new Button("Add");
@@ -183,50 +227,59 @@ public class ScnConfig implements AppScene {
                 alert.showAndWait();
             }
         });
+            
+            
+            Region buttonSpacer = new Region();                                                                      
+            VBox.setVgrow(buttonSpacer, Priority.ALWAYS);                                                            
+            VBox categoryButtons = new VBox(5, btnAdd, buttonSpacer, btnHide, btnRemove);                            
+                                                                                                                     
+            Region spacer = new Region();                                                                            
+            HBox.setHgrow(spacer, Priority.ALWAYS);                                                                  
+            HBox listAndButtons = new HBox(categoryListView, spacer, categoryButtons);                               
+                                                                                                                     
+            VBox categoryConfig = new VBox(categoryLabel, listAndButtons);                                           
+            VBox.setVgrow(categoryConfig, Priority.ALWAYS);                                                          
+            VBox.setVgrow(categoryListView, Priority.ALWAYS);                                                        
+                                                                                                                     
+            return categoryConfig;                                                                                   
+        }
         
-        // Coso de configuraciones
-        BorderPane coso = new BorderPane();
-        coso.setMaxWidth(300);
-        coso.setMinWidth(300);
-        coso.setPadding(new Insets(15));
+    private VBox getGeneralPanel() {
+        Label generalLabel = new Label("Ajustes del Lector");
+        generalLabel.setMaxWidth(Double.MAX_VALUE);
+        generalLabel.setAlignment(Pos.TOP_CENTER);
         
-        Button btnCategories = new Button("prueba");
-        btnCategories.setMaxWidth(Double.MAX_VALUE);
-        VBox botones = new VBox(5,btnCategories);
+        // ComboBox de Dirección de Lectura
+        Label lblDir = new Label("Sentido de Lectura:");
+        javafx.scene.control.ComboBox<String> cbDirection = new javafx.scene.control.ComboBox<>();
+        cbDirection.getItems().addAll("LTR (Izquierda a Derecha)", "RTL (Derecha a Izquierda)");
+        cbDirection.setValue(AppConfig.get().READING_DIR.equals("LTR") ? "LTR (Izquierda a Derecha)" : "RTL (Derecha a Izquierda)");
         
-        coso.setCenter(botones);
+        cbDirection.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                AppConfig.get().READING_DIR = newVal.contains("LTR") ? "LTR" : "RTL";
+                AppConfig.get().save();
+            }
+        });
         
-        // Disposición visual de los botones de la lista
-        Region buttonSpacer = new Region();
-        VBox.setVgrow(buttonSpacer, Priority.ALWAYS);
+        // ComboBox de Escalado
+        Label lblScale = new Label("Modo de Escalado:");
+        javafx.scene.control.ComboBox<String> cbScaling = new javafx.scene.control.ComboBox<>();
+        cbScaling.getItems().addAll("Ajustar a lo Alto (FIT_HEIGHT)", "Ajustar a lo Ancho (FIT_WIDTH)");
+        cbScaling.setValue(AppConfig.get().SCALING_MODE.equals("FIT_HEIGHT") ? "Ajustar a lo Alto (FIT_HEIGHT)" : "Ajustar a lo Ancho (FIT_WIDTH)");
         
-        VBox categoryButtons = new VBox(5, btnAdd, buttonSpacer, btnHide,btnRemove);
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS); // Este Hgrow funciona correctamente ahora gracias al fitToWidth del ScrollPane
-        HBox listAndButtons = new HBox(categoryListView, spacer, categoryButtons);
+        cbScaling.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                AppConfig.get().SCALING_MODE = newVal.contains("Alto") ? "FIT_HEIGHT" : "FIT_WIDTH";
+                AppConfig.get().save();
+            }
+        });
         
-        VBox categoryConfig = new VBox(categoryLabel, listAndButtons);
-        VBox.setVgrow(categoryConfig, Priority.ALWAYS);
-        VBox.setVgrow(categoryListView, Priority.ALWAYS);
+        VBox configBox = new VBox(15, lblDir, cbDirection, lblScale, cbScaling);
+        configBox.setPadding(new Insets(20));
         
-        VBox allConfig = new VBox(categoryConfig);
-        ScrollPane Scroll = new ScrollPane();
-        Scroll.setContent(allConfig);
-        
-        Scroll.setFitToWidth(true); 
-        BorderPane content = new BorderPane();
-        content.setCenter(Scroll);
-        content.setLeft(coso);
-        
-        BorderPane root = new BorderPane();
-        root.setCenter(content);
-        root.setLeft(lateralmenu.getPane());
-        root.getStyleClass().add("conf-root");
-        
-        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        scene.getStylesheets().add(nav.getCss());
-        return scene;
-        
+        VBox panel = new VBox(generalLabel, configBox);
+        return panel;
     }
 
     @Override

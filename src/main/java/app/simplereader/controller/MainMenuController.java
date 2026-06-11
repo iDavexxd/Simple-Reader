@@ -7,7 +7,10 @@ import app.simplereader.repository.MangaSource;
 import app.simplereader.views.components.MangaTile;
 import app.simplereader.views.ScnMainMenu;
 import app.simplereader.views.ScnSourceSearch;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
@@ -21,10 +24,13 @@ public class MainMenuController {
     
     private ScnMainMenu scene;
     private Boolean tilesLoaded = false;
-
+    private final Map<String, List<MangaTile>> allTiles = new HashMap<>();
+    
     public static MainMenuController instance;
     public SceneController nav = SceneController.getInstance();
     private final LibraryController lib = LibraryController.getInstance();
+    
+    private String currentCategory = null;
     
     public MainMenuController(ScnMainMenu scene){
         this.scene = scene;
@@ -67,6 +73,24 @@ public class MainMenuController {
         scene.doCreateCategoryTabs();
     }
     
+    public void showCategory(String name) {
+  	// 1. Unload la anterior
+        if (currentCategory != null) {
+            List<MangaTile> previousTiles = allTiles.get(currentCategory);
+            if (previousTiles != null) {
+                previousTiles.forEach(MangaTile::unloadImage);
+            }
+        }
+
+	// 2. Load la nueva
+        List<MangaTile> newTiles = allTiles.get(name);
+        if (newTiles != null) {
+            newTiles.forEach(MangaTile::loadImage);
+        }
+
+        currentCategory = name;
+    }
+    
     public void loadAllTiles() {
         if(tilesLoaded) return;
         
@@ -76,12 +100,14 @@ public class MainMenuController {
                 pane = createTilePane(cat.getName(), 15, 15, 15, 5);
                 scene.getCategoriesPanes().put(cat.getName(), pane);
             }
-            
+            allTiles.put(cat.getName(), new ArrayList<>());
+
             
             for (Manga manga : lib.getMangasByCategory(cat.getName()).values()) {
                 if (manga.getCoverURL() != null) {
-                    VBox tile = MangaTile.create(manga);
-                    pane.getChildren().add(tile);
+                    MangaTile mangaTile = new MangaTile(manga);      
+                    allTiles.get(cat.getName()).add(mangaTile);          
+                    pane.getChildren().add(mangaTile.getTile());
                 } else {
                     Logger.warning(manga.getTitle() + " - no tiene cover.");
                 }
@@ -125,8 +151,13 @@ public class MainMenuController {
             }
         }
     }
-    
+    public void unloadAllCovers() {
+        allTiles.values().forEach(list -> list.forEach(MangaTile::unloadImage));
+    }
     public void reloadMangas() {
+        allTiles.values().forEach(list -> list.forEach(MangaTile::unloadImage));
+        allTiles.clear();
+        currentCategory = null; 
         for (TilePane pane : scene.getCategoriesPanes().values()) {
             pane.getChildren().clear();
         }
@@ -138,6 +169,11 @@ public class MainMenuController {
         if (currentPane != null && currentPane.getParent() instanceof javafx.scene.control.ScrollPane) {
             javafx.scene.control.ScrollPane activeScroll = (javafx.scene.control.ScrollPane) currentPane.getParent();
             resizeTiles(activeScroll.getWidth());
+        }
+        
+        String activeCat = scene.getCurrentCategory();
+        if (activeCat != null) {
+            showCategory(activeCat);
         }
     }
     /*

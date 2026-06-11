@@ -21,18 +21,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javafx.application.Platform;
 
-
 /**
  *
  * @author david
  */
 public class MangaMenuController {
     
-   
-    
     private final String DOWNLOADS_FOLDER = AppConfig.DATA_FOLDER;
     
-    private final ScnMangaMenu view;
+    // 1. Quitamos 'final' para poder destruirlo en el cleanup
+    private ScnMangaMenu view;
+    
+    // 2. Bandera para cancelar tareas en vuelo si el usuario sale rápido del menú
+    private volatile boolean disposed = false;
+    
     private static MangaMenuController instance;
     private final SceneController nav = SceneController.getInstance();
     private final LibraryController library = LibraryController.getInstance();
@@ -44,7 +46,7 @@ public class MangaMenuController {
     private boolean isReversed = false;
     
     private final ExecutorService preloader = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "preloader");
+        Thread t = new Thread(r, "preloader-mangamenu");
         t.setDaemon(true);
         return t;
     });
@@ -54,6 +56,10 @@ public class MangaMenuController {
     }
     
     public static void doInstance(ScnMangaMenu view){
+        // 3. Limpiamos la instancia vieja antes de crear la nueva
+        if (instance != null) {
+            instance.cleanup();
+        }
         instance = new MangaMenuController(view);
     }
     
@@ -79,7 +85,9 @@ public class MangaMenuController {
     }
     
     public void doReloadCategoryButtons(){
-        view.doCategoryButtons();
+        if (!disposed && view != null) {
+            view.doCategoryButtons();
+        }
     }
     
     public void openChapter(Chapter chapter){
@@ -103,23 +111,32 @@ public class MangaMenuController {
                 
                 chapter.setPages(localPages);
                 navigateToReader(chapter);
-                return; // Importante: retornar para que no siga con la carga web
+                return; 
             }
         }
         
         MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
         if (src != null) {
             preloader.submit(() -> {
+                if (disposed) return; // Abortar si el menú ya se cerró
                 try{
                     List<String> pages = src.getPages(manga.getMangaID(), chapter.getChapterID());
+                    if (disposed) return; 
+                    
                     chapter.setPages(pages);
                     if (chapter.hasPages()) {
-                        Platform.runLater(() -> navigateToReader(chapter));
+                        Platform.runLater(() -> {
+                            if (!disposed) navigateToReader(chapter);
+                        });
                     } else {
-                        Platform.runLater(() -> Logger.noPagesAlert(chapter.getTitle()));
+                        Platform.runLater(() -> {
+                            if (!disposed) Logger.noPagesAlert(chapter.getTitle());
+                        });
                     }
                 } catch (Exception e){
-                    Platform.runLater(() -> Logger.error("Error loading chapter: "+chapter.getChapterID()));
+                    Platform.runLater(() -> {
+                        if (!disposed) Logger.error("Error loading chapter: "+chapter.getChapterID());
+                    });
                 }
             });
         }
@@ -130,7 +147,9 @@ public class MangaMenuController {
         List<Chapter> chapters = manga.getChapters();
         int index = chapters != null ? chapters.indexOf(chapter) : -1;
         Logger.info("Selected: " + chapter.getTitle());
-        nav.goTo(new ScnReader(nav, manga, chapter, index));
+        ScnReader reader = ScnReader.getInstance();
+        reader.updateReader(manga, chapter, index);
+        nav.goTo(reader);
     }
     
     public Chapter findFirstUnreadChapter(){
@@ -165,13 +184,13 @@ public class MangaMenuController {
         return manga;
     }
     
-    
-    
     public void reloadManga(){
-        // Trabajo lento (HTTP) en el pool, no en un Thread suelto
         preloader.submit(() -> {
+            if (disposed) return;
             try {
                 String remoteCover = source.getSource(manga.getSourceID()).getCoverURL(manga.getMangaID());
+                if (disposed) return;
+                
                 if (remoteCover != null && remoteCover.startsWith("http")) {
                     String currentURL = manga.getCoverURL();
                     if (currentURL == null || !currentURL.equals(remoteCover)) {
@@ -201,17 +220,16 @@ public class MangaMenuController {
                     }
                 }
             
+                if (disposed) return;
                 
-                // 1. Respaldamos las INSTANCIAS VIEJAS
                 List<Chapter> oldChapters = manga.getChapters();
-
                 source.fetchMangaData(manga);
 
-                // 2. Traemos las INSTANCIAS NUEVAS
                 MangaSource src = source.getSource(manga.getSourceID());
                 List<Chapter> newChapters = src.getChapters(manga.getMangaID());
 
-                // 3. Creamos una lista para meter los objetos definitivos
+                if (disposed) return;
+
                 List<Chapter> finalChapters = new ArrayList<>();
 
                 if (newChapters != null) {
@@ -220,6 +238,8 @@ public class MangaMenuController {
 
                         if (oldChapters != null) {
                             for (Chapter oldCap : oldChapters) {
+                                // Aplicamos el cambio que mencionaste previamente: 
+                                // Usar el ID en vez de la instancia del objeto
                                 if (oldCap.getChapterID().equals(newCap.getChapterID())) {
                                     matchingOldCap = oldCap;
                                     break;
@@ -237,17 +257,16 @@ public class MangaMenuController {
                     }
                 }
 
-                // 4. Guardamos los capítulos actualizados en el manga
                 manga.setChapters(finalChapters);
                 source.saveManga(manga);
 
-                // 5. Guardar en la biblioteca para asegurar la persistencia
                 if (library.onLibrary(manga)) {
                     library.saveLibrary();
                 }
 
-                // 6. Refrescar la vista en el hilo de la UI
                 Platform.runLater(() -> {
+                    if (disposed || view == null) return;
+                    
                     view.setTitle(manga.getTitle());
                     view.setAuthor(manga.getAuthor());
                     view.setDescrition(manga.getDescription());
@@ -256,7 +275,9 @@ public class MangaMenuController {
                     view.loadCover(manga.getCoverURL());
                 });
             } catch (Exception e) {
-                Platform.runLater(() -> Logger.error("Error reloading manga: " + e.getMessage()));
+                Platform.runLater(() -> {
+                    if (!disposed) Logger.error("Error reloading manga: " + e.getMessage());
+                });
             }
         });
     }
@@ -265,5 +286,10 @@ public class MangaMenuController {
         Downloader.getInstance().enqueue(chapter, manga);
     }
     
-    
+    // 4. Método para matar el hilo y destruir enlaces con la UI
+    public void cleanup() {
+        disposed = true;
+        preloader.shutdownNow();
+        this.view = null;
+    }
 }

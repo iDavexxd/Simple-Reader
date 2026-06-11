@@ -147,7 +147,9 @@ public class ScnSourceSearch implements AppScene {
                 SourceManager.getInstance().fetchMangaData(mangaToRead);
                 
                 // 6. Navegar con la instancia correcta
-                nav.goTo(new ScnMangaMenu(mangaToRead));
+                ScnMangaMenu menu = ScnMangaMenu.getInstance();
+                menu.updateManga(mangaToRead);
+                nav.goTo(menu);
             }
         });
         VBox.setVgrow(resultsList, javafx.scene.layout.Priority.ALWAYS);

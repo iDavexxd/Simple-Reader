@@ -42,9 +42,10 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 
-// Importaciones para las animaciones
+// Importaciones para las animaciones y listeners
 import javafx.animation.FadeTransition;
 import javafx.util.Duration;
+import javafx.beans.value.ChangeListener;
 
 /**
  *
@@ -55,9 +56,9 @@ public class ScnMangaMenu implements AppScene{
     // Color de sombra solicitado (#1A1D23)
     private static final String SHADOW_COLOR = "#1A1D23";
     
-    private final Manga manga;
+    private Manga manga;
     private final SceneController nav = SceneController.getInstance();
-    private final MangaMenuController controller;
+    private MangaMenuController controller;
     private final LibraryController lib = LibraryController.getInstance();
     
     private boolean isdown = true;
@@ -79,7 +80,8 @@ public class ScnMangaMenu implements AppScene{
     private ImageView coverView;
     private StackPane coverContainer;
     private Rectangle placeholder;
-    private ImageView bgView; // <-- Añadido para controlar el fondo desde loadCover
+    private ImageView bgView; 
+    private Rectangle fadeOverlay;
     
     private ListView<Chapter> listaCaps;
     private StackPane categoryMenu;
@@ -87,17 +89,62 @@ public class ScnMangaMenu implements AppScene{
     private BorderPane coverPane;
     private VBox categoryButtons;
     
-    public ScnMangaMenu(Manga manga){
-        this.manga = manga;
+    private ImageView coverMenuImageView; 
+    private Image currentCoverImage; 
+    private ChangeListener<Number> widthListener;
+    private ChangeListener<Number> heightListener;
+    
+    private static ScnMangaMenu instance;
+    private Scene myScene;
+    
+    private ScnMangaMenu(){
         nav.getStage().setResizable(false);
-        
         MangaMenuController.doInstance(this);
         this.controller = MangaMenuController.getInstance();
-        controller.init(manga);
+    }
+    
+    public static ScnMangaMenu getInstance() {
+        if (instance == null) {
+            instance = new ScnMangaMenu();
+        }
+        return instance;
+    }
+    
+    public void updateManga(Manga newManga) {
+        boolean sameCover = (this.manga != null && this.manga.getCoverURL() != null && this.manga.getCoverURL().equals(newManga.getCoverURL()));
+        this.manga = newManga;
+        this.controller.init(newManga);
+        
+        if (myScene != null) {
+            title.setText(newManga.getTitle());
+            author.setText(newManga.getAuthor() != null ? newManga.getAuthor() : "");
+            description.setText(newManga.getDescription() != null ? newManga.getDescription() : "");
+            tags.setText(controller.getTags());
+            
+            String addLibrary = "M520-400h80v-120h120v-80H600v-120h-80v120H400v80h120v120ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
+            String onLibrary = "m508-398 226-226-56-58-170 170-86-84-56 56 142 142ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
+            if(lib.onLibrary(newManga)) icnLibrary.setContent(onLibrary);
+            else icnLibrary.setContent(addLibrary);
+            
+            if (!sameCover) {
+                if (currentCoverImage != null) currentCoverImage.cancel();
+                coverView.setImage(null);
+                coverView.setOpacity(0.0);
+                if (bgView != null) {
+                    bgView.setImage(null);
+                    bgView.setOpacity(1.0); // bgView siempre opaco
+                }
+                loadCover(newManga.getCoverURL());
+            }
+            
+            doReloadChapters();
+            doCategoryButtons();
+        }
     }
     
     @Override
     public Scene getScene() {
+        if (myScene != null) return myScene;
         
         /*
          * COVER
@@ -201,11 +248,6 @@ public class ScnMangaMenu implements AppScene{
         bgView.setPreserveRatio(true); // Mantener proporción para que no se estire
         bgView.setOpacity(0.0); // Ocultar para animación inicial
 
-        // --> AHORA CARGAMOS LA IMAGEN PARA AMBAS VISTAS <--
-        if (manga.getCoverURL() != null) {
-            loadCover(manga.getCoverURL());
-        }
-
         // CREAR LA CAPA DE SOMBRA (GRADIENTE DE ABAJO HACIA ARRIBA)
         Region shadowOverlay = new Region();
         String gradientStyle = "-fx-background-color: linear-gradient(to top, " +
@@ -218,7 +260,7 @@ public class ScnMangaMenu implements AppScene{
         StackPane fulltop = new StackPane(bgView, shadowOverlay, top);
         fulltop.setMaxHeight(500);
         fulltop.getStyleClass().add("manga-header-full");
-
+        
         // Bindings para que la imagen ocupe todo el ancho y se recorte
         bgView.fitWidthProperty().bind(fulltop.widthProperty());
         
@@ -558,6 +600,11 @@ public class ScnMangaMenu implements AppScene{
         doConfigCoverMenu();
         coverPane.getStyleClass().add("menu-background");
         coverPane.setVisible(covermenuvisible);
+        
+        // AHORA CARGAMOS LA IMAGEN PARA TODAS LAS VISTAS
+        if (manga.getCoverURL() != null) {
+            loadCover(manga.getCoverURL());
+        }
 
         StackPane panel_menu = new StackPane(panel,categoryPane,coverPane);
         
@@ -580,16 +627,15 @@ public class ScnMangaMenu implements AppScene{
             }
         });
         
-        return scene;
+        myScene = scene;
+        return myScene;
     }
     
     public void doConfigCoverMenu(){
-        Image cover = new Image(manga.getCoverURL(),true);
-        
-        ImageView coverImageView = new ImageView(cover);
-        coverImageView.setPreserveRatio(true);
-        coverImageView.fitHeightProperty().bind(coverPane.heightProperty());
-        StackPane stackpane = new StackPane(coverImageView);
+        coverMenuImageView = new ImageView();
+        coverMenuImageView.setPreserveRatio(true);
+        coverMenuImageView.fitHeightProperty().bind(coverPane.heightProperty());
+        StackPane stackpane = new StackPane(coverMenuImageView);
         
         SVGPath svg = new SVGPath();
         double scale = 24.0 / 960.0;
@@ -632,26 +678,31 @@ public class ScnMangaMenu implements AppScene{
     public void loadCover(String url){
         if (url == null) return;
         
-        // ¡SOLO CREAMOS LA IMAGEN UNA VEZ! Esto reduce el consumo de RAM a la mitad.
-        Image sharedImage = new Image(url, true);
+        // Limpiamos listeners si la escena se recargó con F5
+        if (widthListener != null) coverContainer.widthProperty().removeListener(widthListener);
+        if (heightListener != null) coverContainer.heightProperty().removeListener(heightListener);
         
-        coverView.setImage(sharedImage);
+        currentCoverImage = new Image(url, true);
+        
+        coverView.setImage(currentCoverImage);
+        if (bgView != null) bgView.setImage(currentCoverImage);
+        if (coverMenuImageView != null) coverMenuImageView.setImage(currentCoverImage);
+        
         coverView.setOpacity(0.0);
         coverView.setCache(true);
-        coverView.setCacheHint(javafx.scene.CacheHint.SPEED); // Agregamos caché a la cover principal también
+        coverView.setCacheHint(javafx.scene.CacheHint.SPEED); 
         
         if (bgView != null) {
-            bgView.setImage(sharedImage);
-            bgView.setOpacity(0.0);
+            bgView.setOpacity(1.0);
         }
         
         placeholder.setVisible(true);
         
         Runnable updateImageFit = () -> {
-            if (sharedImage.getProgress() < 1.0 || sharedImage.isError()) return;
+            if (currentCoverImage.getProgress() < 1.0 || currentCoverImage.isError()) return;
 
-            double imgW = sharedImage.getWidth();
-            double imgH = sharedImage.getHeight();
+            double imgW = currentCoverImage.getWidth();
+            double imgH = currentCoverImage.getHeight();
             double contW = coverContainer.getWidth();
             double contH = coverContainer.getHeight();
 
@@ -669,45 +720,38 @@ public class ScnMangaMenu implements AppScene{
             }
         };
 
-        coverContainer.widthProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
-        coverContainer.heightProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
+        widthListener = (obs, oldV, newV) -> updateImageFit.run();
+        heightListener = (obs, oldV, newV) -> updateImageFit.run();
+        
+        coverContainer.widthProperty().addListener(widthListener);
+        coverContainer.heightProperty().addListener(heightListener);
         
         coverContainer.setOnMouseClicked(e -> {
             doShowCoverMenu();
         });
-        
-        sharedImage.progressProperty().addListener((obs, old, progress) -> {
-            if (progress.doubleValue() >= 1.0 && !sharedImage.isError()) {
+         currentCoverImage.progressProperty().addListener((obs, old, progress) -> {
+            if (progress.doubleValue() >= 1.0 && !currentCoverImage.isError()) {
                 updateImageFit.run();
                 
-                // Retrasamos la animación un solo 'frame' usando Platform.runLater
-                // Esto permite que el desenfoque pesado se calcule sin colisionar con el Fade
                 javafx.application.Platform.runLater(() -> {
-                    FadeTransition fadeCover = new FadeTransition(Duration.millis(400), coverView);
-                    fadeCover.setFromValue(0.0);
-                    fadeCover.setToValue(1.0);
-                    fadeCover.setOnFinished(e -> placeholder.setVisible(false)); 
+                    coverView.setOpacity(1.0);
+                    placeholder.setVisible(false);
                     
                     if (bgView != null) {
-                        FadeTransition fadeBg = new FadeTransition(Duration.millis(400), bgView);
-                        fadeBg.setFromValue(0.0);
-                        fadeBg.setToValue(1.0);
-                        fadeBg.play();
+                        bgView.setOpacity(1.0);
                     }
-                    
-                    fadeCover.play();
                 });
             }
         });
         
-        // Si la imagen carga de manera instantánea (ya estaba en memoria)
-        if (sharedImage.getProgress() >= 1.0) {
+        if (currentCoverImage.getProgress() >= 1.0) {
             updateImageFit.run();
             coverView.setOpacity(1.0);
-            if (bgView != null) bgView.setOpacity(1.0);
             placeholder.setVisible(false);
-        }
-    }
+            if (bgView != null) {
+                bgView.setOpacity(1.0);
+            }
+        }       }
     
     public void setTitle(String title){
         this.title.setText(title);
@@ -739,7 +783,7 @@ public class ScnMangaMenu implements AppScene{
     
     private void doShowCoverMenu(){
         covermenuvisible = true;
-        coverPane.setOpacity(1.0); // Nos aseguramos de que esté visible siempre
+        coverPane.setOpacity(1.0); 
         coverPane.setVisible(true);
     }
     

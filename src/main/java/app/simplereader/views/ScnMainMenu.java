@@ -43,7 +43,7 @@ public class ScnMainMenu implements AppScene{
     private final SceneController nav = SceneController.getInstance();    
     private final LibraryController lib = LibraryController.getInstance();
     
-    private static TilePane activePane;
+    private TilePane activePane;
     private String currentCategory = "Default";
     private BorderPane sourceBorderPane;
     private VBox sourceButtons;
@@ -53,7 +53,7 @@ public class ScnMainMenu implements AppScene{
     
     private final MainMenuController controller;
     
-    private static final Map<String, TilePane> categoryPanes = new HashMap<>();
+    private final Map<String, TilePane> categoryPanes = new HashMap<>();
     
     public ScnMainMenu(){
         MainMenuController.doInstance(this);
@@ -226,24 +226,39 @@ public class ScnMainMenu implements AppScene{
                 String tabName = newTab.getText();
                 activePane = getCategoriesPanes().get(tabName);
                 currentCategory = tabName;
-
                 ScrollPane activeScroll = (ScrollPane) newTab.getContent();
                 controller.resizeTiles(activeScroll.getWidth());
+                controller.showCategory(tabName);
             }
         });
 
         if (!categoryTabPane.getTabs().isEmpty()) {
-            Tab firstTab = categoryTabPane.getTabs().get(0);
-            activePane = getCategoriesPanes().get(firstTab.getText());
-            currentCategory = firstTab.getText();
+            Tab targetTab = null;
+            for (Tab t : categoryTabPane.getTabs()) {
+                if (t.getText().equals(currentCategory)) {
+                    targetTab = t;
+                    break;
+                }
+            }
+            if (targetTab == null) {
+                targetTab = categoryTabPane.getTabs().get(0);
+            }
 
+            categoryTabPane.getSelectionModel().select(targetTab);
+            activePane = getCategoriesPanes().get(targetTab.getText());
+            currentCategory = targetTab.getText();
+
+            final Tab finalTarget = targetTab;
             javafx.application.Platform.runLater(() -> {
-                ScrollPane activeScroll = (ScrollPane) firstTab.getContent();
+                ScrollPane activeScroll = (ScrollPane) finalTarget.getContent();
                 if (activeScroll != null && activeScroll.getWidth() > 0) {
                     controller.resizeTiles(activeScroll.getWidth());
                 }
             });
+            controller.showCategory(targetTab.getText());
         }
+        
+        
     }
     
     public void doCreateSourceButtons(){
@@ -320,7 +335,7 @@ public class ScnMainMenu implements AppScene{
     }
 
     public Map<String, TilePane> getCategoriesPanes(){
-        return ScnMainMenu.categoryPanes;
+        return categoryPanes;
     }
     
     public TilePane getActivePane(){
@@ -342,7 +357,9 @@ public class ScnMainMenu implements AppScene{
     public TabPane getCategoryTabPane(){
         return this.categoryTabPane;
     }
-    
+    public String getCurrentCategory() {
+        return currentCategory;
+    }
     /*
     Setters:
     */

@@ -4,6 +4,7 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.controller.Logger;
+import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.ReaderController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.controller.SourceManager;
@@ -42,10 +43,13 @@ public class ScnReader implements AppScene {
     private final SceneController nav;
     private final ReaderController controller;
     
-    private final Manga manga;
+    private Manga manga;
     private Chapter chapter;
     private int chapterIndex;
 
+    private static ScnReader instance;
+    private Scene myScene;
+        
     private ImageView visor;
     private ScrollPane scrollVisor;
     private Parent layout;
@@ -53,33 +57,59 @@ public class ScnReader implements AppScene {
     private ComboBox<Chapter> caps;
     private Parent lateralMenu;
     private Label chnameLabel;
+    private Label mangaTitleLabel;
     
+    private javafx.beans.value.ChangeListener<Boolean> fullScreenListener;
     private javafx.event.EventHandler<javafx.stage.WindowEvent> originalCloseHandler;
     
-    public ScnReader(SceneController nav, Manga manga, Chapter chapter, int chapterIndex) {
-        this.nav = nav;
-        this.manga = manga;
-        this.chapter = chapter;
-        this.chapterIndex = chapterIndex;
-        
-        ReaderController.doInstance(this);
-        this.controller = ReaderController.getInstance();
+    private ScnReader() {
+            this.nav = SceneController.getInstance();
+            nav.getStage().setResizable(true);
+            ReaderController.doInstance(this);
+            this.controller = ReaderController.getInstance();
+        }
+
+    public static ScnReader getInstance() {
+        if (instance == null) {
+            instance = new ScnReader();
+        }
+        return instance;
+    }
+    
+    public void updateReader(Manga manga, Chapter chapter, int chapterIndex) {                                   
+        this.manga = manga;                                                                                      
+        this.chapter = chapter;                                                                                  
+        this.chapterIndex = chapterIndex;                                                                        
+
+        if (mangaTitleLabel != null) {
+            mangaTitleLabel.setText(manga.getTitle());
+        }
+
         controller.init(manga, chapter, chapterIndex);
         
-        nav.getStage().setResizable(true);
-        Logger.info("Loaded " + chapter.getTitle() + " " + chapterIndex);
-    }
+        // Si la pantalla ya fue construida al menos una vez,                                                    
+        // usamos el método loadChapter para forzar la actualización de la UI.                                   
+        if (myScene != null) {                                                                                   
+            controller.loadChapter(chapter, chapterIndex);                                                       
+        }
+
+        Logger.info("Loaded " + chapter.getTitle() + " " + chapterIndex);                                        
+    }   
+        
     
     @Override
     public Scene getScene() {
+        
+        if (myScene != null) return myScene;
+
         if (layout == null) layout = getPane();
         
         nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
         
-        Scene scene = new Scene(layout, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        scene.getStylesheets().add(nav.getCss());
+        myScene = new Scene(layout, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        myScene.getStylesheets().add(nav.getCss());
         
-        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+        myScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             KeyCode key = e.getCode();
             switch (key) {
                 case F5 -> {
@@ -105,43 +135,47 @@ public class ScnReader implements AppScene {
                         nav.getStage().setOnCloseRequest(originalCloseHandler);
 
                         // 4. CAMBIAMOS DE ESCENA al final, cuando la ventana ya es estable
-                        nav.backScene(); 
+                        nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
+                        nav.backScene();
                     });
                     delay.play();
                 }
                 case RIGHT -> {
+                    boolean isLTR = AppConfig.get().READING_DIR.equals("LTR");
                     if (e.isShiftDown()) {
-                        controller.nextChapter();
+                        if (isLTR) controller.nextChapter(); else controller.previousChapter();
                     } else {
-                        controller.nextPage();   
+                        if (isLTR) controller.nextPage(); else controller.previousPage();
                     }
                     e.consume();
                 }
                 case LEFT -> {
+                    boolean isLTR = AppConfig.get().READING_DIR.equals("LTR");
                     if (e.isShiftDown()) {
-                        controller.previousChapter();
+                        if (isLTR) controller.previousChapter(); else controller.nextChapter();
                     } else {
-                        controller.previousPage();
+                        if (isLTR) controller.previousPage(); else controller.nextPage();
                     }
                     e.consume();    
                 }
             }
         });
         
-        nav.getStage().fullScreenProperty().addListener((obs, oldVal, isFull) -> {
+        fullScreenListener = (obs, oldVal, isFull) -> {
             if (isFull) {
                 layout.getStyleClass().add("fullscreen");
             } else {
                 layout.getStyleClass().remove("fullscreen");
             }
-        });
+        };
+        nav.getStage().fullScreenProperty().addListener(fullScreenListener);
         originalCloseHandler = nav.getStage().getOnCloseRequest();
         
         nav.getStage().setOnCloseRequest(e -> {
             controller.saveAndCleanup();
         });
         
-        return scene;
+        return myScene;
     }
     
     private Parent getPane() {
@@ -228,9 +262,15 @@ public class ScnReader implements AppScene {
             }
 
             if (x < leftZone) {
-                if (!controller.isInZoom()) controller.previousPage();
+                if (!controller.isInZoom()) {
+                    if (AppConfig.get().READING_DIR.equals("LTR")) controller.previousPage();
+                    else controller.nextPage();
+                }
             } else if (x > rightZone) {
-                if (!controller.isInZoom()) controller.nextPage();
+                if (!controller.isInZoom()) {
+                    if (AppConfig.get().READING_DIR.equals("LTR")) controller.nextPage();
+                    else controller.previousPage();
+                }
             } else {
                 if (!controller.isInZoom()) controller.showMenu();
             }
@@ -291,9 +331,9 @@ public class ScnReader implements AppScene {
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
         HBox topButtons = new HBox(btnBackToMenu, spacer, btnCloseMenu);
         
-        Label title = new Label(manga.getTitle());
-        title.getStyleClass().add("reader-menu-title");
-        HBox titulo = new HBox(icnBook(), title);
+        mangaTitleLabel = new Label(manga.getTitle());
+        mangaTitleLabel.getStyleClass().add("reader-menu-title");
+        HBox titulo = new HBox(icnBook(), mangaTitleLabel);
         titulo.setPadding(new Insets(5));
         titulo.setSpacing(10);
         chnameLabel = new Label(this.chapter.getTitle());
@@ -336,11 +376,10 @@ public class ScnReader implements AppScene {
             if (controller.isProgrammaticNav()) return;
             
             Chapter selected = caps.getValue();
-            MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-            if (src != null && selected != null) {
+            if (selected != null) {
                 int index = chapters.indexOf(selected);
                 if (index >= 0) {
-                    controller.loadChapter(selected, index);
+                    controller.changeToChapter(selected, index);
                 }
             }
         });
@@ -364,10 +403,22 @@ public class ScnReader implements AppScene {
         btnNextCh.getStyleClass().add("reader-button2");
         btnNextCh.setMinSize(40, 50);
         btnNextCh.setMaxSize(40, 50);
-        btnNext.setOnAction(e -> controller.nextPage());
-        btnBack.setOnAction(e -> controller.previousPage());
-        btnNextCh.setOnAction(e -> controller.nextChapter());
-        btnBackCh.setOnAction(e -> controller.previousChapter());
+        btnNext.setOnAction(e -> {
+            if (AppConfig.get().READING_DIR.equals("LTR")) controller.nextPage();
+            else controller.previousPage();
+        });
+        btnBack.setOnAction(e -> {
+            if (AppConfig.get().READING_DIR.equals("LTR")) controller.previousPage();
+            else controller.nextPage();
+        });
+        btnNextCh.setOnAction(e -> {
+            if (AppConfig.get().READING_DIR.equals("LTR")) controller.nextChapter();
+            else controller.previousChapter();
+        });
+        btnBackCh.setOnAction(e -> {
+            if (AppConfig.get().READING_DIR.equals("LTR")) controller.previousChapter();
+            else controller.nextChapter();
+        });
         
         HBox capitulo = new HBox(btnBackCh, caps, btnNextCh);
         
@@ -464,6 +515,12 @@ public class ScnReader implements AppScene {
         double ratioX = containerW / imgW;
         double ratioY = containerH / imgH;
         double scale = Math.min(ratioX, ratioY);
+        
+        // Si el usuario prefiere "Ajustar al Ancho" (ideal para Webtoons)
+        if ("FIT_WIDTH".equals(AppConfig.get().SCALING_MODE)) {
+            scale = ratioX;
+        }
+        
         visor.setFitWidth(imgW * scale);
         visor.setFitHeight(imgH * scale);
     }    

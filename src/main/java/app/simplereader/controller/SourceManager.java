@@ -31,6 +31,9 @@ public class SourceManager {
 
     private List<MangaSource> sources = new ArrayList<>();
     
+    // --- NUEVO: Lista para rastrear y poder cerrar los ClassLoaders ---
+    private List<URLClassLoader> activeClassLoaders = new ArrayList<>();
+    
     private Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String DATA_FOLDER = AppConfig.DATA_FOLDER;
     
@@ -45,6 +48,17 @@ public class SourceManager {
     
     public void reloadSources(){
         sources.clear();
+        
+        // --- NUEVO: Cerrar los ClassLoaders viejos antes de cargar los nuevos ---
+        for (URLClassLoader loader : activeClassLoaders) {
+            try {
+                loader.close();
+            } catch (IOException e) {
+                Logger.error("Error cerrando ClassLoader: " + e.getMessage());
+            }
+        }
+        activeClassLoaders.clear();
+        
         registerSource(new LocalSource());
         loadSources();
     }
@@ -74,6 +88,9 @@ public class SourceManager {
                     new URL[]{jar.toURI().toURL()},
                     this.getClass().getClassLoader()
                 );
+                
+                // --- NUEVO: Registrar el ClassLoader para cerrarlo después ---
+                activeClassLoaders.add(child);
                 
                 ServiceLoader<MangaSource> loader = ServiceLoader.load(MangaSource.class, child);
                 

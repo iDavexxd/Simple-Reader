@@ -63,7 +63,7 @@ public class AppConfig {
     public static String USER_DATA_FOLDER = DATA_FOLDER+"user";
             
     
-    public final String VERSION = "Alpha 2.0";
+    public final String VERSION = "Beta 1.8";
     
     public static AppConfig instance;
     private static final String CONFIG_FILE = System.getProperty("user.home") 

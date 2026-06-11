@@ -1,9 +1,12 @@
 package app.simplereader.views.components;
 
 import app.simplereader.controller.Logger;
+import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Manga;
 import app.simplereader.views.ScnMangaMenu;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -17,32 +20,64 @@ import javafx.scene.text.TextAlignment;
 import javafx.animation.FadeTransition;
 import javafx.util.Duration;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 
 public class MangaTile {
 
     private static final SceneController nav = SceneController.getInstance();
     private static final int COVER_MAX_SIZE = 400;
-
-    public static VBox create(Manga manga) {
-        ImageView coverView = new ImageView();
-        coverView.setPreserveRatio(true);
-        coverView.setManaged(false);
+    
+    
+    private final Manga manga;
+    private final String title;
+    private final String coverURL;
+    
+    private ImageView coverView;
+    private Rectangle placeholder;
+    
+    private VBox tile;
+    private Image cover;
+    private Runnable updateImageFit;
+    private boolean imageLoaded = false;
+      
+    
+    private static final Cache<String, Image> IMAGE_CACHE = Caffeine.newBuilder()
+        .maximumSize(50)
+        .build();
+    
+    public MangaTile(Manga manga){
+        this.manga = manga;
+        this.title = manga.getTitle();
+        this.coverURL = manga.getCoverURL();
+        this.tile = buildTile();
+    }
+    
+    public void setCover(Image image){
+        this.cover = image;
+    }
+    
+    private VBox buildTile(){
+        this.coverView = new ImageView();
+        this.placeholder = new Rectangle();
+        
+        this.coverView.setPreserveRatio(true);
+        this.coverView.setManaged(false);
 
         StackPane coverContainer = new StackPane();
         coverContainer.setMaxSize(COVER_MAX_SIZE, Double.MAX_VALUE);
 
-        Rectangle placeholder = new Rectangle();
-        placeholder.setFill(Color.rgb(255, 255, 255, 0.1));
-        placeholder.widthProperty().bind(coverContainer.widthProperty());
-        placeholder.heightProperty().bind(coverContainer.heightProperty());
+        this.placeholder.setFill(Color.rgb(255, 255, 255, 0.1));
+        this.placeholder.widthProperty().bind(coverContainer.widthProperty());
+        this.placeholder.heightProperty().bind(coverContainer.heightProperty());
 
         coverContainer.getChildren().addAll(placeholder, coverView);
 
-        if (manga.getCoverURL() != null) {
-            coverView.setOpacity(0.0);
+        if (this.coverURL != null) {
+            this.coverView.setOpacity(0.0);
 
-            Runnable updateImageFit = () -> {
-                Image img = coverView.getImage();
+            this.updateImageFit = () -> {
+                Image img = this.coverView.getImage();
                 if (img == null || img.isError()) return;
 
                 double imgW = img.getWidth();
@@ -67,7 +102,6 @@ public class MangaTile {
             coverContainer.widthProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
             coverContainer.heightProperty().addListener((obs, oldV, newV) -> updateImageFit.run());
 
-            loadScaledCoverAsync(coverView, manga.getCoverURL(), updateImageFit, placeholder);
 
             coverView.layoutXProperty().bind(
                 javafx.beans.binding.Bindings.createDoubleBinding(
@@ -85,7 +119,7 @@ public class MangaTile {
                 )
             );
 
-            Logger.info(manga.getTitle() + " - " + manga.getCoverURL() + " --> Loaded");
+            Logger.info(this.title + " - " + this.coverURL + " --> Tile created.");
         }
 
         Rectangle recorte = new Rectangle();
@@ -102,7 +136,7 @@ public class MangaTile {
             coverContainer.setPrefHeight(newVal.doubleValue() * 1.5);
         });
 
-        Label title = new Label(manga.getTitle());
+        Label title = new Label(this.title);
 
         title.setWrapText(true);
         title.setTextAlignment(TextAlignment.CENTER);
@@ -123,36 +157,133 @@ public class MangaTile {
 
         iconManga.setAlignment(Pos.TOP_CENTER);
 
-        iconManga.setOnMouseClicked(e -> nav.goTo(new ScnMangaMenu(manga)));
-
-        iconManga.getStyleClass().add("manga-icon");
-
-        return iconManga;
-    }
-
-    private static void loadScaledCoverAsync(ImageView coverView, String url,
-            Runnable updateImageFit, Rectangle placeholder) {
-
-        // 1. Cargamos la imagen original de forma asíncrona para que no se rompa el WebP
-        Image originalImage = new Image(url, true);
-
-        // 2. Esperamos a que la imagen se descargue y decodifique
-        originalImage.progressProperty().addListener((obs, old, progress) -> {
-            if (progress.doubleValue() >= 1.0 && !originalImage.isError()) {
-                Platform.runLater(() -> processAndSetImage(originalImage, coverView, updateImageFit, placeholder, true));
-            }
+        iconManga.setOnMouseClicked(e -> {
+            MainMenuController.getInstance().unloadAllCovers();
+            ScnMangaMenu menu = ScnMangaMenu.getInstance();
+            menu.updateManga(manga);
+            nav.goTo(menu);
         });
 
-        // 3. Por si la imagen ya estaba descargada en la caché local
-        if (originalImage.getProgress() >= 1.0) {
-            Platform.runLater(() -> processAndSetImage(originalImage, coverView, updateImageFit, placeholder, false));
+        iconManga.getStyleClass().add("manga-icon");
+        
+        return iconManga;
+    }
+    
+    public VBox getTile() {
+        return this.tile;
+    }
+    
+    public void loadImage(){
+        if(imageLoaded) return;
+        
+        Image cached = IMAGE_CACHE.getIfPresent(this.coverURL);
+        if(cached != null){
+            this.coverView.setImage(cached);
+            this.coverView.setCache(true);
+            this.coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
+            this.updateImageFit.run();
+            this.coverView.setOpacity(1.0);
+            this.placeholder.setVisible(false);
+            this.imageLoaded = true;
+            return;
+        }
+        loadScaledCoverAsync();
+    }
+
+    public void unloadImage() {
+        this.coverView.setImage(null);      // libera la imagen del ImageView
+        this.coverView.setOpacity(0.0);     // la deja invisible para el próximo loadImage()
+        this.placeholder.setVisible(true);  // muestra el placeholder gris
+        this.imageLoaded = false;           // permite que loadImage() vuelva a cargar
+    }
+    
+    private void loadScaledCoverAsync() {
+        if (this.coverURL != null && this.coverURL.toLowerCase().contains(".webp")) {
+            loadWithImageIO();
+        } else {
+            // JavaFX nativo: escalado en carga, no bloquea, bajo consumo de RAM
+            Image originalImage = new Image(this.coverURL, COVER_MAX_SIZE, COVER_MAX_SIZE, true, true, true);
+
+            if (originalImage.isError()) {
+                loadWithImageIO();
+            } else if (originalImage.getProgress() >= 1.0) {
+                Platform.runLater(() -> processAndSetImage(originalImage, false));
+            } else {
+                ChangeListener<Number> progressListener = new ChangeListener<Number>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Number> obs, Number old, Number progress) {
+                        if (progress.doubleValue() >= 1.0) {
+                            originalImage.progressProperty().removeListener(this);
+                            if (!originalImage.isError()) {
+                                Platform.runLater(() -> processAndSetImage(originalImage, true));
+                            }
+                        }
+                    }
+                };
+                
+                ChangeListener<Boolean> errorListener = new ChangeListener<Boolean>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Boolean> obs, Boolean old, Boolean isError) {
+                        if (isError) {
+                            originalImage.errorProperty().removeListener(this);
+                            loadWithImageIO();
+                        }
+                    }
+                };
+
+                originalImage.progressProperty().addListener(progressListener);
+                originalImage.errorProperty().addListener(errorListener);
+            }
         }
     }
 
-    private static void processAndSetImage(Image originalImage, ImageView coverView, Runnable updateImageFit, Rectangle placeholder, boolean animate) {
+    private void loadWithImageIO() {
+        java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+            try {
+                java.net.URL urlObj = new java.net.URL(this.coverURL);
+                java.net.URLConnection conn = urlObj.openConnection();
+                if (this.coverURL.startsWith("http")) {
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                }
+                java.awt.image.BufferedImage bimg;
+                try (java.io.InputStream in = conn.getInputStream()) {
+                    bimg = javax.imageio.ImageIO.read(in);
+                }
+                if (bimg != null) {
+                    if (bimg.getWidth() > COVER_MAX_SIZE || bimg.getHeight() > COVER_MAX_SIZE) {
+                        int newWidth = bimg.getWidth();
+                        int newHeight = bimg.getHeight();
+                        if (newWidth > newHeight) {
+                            newHeight = (int) (newHeight * ((double) COVER_MAX_SIZE / newWidth));
+                            newWidth = COVER_MAX_SIZE;
+                        } else {
+                            newWidth = (int) (newWidth * ((double) COVER_MAX_SIZE / newHeight));
+                            newHeight = COVER_MAX_SIZE;
+                        }
+                        
+                        java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
+                        java.awt.image.BufferedImage scaledBimg = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                        java.awt.Graphics2D g2d = scaledBimg.createGraphics();
+                        g2d.drawImage(tmp, 0, 0, null);
+                        g2d.dispose();
+                        bimg = scaledBimg;
+                    }
+                    return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
+                }
+            } catch (Exception e) {
+                Logger.error("Error decodificando cover con ImageIO: " + e.getMessage());
+            }
+            return null;
+        }).thenAccept(originalImage -> {
+            if (originalImage != null) {
+                Platform.runLater(() -> processAndSetImage(originalImage, true));
+            }
+        });
+    }
+
+    private void processAndSetImage(Image originalImage,boolean animate) {
         Image finalImage = originalImage;
 
-        // Si la imagen es más grande que nuestro límite, la achicamos tomando un "snapshot"
         if (originalImage.getWidth() > COVER_MAX_SIZE || originalImage.getHeight() > COVER_MAX_SIZE) {
             ImageView tempView = new ImageView(originalImage);
             tempView.setPreserveRatio(true);
@@ -163,30 +294,19 @@ public class MangaTile {
                 tempView.setFitHeight(COVER_MAX_SIZE);
             }
 
-            // Tomamos una "foto" de la vista escalada con fondo transparente
             javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
             params.setFill(Color.TRANSPARENT);
             finalImage = tempView.snapshot(params, null);
-            
-            // La variable "originalImage" dejará de usarse después de esto y el GC liberará la RAM
         }
 
-        // Asignamos la miniatura a la vista final
         coverView.setImage(finalImage);
         coverView.setCache(true);
         coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         updateImageFit.run();
-
-        if (animate) {
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(400), coverView);
-            fadeIn.setFromValue(0.0);
-            fadeIn.setToValue(1.0);
-            fadeIn.setOnFinished(e -> placeholder.setVisible(false));
-            fadeIn.play();
-        } else {
-            coverView.setOpacity(1.0);
-            placeholder.setVisible(false);
-        }
+        IMAGE_CACHE.put(this.coverURL, finalImage);   // guarda en la caché
+        this.imageLoaded = true;	
+        coverView.setOpacity(1.0);
+        placeholder.setVisible(false);
     }
 }
