@@ -1,7 +1,7 @@
 package app.simplereader.model;
 
-import app.simplereader.controller.Logger;
-import app.simplereader.controller.Sorter;
+import app.simplereader.service.Logger;
+import app.simplereader.service.Sorter;
 import app.simplereader.repository.MangaSource;
 import org.yaml.snakeyaml.Yaml;
 import java.io.File;

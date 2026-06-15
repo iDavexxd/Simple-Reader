@@ -2,7 +2,7 @@ package app.simplereader;
 
 import app.simplereader.controller.LibraryController;
 import app.simplereader.controller.SceneController;
-import app.simplereader.controller.Logger;
+import app.simplereader.service.Logger;
 import app.simplereader.controller.SourceManager;
 import app.simplereader.model.LocalSource;
 import app.simplereader.views.ScnMainMenu;
@@ -35,6 +35,7 @@ public class SimpleReader extends Application{
             LibraryController.getInstance().saveLibrary();
             });
         stage.show();
+        stage.setResizable(true);
     }
         
     public static void main(String[] args) {

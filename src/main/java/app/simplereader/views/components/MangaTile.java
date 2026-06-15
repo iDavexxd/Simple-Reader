@@ -1,6 +1,6 @@
 package app.simplereader.views.components;
 
-import app.simplereader.controller.Logger;
+import app.simplereader.service.Logger;
 import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Manga;
@@ -156,6 +156,9 @@ public class MangaTile {
         title.prefWidthProperty().bind(iconManga.widthProperty());
 
         iconManga.setAlignment(Pos.TOP_CENTER);
+        
+        coverContainer.setMinSize(0, 0);
+        iconManga.setMinSize(0, 0);
 
         iconManga.setOnMouseClicked(e -> {
             MainMenuController.getInstance().unloadAllCovers();

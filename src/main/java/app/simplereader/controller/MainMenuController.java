@@ -1,5 +1,6 @@
 package app.simplereader.controller;
 
+import app.simplereader.service.Logger;
 import app.simplereader.model.Category;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.AppScene;
@@ -129,11 +130,18 @@ public class MainMenuController {
     
     
     public void resizeTiles(double totalWidth) {
+        if (totalWidth <= 50) return;
         TilePane pane = scene.getActivePane();
         if (pane == null) return;
 
-        int columns = 5;
         double hgap = 15, vgap = 15, padding = 15;
+        double minTileWidth = 150.0; 
+
+        int columns = (int) Math.floor((totalWidth - padding * 2 - 5 + hgap) / (minTileWidth + hgap));
+        columns = Math.max(1, Math.min(5, columns));
+
+        pane.setPrefColumns(columns);
+
         double tileWidth = (totalWidth - padding * 2 - hgap * (columns - 1) - 5) / columns;
         double tileHeight = tileWidth * 1.5;
 

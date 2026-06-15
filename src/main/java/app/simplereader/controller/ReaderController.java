@@ -1,5 +1,6 @@
 package app.simplereader.controller;
 
+import app.simplereader.service.Logger;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
@@ -130,6 +131,8 @@ public class ReaderController {
         if (totalPages() > 0) {
             loadCurrentImage();
         }
+        
+        view.doUpdatePageLabel();
     }
     
     public int totalPages() {
@@ -216,6 +219,7 @@ public class ReaderController {
         if (paginaComboBox != null) {
             updatingUI = true;
             paginaComboBox.setValue(currentPageIndex + 1);
+            view.doUpdatePageLabel();
             updatingUI = false;
         }
     }

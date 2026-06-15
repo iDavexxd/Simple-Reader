@@ -1,5 +1,6 @@
 package app.simplereader.controller;
 
+import app.simplereader.service.Logger;
 import app.simplereader.model.AppConfig;
 import javafx.stage.Stage;
 import app.simplereader.repository.AppScene;
@@ -44,8 +45,16 @@ public class SceneController {
     public void goTo(AppScene s){
         ActualSceneName = s.getName();
         
+        double w = stage.getWidth();
+        double h = stage.getHeight();
+        
         stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
         stage.setScene(s.getScene());
+        
+        if (!Double.isNaN(w) && !Double.isNaN(h) && !stage.isFullScreen() && !stage.isMaximized()) {
+            stage.setWidth(w);
+            stage.setHeight(h);
+        }
         
         // --- INICIO DE BÚSQUEDA PROFUNDA EN EL HISTORIAL ---
         int existingIndex = -1;
@@ -57,15 +66,11 @@ public class SceneController {
         }
         
         if (existingIndex != -1) {
-            // Si la escena ya existía (ej. volver al MangaMenu desde el Reader)
-            // Cortamos la lista borrando la vieja y todo lo que estaba encima
             scnList.subList(existingIndex, scnList.size()).clear();
         }
         
-        // Agregamos la escena limpia y única a la pila (UNA SOLA VEZ)
         scnList.add(s);
         
-        // Limitar la profundidad del historial
         if (scnList.size() > MAX_HISTORY_SIZE) {
             scnList.remove(0); 
         }
@@ -74,7 +79,7 @@ public class SceneController {
         Logger.info("Scene --> " + s.getName());
     }
     
-    public void clearHistory() { // Cambiado a public para que puedas usarlo en otros lados
+    public void clearHistory() { 
         if (scnList.size() > 1) {
             AppScene currentActiveScene = scnList.get(scnList.size() - 1);
             scnList.clear(); 
@@ -84,16 +89,24 @@ public class SceneController {
     }
     
     public void backScene(){
-        if (scnList.size() < 2) return; // evita crash si no hay dónde volver
+        if (scnList.size() < 2) return; 
         
         int indice = scnList.size() - 1;
-        scnList.remove(indice);                              // elimina la actual primero
+        scnList.remove(indice);                              
         AppScene anterior = scnList.get(scnList.size() - 1);
         ActualSceneName = anterior.getName();
         
+        double w = stage.getWidth();
+        double h = stage.getHeight();
+        
         stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
-        stage.setResizable(false);
         stage.setScene(anterior.getScene());
+        
+        if (!Double.isNaN(w) && !Double.isNaN(h) && !stage.isFullScreen() && !stage.isMaximized()) {
+            stage.setWidth(w);
+            stage.setHeight(h);
+        }
+        
         Logger.info("Scene --> " + anterior.getName());
     }
 

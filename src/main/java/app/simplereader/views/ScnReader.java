@@ -3,11 +3,9 @@ package app.simplereader.views;
 import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
-import app.simplereader.controller.Logger;
-import app.simplereader.controller.MainMenuController;
+import app.simplereader.service.Logger;
 import app.simplereader.controller.ReaderController;
 import app.simplereader.controller.SceneController;
-import app.simplereader.controller.SourceManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -30,9 +28,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
-import app.simplereader.repository.MangaSource;
 import java.util.List;
-import javafx.application.Platform;
 
 /**
  *
@@ -49,7 +45,10 @@ public class ScnReader implements AppScene {
 
     private static ScnReader instance;
     private Scene myScene;
-        
+    private String pageLabelText = "";
+    
+    private Label pages;
+    private StackPane pagePane;
     private ImageView visor;
     private ScrollPane scrollVisor;
     private Parent layout;
@@ -64,7 +63,6 @@ public class ScnReader implements AppScene {
     
     private ScnReader() {
             this.nav = SceneController.getInstance();
-            nav.getStage().setResizable(true);
             ReaderController.doInstance(this);
             this.controller = ReaderController.getInstance();
         }
@@ -100,11 +98,34 @@ public class ScnReader implements AppScene {
     @Override
     public Scene getScene() {
         
+        // --- PREPARACIÓN DE VENTANA (Siempre se ejecuta al entrar) ---
+        nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
+        
+        if (originalCloseHandler == null) {
+            originalCloseHandler = nav.getStage().getOnCloseRequest();
+        }
+        nav.getStage().setOnCloseRequest(e -> {
+            controller.saveAndCleanup();
+        });
+        
+        if (fullScreenListener == null) {
+            fullScreenListener = (obs, oldVal, isFull) -> {
+                if (layout != null) {
+                    if (isFull) {
+                        layout.getStyleClass().add("fullscreen");
+                    } else {
+                        layout.getStyleClass().remove("fullscreen");
+                    }
+                }
+            };
+        }
+        nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
+        nav.getStage().fullScreenProperty().addListener(fullScreenListener);
+        
+        // --- RETORNO CACHEADO ---
         if (myScene != null) return myScene;
 
         if (layout == null) layout = getPane();
-        
-        nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
         
         myScene = new Scene(layout, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         myScene.getStylesheets().add(nav.getCss());
@@ -130,8 +151,6 @@ public class ScnReader implements AppScene {
                     javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
                     delay.setOnFinished(event -> {
                         // 3. Restauramos las propiedades de la ventana cuando ya no está en transición
-                        nav.getStage().setMaximized(false);
-                        nav.getStage().setResizable(false);
                         nav.getStage().setOnCloseRequest(originalCloseHandler);
 
                         // 4. CAMBIAMOS DE ESCENA al final, cuando la ventana ya es estable
@@ -159,20 +178,6 @@ public class ScnReader implements AppScene {
                     e.consume();    
                 }
             }
-        });
-        
-        fullScreenListener = (obs, oldVal, isFull) -> {
-            if (isFull) {
-                layout.getStyleClass().add("fullscreen");
-            } else {
-                layout.getStyleClass().remove("fullscreen");
-            }
-        };
-        nav.getStage().fullScreenProperty().addListener(fullScreenListener);
-        originalCloseHandler = nav.getStage().getOnCloseRequest();
-        
-        nav.getStage().setOnCloseRequest(e -> {
-            controller.saveAndCleanup();
         });
         
         return myScene;
@@ -235,7 +240,9 @@ public class ScnReader implements AppScene {
                 
         StackPane spane = new StackPane();
         spane.getChildren().add(scrollVisor);
-        
+        doConfigPagePane();
+        spane.getChildren().add(pagePane);
+        StackPane.setAlignment(pagePane, Pos.BOTTOM_RIGHT);
         lateralMenu = getLateralMenu();
         StackPane.setAlignment(lateralMenu, Pos.CENTER_LEFT);
         spane.getChildren().add(lateralMenu);
@@ -321,8 +328,7 @@ public class ScnReader implements AppScene {
             controller.cleanupResources();
             nav.getStage().setOnCloseRequest(originalCloseHandler); 
             nav.getStage().setFullScreen(false);
-            nav.getStage().setResizable(false);
-            nav.getStage().setMaximized(false);
+            nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
             nav.backScene();
         });
         btnBackToMenu.setMinSize(24, 24);
@@ -450,6 +456,26 @@ public class ScnReader implements AppScene {
         controller.setUIComponents(pagina, caps, chnameLabel);
         
         return lateralMenu;
+    }
+    
+    private void doConfigPagePane(){
+        if(pagePane == null) pagePane = new StackPane();
+        if(pages == null) pages = new Label();
+        
+        pagePane.setMouseTransparent(true);
+        
+        HBox box = new HBox(5);
+        pageLabelText = "0"+"/"+String.valueOf(chapter.getPageCount());
+        pages = new Label(pageLabelText);
+        
+        box.getChildren().add(pages);
+        box.setAlignment(Pos.BOTTOM_RIGHT);
+        pagePane.getChildren().add(box);
+    }
+    
+    public void doUpdatePageLabel(){
+        pageLabelText = String.valueOf(controller.getCurrentPageIndex()+1)+"/"+String.valueOf(chapter.getPageCount());
+        pages.setText(pageLabelText);
     }
     
     private StackPane icn_Back() {

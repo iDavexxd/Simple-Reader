@@ -1,7 +1,7 @@
 package app.simplereader.views;
 import app.simplereader.views.components.SideMenu;
 import app.simplereader.controller.LibraryController;
-import app.simplereader.controller.Logger;
+import app.simplereader.service.Logger;
 import app.simplereader.controller.SceneController;
 import app.simplereader.controller.SourceManager;
 import app.simplereader.model.AppConfig;

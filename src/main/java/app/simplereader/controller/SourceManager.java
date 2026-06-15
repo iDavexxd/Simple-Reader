@@ -1,5 +1,6 @@
 package app.simplereader.controller;
 
+import app.simplereader.service.Logger;
 import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.LocalSource;

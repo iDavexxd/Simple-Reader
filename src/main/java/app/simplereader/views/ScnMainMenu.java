@@ -2,7 +2,7 @@ package app.simplereader.views;
 
 import app.simplereader.views.components.SideMenu;
 import app.simplereader.controller.LibraryController;
-import app.simplereader.controller.Logger;
+import app.simplereader.service.Logger;
 import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.controller.SourceManager;
@@ -58,7 +58,6 @@ public class ScnMainMenu implements AppScene{
     public ScnMainMenu(){
         MainMenuController.doInstance(this);
         this.controller = MainMenuController.getInstance();
-        nav.getStage().setResizable(false);
     }
     
     public static ScnMainMenu getInstance(){
@@ -216,7 +215,11 @@ public class ScnMainMenu implements AppScene{
                 });
 
                 tab.setContent(tabScroll);
-                categoryTabPane.getTabs().add(tab);
+                if (cat.getName().equals("Default")) {
+                    categoryTabPane.getTabs().add(0, tab);
+                } else {
+                    categoryTabPane.getTabs().add(tab);
+                }
             }
         }
 

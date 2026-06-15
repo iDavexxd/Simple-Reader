@@ -6,7 +6,7 @@ import app.simplereader.controller.MangaMenuController;
 import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
-import app.simplereader.controller.Logger;
+import app.simplereader.service.Logger;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Category;
 import javafx.collections.FXCollections;
@@ -98,7 +98,6 @@ public class ScnMangaMenu implements AppScene{
     private Scene myScene;
     
     private ScnMangaMenu(){
-        nav.getStage().setResizable(false);
         MangaMenuController.doInstance(this);
         this.controller = MangaMenuController.getInstance();
     }
@@ -119,12 +118,21 @@ public class ScnMangaMenu implements AppScene{
             title.setText(newManga.getTitle());
             author.setText(newManga.getAuthor() != null ? newManga.getAuthor() : "");
             description.setText(newManga.getDescription() != null ? newManga.getDescription() : "");
-            tags.setText(controller.getTags());
+            String currentTags = controller.getTags();
+            tags.setText(currentTags);
+            boolean hasTags = !currentTags.isEmpty();
+            tags.setVisible(hasTags);
+            tags.setManaged(hasTags);
             
             String addLibrary = "M520-400h80v-120h120v-80H600v-120h-80v120H400v80h120v120ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
             String onLibrary = "m508-398 226-226-56-58-170 170-86-84-56 56 142 142ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
             if(lib.onLibrary(newManga)) icnLibrary.setContent(onLibrary);
             else icnLibrary.setContent(addLibrary);
+            
+            // Actualizar visibilidad del botón de descarga según el source
+            boolean isLocal = newManga.getSourceID() == null || newManga.getSourceID().equals("local");
+            btnDownloadChapter.setVisible(!isLocal);
+            btnDownloadChapter.setManaged(!isLocal);
             
             if (!sameCover) {
                 if (currentCoverImage != null) currentCoverImage.cancel();
@@ -220,15 +228,21 @@ public class ScnMangaMenu implements AppScene{
         descScroll.setFitToWidth(true);
         VBox.setVgrow(descScroll, Priority.ALWAYS); //No funciona
         
-        tags = new Label(controller.getTags());
+        String initialTags = controller.getTags();
+        tags = new Label(initialTags);
+        tags.setWrapText(true);
         tags.getStyleClass().add("manga-info-tags");
         VBox.setVgrow(tags, Priority.ALWAYS);
+        boolean hasTagsInit = !initialTags.isEmpty();
+        tags.setVisible(hasTagsInit);
+        tags.setManaged(hasTagsInit);
+        
         VBox datosmanga = new VBox(10, title, author, descScroll); 
         VBox tagsmanga = new VBox(tags);
         BorderPane datos = new BorderPane();
         datos.setMaxHeight(500);
         datos.setCenter(datosmanga);
-        if(!controller.getTags().equals("")) datos.setBottom(tagsmanga);
+        datos.setBottom(tagsmanga);
         HBox top = new HBox(20, coverContainer, datos);
         top.setAlignment(Pos.CENTER_LEFT); // Asegurar centrado vertical del contenido
         top.setPadding(new Insets(20)); // Un poco de aire alrededor
@@ -452,32 +466,34 @@ public class ScnMangaMenu implements AppScene{
             }
         });
         
-        if(!manga.getSourceID().equals("local")){
-            btnDownloadChapter = new Button("",icnDownload_container);
-            doChangeDownloadIcon(0);
-            listaCaps.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-                if (newValue != null) {
-                    if(newValue.isDownloaded()){
-                        doChangeDownloadIcon(1);
-                    } else{
-                        doChangeDownloadIcon(0);
-                    }
-                    
-                } else {
-                    // No hay ningún capítulo seleccionado en la lista.
+        btnDownloadChapter = new Button("",icnDownload_container);
+        doChangeDownloadIcon(0);
+        listaCaps.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                if(newValue.isDownloaded()){
+                    doChangeDownloadIcon(1);
+                } else{
                     doChangeDownloadIcon(0);
                 }
-            });
-            btnDownloadChapter.getStyleClass().add("mangamenu-button");
-            btnDownloadChapter.setMaxSize(40, 40);
-            btnDownloadChapter.setMinSize(40, 40);
-            btnDownloadChapter.disableProperty().bind(listaCaps.getSelectionModel().selectedItemProperty().isNull());
-            btnDownloadChapter.setOnAction(e -> {
-                for (Chapter ch : listaCaps.getSelectionModel().getSelectedItems()) {
-                    controller.downloadChapter(ch);
-                }
-            });
-        }
+                
+            } else {
+                // No hay ningún capítulo seleccionado en la lista.
+                doChangeDownloadIcon(0);
+            }
+        });
+        btnDownloadChapter.getStyleClass().add("mangamenu-button");
+        btnDownloadChapter.setMaxSize(40, 40);
+        btnDownloadChapter.setMinSize(40, 40);
+        btnDownloadChapter.disableProperty().bind(listaCaps.getSelectionModel().selectedItemProperty().isNull());
+        btnDownloadChapter.setOnAction(e -> {
+            for (Chapter ch : listaCaps.getSelectionModel().getSelectedItems()) {
+                controller.downloadChapter(ch);
+            }
+        });
+        
+        boolean isLocal = manga.getSourceID() == null || manga.getSourceID().equals("local");
+        btnDownloadChapter.setVisible(!isLocal);
+        btnDownloadChapter.setManaged(!isLocal);
         
         Button btnInvertir = new Button("", icon_arrow);
         btnInvertir.getStyleClass().add("mangamenu-button");
@@ -495,7 +511,7 @@ public class ScnMangaMenu implements AppScene{
         Region spacer = new Region();
         VBox.setVgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
         botones.getChildren().add(btnKeepReading);
-        if(!manga.getSourceID().equals("local")) botones.getChildren().add(btnDownloadChapter);
+        botones.getChildren().add(btnDownloadChapter);
         botones.getChildren().add(spacer);
         botones.getChildren().add(btnAddToLibrary);
         botones.getChildren().add(btnInvertir);
@@ -571,7 +587,30 @@ public class ScnMangaMenu implements AppScene{
         btnAccept.setMaxSize(Double.MAX_VALUE, 30);
         btnAccept.setMinHeight(30);
         
-        btnAccept.setOnAction(e -> doHideMenu());
+        btnAccept.setOnAction(e -> {
+            boolean changed = false;
+            for (javafx.scene.Node node : categoryButtons.getChildren()) {
+                if (node instanceof CheckBox chk) {
+                    app.simplereader.model.Category category = (app.simplereader.model.Category) chk.getUserData();
+                    if (chk.isSelected()) {
+                        if (!lib.onCategory(category, manga)) {
+                            controller.addToLibrary(category.getName());
+                            changed = true;
+                        }
+                    } else {
+                        if (lib.onCategory(category, manga)) {
+                            controller.removeManga(manga, category);
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            if (changed) {
+                if (lib.onLibrary(manga)) icnLibrary.setContent(onLibrary);
+                else icnLibrary.setContent(addLibrary);
+            }
+            doHideMenu();
+        });
         btnEdit.setOnAction(e -> {
             nav.goTo(new ScnConfig());
         });
@@ -810,9 +849,6 @@ public class ScnMangaMenu implements AppScene{
         
         if(categoryButtons == null) return;
         
-        String addLibrary = "M520-400h80v-120h120v-80H600v-120h-80v120H400v80h120v120ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
-        String onLibrary = "m508-398 226-226-56-58-170 170-86-84-56 56 142 142ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z";
-        
         categoryButtons.getChildren().clear();
         categoryButtons.setSpacing(10); 
 
@@ -823,20 +859,8 @@ public class ScnMangaMenu implements AppScene{
             
             // Si el manga está en la categoría, el CheckBox se marca automáticamente
             chkCategory.setSelected(lib.onCategory(category, manga));
+            chkCategory.setUserData(category); // Guardamos la categoría para usarla luego en el botón Aceptar
 
-            // Evento cuando el usuario hace clic en el cuadrito
-            chkCategory.setOnAction(e -> {
-                if (chkCategory.isSelected()) {
-                    if(!lib.onCategory(category, manga)) {
-                        controller.addToLibrary(category.getName());
-                        if(lib.onLibrary(manga)) icnLibrary.setContent(onLibrary);
-                    }
-                } else {
-                    controller.removeManga(this.manga, category);
-                    if(!lib.onLibrary(manga)) icnLibrary.setContent(addLibrary);
-                }
-            });
-            
             categoryButtons.getChildren().add(chkCategory);
         }
     }

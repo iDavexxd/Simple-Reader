@@ -1,4 +1,4 @@
-package app.simplereader.controller;
+package app.simplereader.service;
 
 import javafx.scene.control.Alert;
 
