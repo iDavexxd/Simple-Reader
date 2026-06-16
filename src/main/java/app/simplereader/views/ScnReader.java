@@ -44,7 +44,7 @@ public class ScnReader implements AppScene {
     private int chapterIndex;
 
     private static ScnReader instance;
-    private Scene myScene;
+    private javafx.scene.Parent myScene;
     private String pageLabelText = "";
     
     private Label pages;
@@ -84,9 +84,7 @@ public class ScnReader implements AppScene {
         }
 
         controller.init(manga, chapter, chapterIndex);
-        
-        // Si la pantalla ya fue construida al menos una vez,                                                    
-        // usamos el método loadChapter para forzar la actualización de la UI.                                   
+                                          
         if (myScene != null) {                                                                                   
             controller.loadChapter(chapter, chapterIndex);                                                       
         }
@@ -96,9 +94,8 @@ public class ScnReader implements AppScene {
         
     
     @Override
-    public Scene getScene() {
+    public javafx.scene.Parent getScene() {
         
-        // --- PREPARACIÓN DE VENTANA (Siempre se ejecuta al entrar) ---
         nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
         
         if (originalCloseHandler == null) {
@@ -122,15 +119,12 @@ public class ScnReader implements AppScene {
         nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
         nav.getStage().fullScreenProperty().addListener(fullScreenListener);
         
-        // --- RETORNO CACHEADO ---
         if (myScene != null) return myScene;
 
         if (layout == null) layout = getPane();
         
-        myScene = new Scene(layout, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        myScene.getStylesheets().add(nav.getCss());
-        
-        myScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+        // Listeners de teclado (en el root, no en la Scene)
+        layout.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             KeyCode key = e.getCode();
             switch (key) {
                 case F5 -> {
@@ -144,16 +138,12 @@ public class ScnReader implements AppScene {
                     controller.cleanupResources();
                     e.consume();
 
-                    // 1. Quitamos la pantalla completa inmediatamente
                     nav.getStage().setFullScreen(false);
-
-                    // 2. Damos un margen de tiempo un poco mayor (200ms suele ser infalible)
+                    // delay
                     javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
                     delay.setOnFinished(event -> {
-                        // 3. Restauramos las propiedades de la ventana cuando ya no está en transición
                         nav.getStage().setOnCloseRequest(originalCloseHandler);
 
-                        // 4. CAMBIAMOS DE ESCENA al final, cuando la ventana ya es estable
                         nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
                         nav.backScene();
                     });
@@ -180,6 +170,7 @@ public class ScnReader implements AppScene {
             }
         });
         
+        myScene = layout;
         return myScene;
     }
     

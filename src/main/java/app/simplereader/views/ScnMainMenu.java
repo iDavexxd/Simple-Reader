@@ -24,10 +24,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
 import app.simplereader.repository.MangaSource;
+import app.simplereader.views.components.SvgIcons;
 
 import java.util.HashMap;
 import java.util.Map;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -40,6 +42,7 @@ import javafx.scene.layout.Region;
 public class ScnMainMenu implements AppScene{
     private static ScnMainMenu instance;
     
+    private final SvgIcons icons = SvgIcons.get();
     private final SceneController nav = SceneController.getInstance();    
     private final LibraryController lib = LibraryController.getInstance();
     
@@ -69,7 +72,7 @@ public class ScnMainMenu implements AppScene{
     }
  
     @Override
-    public Scene getScene(){      
+    public Parent getScene(){      
         
         // Crear TilePanes para cada categoría
         controller.doCreateCategoryPanes();
@@ -171,21 +174,21 @@ public class ScnMainMenu implements AppScene{
             doShowSourceMenu();
         });
         
-        Scene rootCache = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        rootCache.getStylesheets().add(nav.getCss());
-        rootCache.setOnKeyPressed( e -> {
-            KeyCode key = e.getCode();
-            switch (key){
-                // case DIGIT1 -> controller.showCategory("Default"); // <- Puedes borrar esto también en tu MainMenuController si ya no usas atajos para cambiar de categoría
-                case F5 -> {
-                    Logger.info("F5");
-                    controller.reloadMangas();
-                }
-                case F12 -> importFolder();
-            }
-        });
+//        Scene rootCache = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+//        rootCache.getStylesheets().add(nav.getCss());
+//        rootCache.setOnKeyPressed( e -> {
+//            KeyCode key = e.getCode();
+//            switch (key){
+//                // case DIGIT1 -> controller.showCategory("Default"); // <- Puedes borrar esto también en tu MainMenuController si ya no usas atajos para cambiar de categoría
+//                case F5 -> {
+//                    Logger.info("F5");
+//                    controller.reloadMangas();
+//                }
+//                case F12 -> importFolder();
+//            }
+//        });
         
-        return rootCache;
+        return root;
     }
     
     public void doCreateCategoryTabs(){
@@ -292,7 +295,7 @@ public class ScnMainMenu implements AppScene{
         Label menuTitle = new Label();
         menuTitle.setText("Sources");
         
-        Button btnClose = new Button("x");
+        Button btnClose = new Button("",icons.getCloseIcon());
         btnClose.setMinSize(30, 30);
         btnClose.setMaxSize(30, 30);
         btnClose.setOnAction(e -> doHideSourceMenu());
@@ -311,7 +314,7 @@ public class ScnMainMenu implements AppScene{
         centercontent.setFitToWidth(true);
         
         //Bottom
-        Button btnImport = new Button("+");
+        Button btnImport = new Button("",icons.getAddIcon());
         btnImport.setMinSize(30, 30);
         btnImport.setMaxSize(Double.MAX_VALUE, 30);
         

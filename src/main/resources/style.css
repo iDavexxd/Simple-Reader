@@ -572,7 +572,7 @@
 }
 
 .reader-combobox .list-cell:hover {
-    -fx-background-color: -fx-fourth-bg;
+    -fx-background-color: -fx-secondry-bg;
     -fx-background-radius: 5;
     -fx-text-fill: -fx-accent;
 }
@@ -586,12 +586,12 @@
 /* Hover solo en dropdown también */
 .combo-box-popup .list-cell:hover {
     -fx-text-fill: -fx-accent;
-    -fx-background-color: -fx-fourth-bg;
+    -fx-background-color: -fx-secondary-bg;
 }
 
 /* Scroll bar del dropdown */
 .reader-combobox .scroll-bar:vertical {
-    fx-padding: 0 0 0 8;
+    -fx-padding: 0 0 0 8;
     -fx-background-radius: 5;
     -fx-background-color: -fx-third-bg;
     -fx-pref-width: 8px;
@@ -735,6 +735,7 @@
 
 .search-list {
     -fx-font-family: "Lato";
+    -fx-text-fill: -fx-accent;
     -fx-background-color: -fx-third-bg;
     -fx-background-radius: 8px;
     -fx-border-color: transparent;
@@ -777,20 +778,29 @@
 }
 
 .search-list .list-cell {
-    -fx-background-color: -fx-third-bg;;
+    -fx-background-color: -fx-third-bg;
     -fx-text-fill: -fx-accent;
 }
 
 .search-list .list-cell:hover {
-    -fx-background-color: -fx-accent;
-    -fx-text-fill: -fx-secondary-bg;
+    -fx-background-color: -fx-secondary-bg;
+    -fx-text-fill: -fx-accent;
     -fx-background-radius: 10;
+}
+
+.search-list-title {
+    -fx-font-family: "Roboto Slab";
+    -fx-font-size: 18px;
+    -fx-text-fill: -fx-accent;
+    -fx-font-weight: bold;
+
 }
 
 .search-list .list-cell:empty:hover {
     -fx-background-color: -fx-third-bg;;
     -fx-background-insets: 0;
 }
+
 
 /* =========================
    CONTEXT MENU
@@ -816,4 +826,93 @@
 .menu-item:hover {
     -fx-background-color: -fx-secondary-bg;
     -fx-background-radius: 6;
+}
+
+/* =========================
+   CONFIG MENU
+========================= */
+
+.conf-root {
+    -fx-background-color: -fx-main-bg;
+}
+
+
+.config-menu {
+    -fx-background-color: -fx-main-bg;
+    -fx-border-color: -fx-fourth-bg;
+    -fx-border-width: 0 1 0 0;
+}
+
+.config-menu-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-accent;
+    -fx-font-family: "Lato";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 15 20;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.config-menu-btn:selected {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: -fx-main-bg;
+    -fx-font-family: "Lato";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 15 20;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+
+
+.config-panel-button{
+    -fx-background-color: -fx-third-bg;
+}
+.config-panel-button:hover{
+    -fx-background-color: -fx-secondary-bg;
+}
+.config-menu-btn:hover {
+    -fx-background-color: -fx-secondary-bg;
+}
+
+.config-panel-listview {
+    -fx-background-color: transparent;
+    -fx-control-inner-background: -fx-third-bg;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-color: -fx-fourth-bg;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+}
+
+.config-panel-listview .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-accent;
+    -fx-font-family: "Lato";
+    -fx-font-size: 14px;
+    -fx-padding: 10px;
+}
+
+.config-panel-listview .list-cell:hover {
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: 5;
+}
+
+.config-panel-listview .list-cell:selected {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: -fx-main-bg;
+    -fx-background-radius: 5;
+
+}
+
+.config-panel-listview .list-cell:empty {
+    -fx-background-color: transparent;
+}
+
+.config-panel-listview .list-cell:empty:hover {
+    -fx-background-color: transparent;
 }

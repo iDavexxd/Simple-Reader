@@ -95,7 +95,7 @@ public class ScnMangaMenu implements AppScene{
     private ChangeListener<Number> heightListener;
     
     private static ScnMangaMenu instance;
-    private Scene myScene;
+    private javafx.scene.Parent myScene;
     
     private ScnMangaMenu(){
         MangaMenuController.doInstance(this);
@@ -151,7 +151,7 @@ public class ScnMangaMenu implements AppScene{
     }
     
     @Override
-    public Scene getScene() {
+    public javafx.scene.Parent getScene() {
         if (myScene != null) return myScene;
         
         /*
@@ -536,7 +536,7 @@ public class ScnMangaMenu implements AppScene{
             }
             if (!inList) listaCaps.getSelectionModel().clearSelection();
         });
-        VBox.setVgrow(listaCaps, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(bottom, javafx.scene.layout.Priority.ALWAYS);
         
         SideMenu lateralmenu = new SideMenu();
         lateralmenu.addTop(buttons);
@@ -588,28 +588,51 @@ public class ScnMangaMenu implements AppScene{
         btnAccept.setMinHeight(30);
         
         btnAccept.setOnAction(e -> {
-            boolean changed = false;
+            java.util.List<app.simplereader.model.Category> toAdd = new java.util.ArrayList<>();
+            java.util.List<app.simplereader.model.Category> toRemove = new java.util.ArrayList<>();
+            
+            // 1. Leer la interfaz gráfica en el hilo principal
             for (javafx.scene.Node node : categoryButtons.getChildren()) {
                 if (node instanceof CheckBox chk) {
                     app.simplereader.model.Category category = (app.simplereader.model.Category) chk.getUserData();
                     if (chk.isSelected()) {
-                        if (!lib.onCategory(category, manga)) {
-                            controller.addToLibrary(category.getName());
-                            changed = true;
-                        }
+                        if (!lib.onCategory(category, manga)) toAdd.add(category);
                     } else {
-                        if (lib.onCategory(category, manga)) {
-                            controller.removeManga(manga, category);
-                            changed = true;
-                        }
+                        if (lib.onCategory(category, manga)) toRemove.add(category);
                     }
                 }
             }
-            if (changed) {
-                if (lib.onLibrary(manga)) icnLibrary.setContent(onLibrary);
-                else icnLibrary.setContent(addLibrary);
+            
+            if (toAdd.isEmpty() && toRemove.isEmpty()) {
+                doHideMenu();
+                return;
             }
-            doHideMenu();
+            
+            // 2. Bloquear botones para evitar doble clic
+            btnAccept.setDisable(true);
+            btnEdit.setDisable(true);
+            btnAccept.setText("Saving...");
+            
+            // 3. Ejecutar descargas y guardado en segundo plano
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                for (app.simplereader.model.Category cat : toAdd) {
+                    controller.addToLibrary(cat.getName());
+                }
+                for (app.simplereader.model.Category cat : toRemove) {
+                    controller.removeManga(manga, cat);
+                }
+                
+                // 4. Volver al hilo principal para actualizar íconos y ocultar
+                javafx.application.Platform.runLater(() -> {
+                    if (lib.onLibrary(manga)) icnLibrary.setContent(onLibrary);
+                    else icnLibrary.setContent(addLibrary);
+                    
+                    btnAccept.setDisable(false);
+                    btnEdit.setDisable(false);
+                    btnAccept.setText("Accept");
+                    doHideMenu();
+                });
+            });
         });
         btnEdit.setOnAction(e -> {
             nav.goTo(new ScnConfig());
@@ -646,12 +669,13 @@ public class ScnMangaMenu implements AppScene{
         }
 
         StackPane panel_menu = new StackPane(panel,categoryPane,coverPane);
+        panel_menu.setMinSize(0, 0);
         
         BorderPane fullPanel = new BorderPane();
         fullPanel.setCenter(panel_menu);
-        Scene scene = new Scene(fullPanel, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        scene.getStylesheets().add(nav.getCss());
-        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+        
+        // Listeners de teclado (ahora en el root, no en la Scene)
+        fullPanel.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             KeyCode key = e.getCode();
             switch (key) {
                 case F5 -> {
@@ -666,7 +690,7 @@ public class ScnMangaMenu implements AppScene{
             }
         });
         
-        myScene = scene;
+        myScene = fullPanel;
         return myScene;
     }
     
@@ -675,6 +699,7 @@ public class ScnMangaMenu implements AppScene{
         coverMenuImageView.setPreserveRatio(true);
         coverMenuImageView.fitHeightProperty().bind(coverPane.heightProperty());
         StackPane stackpane = new StackPane(coverMenuImageView);
+        stackpane.setMinSize(0, 0);
         
         SVGPath svg = new SVGPath();
         double scale = 24.0 / 960.0;

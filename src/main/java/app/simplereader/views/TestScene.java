@@ -17,9 +17,8 @@ public class TestScene implements AppScene{
     }
 
     @Override
-    public Scene getScene() {
+    public javafx.scene.Parent getScene() {
         BorderPane root = new BorderPane();
-        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         Label lbl = new Label("Test Scene - MangaDex source pending");
         root.setCenter(lbl);
         
@@ -27,7 +26,7 @@ public class TestScene implements AppScene{
         boton.setOnAction(e -> nav.backScene());
         root.setBottom(boton);
         
-        return scene;
+        return root;
     }
 
     @Override

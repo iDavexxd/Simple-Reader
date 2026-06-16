@@ -22,7 +22,7 @@ public class AppConfig {
     public String READING_DIR = "LTR";
     public String SCALING_MODE = "FIT_HEIGHT";
     
-    public static String PLUGIN_FOLDER = System.getProperty("user.home")
+    public final static String PLUGIN_FOLDER = System.getProperty("user.home")
             +File.separator
             +"Documents"
             +File.separator
@@ -31,7 +31,7 @@ public class AppConfig {
             +"plugins";
                        
     
-    public static String LOCAL_MANGA_FOLDER = System.getProperty("user.home")
+    public final static String LOCAL_MANGA_FOLDER = System.getProperty("user.home")
             +File.separator
             +"Documents"
             +File.separator
@@ -42,7 +42,7 @@ public class AppConfig {
     
     
     
-    public static String DATA_FOLDER = System.getProperty("user.home")
+    public final static String DATA_FOLDER = System.getProperty("user.home")
             + File.separator
             +"Documents"
             +File.separator
@@ -59,10 +59,10 @@ public class AppConfig {
             + "/data/manga";
     
     
-    public static String USER_DATA_FOLDER = DATA_FOLDER+"user";
+    public final static String USER_DATA_FOLDER = DATA_FOLDER+"user";
             
     
-    public final String VERSION = "Beta 1.8";
+    public final String VERSION = "Beta 1.9";
     
     public static AppConfig instance;
     private static final String CONFIG_FILE = System.getProperty("user.home") 

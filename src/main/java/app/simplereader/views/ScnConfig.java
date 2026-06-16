@@ -7,6 +7,7 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Category;
 import app.simplereader.repository.AppScene;
+import app.simplereader.views.components.SvgIcons;
 import java.util.List;
 import java.util.Optional;
 import javafx.collections.FXCollections;
@@ -14,7 +15,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
-import javafx.scene.Scene;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -38,24 +39,16 @@ public class ScnConfig implements AppScene {
     
     private final SceneController nav;
     private final ConfigSceneController controller;
-    
+    private final SvgIcons icons = SvgIcons.get();
     public ScnConfig(){
         ConfigSceneController.doInstance(this);
         this.controller = ConfigSceneController.getInstance();
         this.nav = SceneController.getInstance();
     }
     
-//    private void saveConfig(){
-//        // Sincronizar UI -> Objeto Config
-//            AppConfig.get().READING_DIR = cbDirection.getValue().contains("LTR") ? "LTR" : "RTL";
-//            AppConfig.get().SCALING_MODE = cbScaling.getValue().contains("ancho") ? "FIT_WIDTH" : "FIT_HEIGHT";
-//            
-//            AppConfig.get().save(); // Guardar a JSON
-//            
-//    }
     
     @Override
-    public Scene getScene() {
+    public Parent getScene() {
         
         // Menu lateral
         SideMenu lateralmenu = new SideMenu();        
@@ -95,15 +88,18 @@ public class ScnConfig implements AppScene {
         
         // Coso de configuraciones (Navegación lateral)
         BorderPane coso = new BorderPane();
+        coso.getStyleClass().add("config-menu");
         coso.setMaxWidth(300);
         coso.setMinWidth(300);
         coso.setPadding(new Insets(15));
         
         Button btnGeneral = new Button("Lector");
+        btnGeneral.getStyleClass().add("config-menu-btn");
         btnGeneral.setMaxWidth(Double.MAX_VALUE);
         btnGeneral.setOnAction(e -> scrollContent.setContent(panelGeneral));
         
         Button btnCategories = new Button("Categorías");
+        btnCategories.getStyleClass().add("config-menu-btn");
         btnCategories.setMaxWidth(Double.MAX_VALUE);
         btnCategories.setOnAction(e -> scrollContent.setContent(panelCategories));
         
@@ -119,9 +115,14 @@ public class ScnConfig implements AppScene {
         root.setLeft(lateralmenu.getPane());
         root.getStyleClass().add("conf-root");
         
-        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        scene.getStylesheets().add(nav.getCss());
-        return scene;
+        root.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                nav.backScene();
+                e.consume();
+            }
+        });
+        
+        return root;
         
     }
     
@@ -131,18 +132,31 @@ public class ScnConfig implements AppScene {
         categoryLabel.setAlignment(Pos.TOP_CENTER);                                                              
 
         ListView<Category> categoryListView = new ListView<>();
+        categoryListView.getStyleClass().add("config-panel-listview");
 
         // 1. Obtener la lista base del controlador y crear la ObservableList
         List<Category> categoriasObtenidas = controller.getCategoryList();
+        
         ObservableList<Category> datosObservables = FXCollections.observableArrayList();
 
         if (categoriasObtenidas != null) {
-            datosObservables.addAll(categoriasObtenidas);
+            for (Category c : categoriasObtenidas) {
+                if (!c.getName().equalsIgnoreCase("default")) {
+                    datosObservables.add(c);
+                }
+            }
         }
         categoryListView.setItems(datosObservables); // Asignar la lista al ListView
 
-        // 2. CellFactory para mostrar el getName() de cada Categoría
+        // 2. CellFactory para mostrar el getName() de cada Categoría y manejar clics en vacío
         categoryListView.setCellFactory(param -> new ListCell<Category>() {
+            {
+                setOnMouseClicked(e -> {
+                    if (isEmpty()) {
+                        getListView().getSelectionModel().clearSelection();
+                    }
+                });
+            }
             @Override
             protected void updateItem(Category item, boolean empty) {
                 super.updateItem(item, empty);
@@ -157,15 +171,20 @@ public class ScnConfig implements AppScene {
             
         
         // Buttons
-        Button btnAdd = new Button("Add");
+        Button btnAdd = new Button("",icons.getAddIcon());
+        btnAdd.getStyleClass().add("config-panel-button");
+
         btnAdd.setMinSize(50, 50);
         btnAdd.setMaxSize(50, 50);
         
-        Button btnHide = new Button("Hide");
+        Button btnHide = new Button("",icons.getVisibleIcon());
+        btnHide.getStyleClass().add("config-panel-button");
+
         btnHide.setMinSize(50, 50);
         btnHide.setMaxSize(50, 50);
         
-        Button btnRemove = new Button("Remove");
+        Button btnRemove = new Button("",icons.getRemoveIcon());
+        btnRemove.getStyleClass().add("config-panel-button");
         btnRemove.setMinSize(50, 50);
         btnRemove.setMaxSize(50, 50);
         
@@ -184,7 +203,8 @@ public class ScnConfig implements AppScene {
                 if (!name.trim().isEmpty() && !name.trim().equalsIgnoreCase("default")) {
                     controller.doCreateCategory(name.trim());
                     // Refrescar la lista de la interfaz
-                    datosObservables.setAll(controller.getCategoryList());
+                    datosObservables.setAll(controller.getCategoryList().stream()
+                        .filter(c -> !c.getName().equalsIgnoreCase("default")).toList());
                 }
             });
         });
@@ -196,7 +216,8 @@ public class ScnConfig implements AppScene {
             if (selectedCategory != null) {
                 if(!selectedCategory.getName().equalsIgnoreCase("default")){
                     controller.doRemoveCategory(selectedCategory.getName());
-                    datosObservables.setAll(controller.getCategoryList());
+                    datosObservables.setAll(controller.getCategoryList().stream()
+                        .filter(c -> !c.getName().equalsIgnoreCase("default")).toList());
                 }
             } else {
                 Alert alert = new Alert(Alert.AlertType.WARNING);
@@ -240,7 +261,7 @@ public class ScnConfig implements AppScene {
             VBox categoryConfig = new VBox(categoryLabel, listAndButtons);                                           
             VBox.setVgrow(categoryConfig, Priority.ALWAYS);                                                          
             VBox.setVgrow(categoryListView, Priority.ALWAYS);                                                        
-                                                                                                                     
+            categoryConfig.setPadding(new Insets(5));
             return categoryConfig;                                                                                   
         }
         
@@ -252,6 +273,7 @@ public class ScnConfig implements AppScene {
         // ComboBox de Dirección de Lectura
         Label lblDir = new Label("Sentido de Lectura:");
         javafx.scene.control.ComboBox<String> cbDirection = new javafx.scene.control.ComboBox<>();
+        cbDirection.getStyleClass().add("reader-combobox");
         cbDirection.getItems().addAll("LTR (Izquierda a Derecha)", "RTL (Derecha a Izquierda)");
         cbDirection.setValue(AppConfig.get().READING_DIR.equals("LTR") ? "LTR (Izquierda a Derecha)" : "RTL (Derecha a Izquierda)");
         
@@ -265,6 +287,7 @@ public class ScnConfig implements AppScene {
         // ComboBox de Escalado
         Label lblScale = new Label("Modo de Escalado:");
         javafx.scene.control.ComboBox<String> cbScaling = new javafx.scene.control.ComboBox<>();
+        cbScaling.getStyleClass().add("reader-combobox");
         cbScaling.getItems().addAll("Ajustar a lo Alto (FIT_HEIGHT)", "Ajustar a lo Ancho (FIT_WIDTH)");
         cbScaling.setValue(AppConfig.get().SCALING_MODE.equals("FIT_HEIGHT") ? "Ajustar a lo Alto (FIT_HEIGHT)" : "Ajustar a lo Ancho (FIT_WIDTH)");
         

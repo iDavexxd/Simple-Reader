@@ -40,6 +40,7 @@ public class SimpleReader extends Application{
         
     public static void main(String[] args) {
         launch(args);
+        Logger.info("But c programa misterioso se cierra");
         Logger.info("XD");
     }
 }

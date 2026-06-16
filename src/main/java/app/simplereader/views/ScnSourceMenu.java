@@ -42,7 +42,7 @@ public class ScnSourceMenu implements AppScene {
     }
     
     @Override
-    public Scene getScene() {
+    public javafx.scene.Parent getScene() {
         SideMenu leftMenu = new SideMenu();
         
         //botones
@@ -108,9 +108,7 @@ public class ScnSourceMenu implements AppScene {
         root.setLeft(leftMenu.getPane());
         root.setCenter(vboxconto);
         
-        Scene scene = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-        scene.getStylesheets().add(nav.getCss());
-        return scene;
+        return root;
     }
 
     public ListView<MangaSource> getListView(){

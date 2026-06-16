@@ -3,6 +3,8 @@ package app.simplereader.controller;
 import app.simplereader.service.Logger;
 import app.simplereader.model.AppConfig;
 import javafx.stage.Stage;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
 import app.simplereader.repository.AppScene;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,7 @@ public class SceneController {
     private static final int MAX_HISTORY_SIZE = 5;
     
     private final Stage stage;
+    private final Scene scene; // Una única Scene para toda la app
     private String css;
     
     private static SceneController instance;
@@ -40,21 +43,19 @@ public class SceneController {
         } catch (Exception e) {
             Logger.error("No se pudo cargar el archivo css: "+e.getMessage());
         }
+        
+        // Crear la única Scene con un root temporal
+        StackPane initialRoot = new StackPane();
+        this.scene = new Scene(initialRoot, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
+        this.scene.getStylesheets().add(css);
+        stage.setScene(this.scene);
     }
     
     public void goTo(AppScene s){
         ActualSceneName = s.getName();
         
-        double w = stage.getWidth();
-        double h = stage.getHeight();
-        
         stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
-        stage.setScene(s.getScene());
-        
-        if (!Double.isNaN(w) && !Double.isNaN(h) && !stage.isFullScreen() && !stage.isMaximized()) {
-            stage.setWidth(w);
-            stage.setHeight(h);
-        }
+        scene.setRoot(s.getScene()); // Solo cambiamos el root, no la Scene
         
         // --- INICIO DE BÚSQUEDA PROFUNDA EN EL HISTORIAL ---
         int existingIndex = -1;
@@ -96,16 +97,8 @@ public class SceneController {
         AppScene anterior = scnList.get(scnList.size() - 1);
         ActualSceneName = anterior.getName();
         
-        double w = stage.getWidth();
-        double h = stage.getHeight();
-        
         stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
-        stage.setScene(anterior.getScene());
-        
-        if (!Double.isNaN(w) && !Double.isNaN(h) && !stage.isFullScreen() && !stage.isMaximized()) {
-            stage.setWidth(w);
-            stage.setHeight(h);
-        }
+        scene.setRoot(anterior.getScene()); // Solo cambiamos el root
         
         Logger.info("Scene --> " + anterior.getName());
     }
@@ -116,6 +109,10 @@ public class SceneController {
     
     public Stage getStage(){
         return this.stage;
+    }
+    
+    public Scene getScene(){
+        return this.scene;
     }
     
 }
