@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>App.Reader</groupId>
   <artifactId>SimpleReader</artifactId>
-  <version>beta-1.8</version>
+  <version>beta-1.9.1</version>
   <build>
     <plugins>
       <plugin>
@@ -20,6 +20,7 @@
               <classesDirectory>target/classes</classesDirectory>
               <includes>
                 <include>app/simplereader/repository/MangaSource.class</include>
+                <include>app/simplereader/repository/AppExtension.class</include>
                 <include>app/simplereader/model/Manga.class</include>
                 <include>app/simplereader/model/Chapter.class</include>
               </includes>
@@ -99,7 +100,7 @@
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <api.version>1.2</api.version>
+    <api.version>2.0</api.version>
     <exec.mainClass>app.simplereader.Main</exec.mainClass>
   </properties>
 </project>

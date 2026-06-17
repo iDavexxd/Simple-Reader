@@ -39,10 +39,15 @@ public class LocalSource implements MangaSource {
     public String getID() {
         return "local";
     }
-
+    
     @Override
-    public String getName() {
+    public String getName(){
         return "Local";
+    }
+    
+    @Override
+    public String getLang(){
+        return null;
     }
 
     @Override

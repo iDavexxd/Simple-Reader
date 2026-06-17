@@ -34,7 +34,7 @@ public class ScnSourceMenu implements AppScene {
     private final SceneController nav = SceneController.getInstance();
     private SourceMenuController controller;
     
-    private ListView<MangaSource> sourceListView;
+    private ListView<app.simplereader.repository.AppExtension> sourceListView;
     
     public ScnSourceMenu(){
         SourceMenuController.doInstance(this);
@@ -72,10 +72,10 @@ public class ScnSourceMenu implements AppScene {
         //Lista
         sourceListView = new ListView<>();
         sourceListView.getStyleClass().add("source-list");
-        List<MangaSource> sources = controller.getAllSources();
-        sourceListView.setCellFactory(param -> new ListCell<MangaSource>() {
+        List<app.simplereader.repository.AppExtension> extensions = app.simplereader.controller.SourceManager.getInstance().getExtensions();
+        sourceListView.setCellFactory(param -> new ListCell<app.simplereader.repository.AppExtension>() {
             @Override
-            protected void updateItem(MangaSource item, boolean empty) {
+            protected void updateItem(app.simplereader.repository.AppExtension item, boolean empty) {
                 super.updateItem(item, empty);
                 
                 if (empty || item == null) {
@@ -93,8 +93,8 @@ public class ScnSourceMenu implements AppScene {
         });
         
         
-        if (sources != null) {
-            ObservableList<MangaSource> observableSources = FXCollections.observableArrayList(sources);
+        if (extensions != null) {
+            ObservableList<app.simplereader.repository.AppExtension> observableSources = FXCollections.observableArrayList(extensions);
             sourceListView.setItems(observableSources);
         }
         
@@ -111,7 +111,7 @@ public class ScnSourceMenu implements AppScene {
         return root;
     }
 
-    public ListView<MangaSource> getListView(){
+    public ListView<app.simplereader.repository.AppExtension> getListView(){
         return this.sourceListView;
     }
     

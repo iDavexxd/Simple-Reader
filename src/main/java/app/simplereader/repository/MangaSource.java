@@ -12,6 +12,8 @@ public interface MangaSource {
     
     String getID();
     String getName();
+    String getLang();
+    
     String getCoverURL(String MangaID);
     List<Manga> searchManga(String query);
     List<Chapter> getChapters(String mangaID);

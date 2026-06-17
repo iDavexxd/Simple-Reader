@@ -268,10 +268,10 @@ public class ScnMainMenu implements AppScene{
     }
     
     public void doCreateSourceButtons(){
-        for(MangaSource source : SourceManager.getInstance().getAllSources()){
-            Button btnSource = new Button(source.getName());
+        for(app.simplereader.repository.AppExtension extension : SourceManager.getInstance().getExtensions()){
+            Button btnSource = new Button(extension.getName());
             btnSource.setOnAction(e -> {
-                nav.goTo(new ScnSourceSearch(source));
+                nav.goTo(new ScnSourceSearch(extension));
                 doHideSourceMenu();
             });
             btnSource.setMaxSize(Double.MAX_VALUE, 30);

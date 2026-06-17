@@ -36,8 +36,8 @@ public class SourceMenuController {
         return instance;
     }
     
-    public List<MangaSource> getAllSources(){
-        return manager.getAllSources();
+    public List<app.simplereader.repository.AppExtension> getExtensions(){
+        return manager.getExtensions();
     }
     
     public void importPlugin(Window ownerWindow) {
@@ -79,9 +79,9 @@ public class SourceMenuController {
     
     public void refreshList() {
         if (scene.getListView() != null) {
-            List<MangaSource> sources = getAllSources();
-            if (sources != null) {
-                ObservableList<MangaSource> observableSources = FXCollections.observableArrayList(sources);
+            List<app.simplereader.repository.AppExtension> extensions = getExtensions();
+            if (extensions != null) {
+                ObservableList<app.simplereader.repository.AppExtension> observableSources = FXCollections.observableArrayList(extensions);
                 scene.getListView().setItems(observableSources);
             }
         }

@@ -36,14 +36,18 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.shape.SVGPath;
 public class ScnSourceSearch implements AppScene {
     private final SceneController nav = SceneController.getInstance();
-    private final MangaSource source;
+    private final app.simplereader.repository.AppExtension extension;
+    private MangaSource currentSource;
     
     private TextField searchField;
     private ListView<Manga> resultsList;
 
     private final ObservableList<Manga> results = FXCollections.observableArrayList();
-    public ScnSourceSearch(MangaSource source) {
-        this.source = source;
+    public ScnSourceSearch(app.simplereader.repository.AppExtension extension) {
+        this.extension = extension;
+        if (extension.getSources() != null && !extension.getSources().isEmpty()) {
+            this.currentSource = extension.getSources().get(0);
+        }
     }
     @Override
     public javafx.scene.Parent getScene() {
@@ -53,7 +57,7 @@ public class ScnSourceSearch implements AppScene {
         lateralmenu.addTop(btnBack);
         btnBack.setOnAction(e-> nav.backScene());
         searchField = new TextField();
-        searchField.setPromptText("Buscar en " + source.getName() + "...");
+        searchField.setPromptText("Buscar en " + extension.getName() + "...");
         searchField.setMaxSize(800, 30);
         searchField.setMinSize(800, 30);
         searchField.getStyleClass().add("search-bar");
@@ -74,11 +78,30 @@ public class ScnSourceSearch implements AppScene {
         btnSearch.setMinSize(30, 30);
         btnSearch.setMaxSize(30, 30);
 
-        HBox searchBar = new HBox(5, searchField, btnSearch);
+        javafx.scene.control.ComboBox<String> cbLang = new javafx.scene.control.ComboBox<>();
+        if (extension.getSources() != null) {
+            for (MangaSource s : extension.getSources()) {
+                String lang = s.getLang();
+                cbLang.getItems().add(lang == null || lang.isEmpty() ? "ALL" : lang.toUpperCase());
+            }
+            if (!cbLang.getItems().isEmpty()) {
+                cbLang.getSelectionModel().selectFirst();
+            }
+        }
+        cbLang.getStyleClass().add("search-lang-combo");
+        cbLang.setOnAction(e -> {
+            int index = cbLang.getSelectionModel().getSelectedIndex();
+            if (index >= 0 && index < extension.getSources().size()) {
+                currentSource = extension.getSources().get(index);
+                if (!searchField.getText().isBlank()) doSearch();
+            }
+        });
+
+        HBox searchBar = new HBox(5, searchField, btnSearch, cbLang);
         searchBar.setPadding(new Insets(10));
         searchBar.setAlignment(Pos.CENTER);
         
-        Label title = new Label(source.getName());
+        Label title = new Label(extension.getName());
         title.getStyleClass().add("search-title");
         title.setAlignment(Pos.CENTER);
         title.setMaxWidth(Double.MAX_VALUE);
@@ -193,7 +216,7 @@ public class ScnSourceSearch implements AppScene {
                     mangaToRead = selected;
                 }
                 // 3. Cargar capítulos frescos desde el Source
-                List<Chapter> newChapters = source.getChapters(mangaToRead.getMangaID());
+                List<Chapter> newChapters = currentSource.getChapters(mangaToRead.getMangaID());
                 
                 // 4. CRUCIAL: Fusionar el progreso de lectura (leído/página) a los nuevos capítulos
                 if (mangaToRead.getChapters() != null) {
@@ -258,13 +281,22 @@ public class ScnSourceSearch implements AppScene {
         if (query.isBlank()) return;
         
         results.clear(); // Limpiar anteriores
-        // Buscar y añadir a la lista observable
-        List<Manga> found = SourceManager.getInstance().searchManga(source, query);
-        results.addAll(found);
+        searchField.setDisable(true);
+        
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            List<Manga> found = SourceManager.getInstance().searchManga(currentSource, query);
+            
+            javafx.application.Platform.runLater(() -> {
+                if (found != null) {
+                    results.addAll(found);
+                }
+                searchField.setDisable(false);
+            });
+        });
     }
     
     @Override
-    public String getName() { return "Search - " + source.getName(); }
+    public String getName() { return "Search - " + extension.getName(); }
     @Override
     public String getParentName() { return "Source"; }
     

@@ -3,6 +3,7 @@ package app.simplereader.controller;
 import app.simplereader.service.Logger;
 import app.simplereader.model.Category;
 import app.simplereader.model.Manga;
+import app.simplereader.repository.AppExtension;
 import app.simplereader.repository.AppScene;
 import app.simplereader.repository.MangaSource;
 import app.simplereader.views.components.MangaTile;
@@ -49,8 +50,8 @@ public class MainMenuController {
         nav.backScene();
     }
     
-    public void doGoToSource(MangaSource src){
-        nav.goTo(new ScnSourceSearch(src));
+    public void doGoToSource(AppExtension extension){
+        nav.goTo(new ScnSourceSearch(extension));
     }
     
     

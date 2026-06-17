@@ -5,6 +5,7 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.LocalSource;
 import app.simplereader.model.Manga;
+import app.simplereader.repository.AppExtension;
 import app.simplereader.repository.MangaSource;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -30,12 +31,12 @@ public class SourceManager {
     
     private static SourceManager instance;
 
-    private List<MangaSource> sources = new ArrayList<>();
+    private final List<MangaSource> sources = new ArrayList<>();
+    private final List<AppExtension> extensions = new ArrayList<>();
     
-    // --- NUEVO: Lista para rastrear y poder cerrar los ClassLoaders ---
-    private List<URLClassLoader> activeClassLoaders = new ArrayList<>();
+    private final List<URLClassLoader> activeClassLoaders = new ArrayList<>();
     
-    private Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String DATA_FOLDER = AppConfig.DATA_FOLDER;
     
     private SourceManager() {}
@@ -49,6 +50,7 @@ public class SourceManager {
     
     public void reloadSources(){
         sources.clear();
+        extensions.clear();
         
         // --- NUEVO: Cerrar los ClassLoaders viejos antes de cargar los nuevos ---
         for (URLClassLoader loader : activeClassLoaders) {
@@ -60,7 +62,12 @@ public class SourceManager {
         }
         activeClassLoaders.clear();
         
-        registerSource(new LocalSource());
+        app.simplereader.model.LocalExtension localExt = new app.simplereader.model.LocalExtension();
+        extensions.add(localExt);
+        for(MangaSource s : localExt.getSources()){
+            registerSource(s);
+        }
+        
         loadSources();
     }
     
@@ -93,11 +100,14 @@ public class SourceManager {
                 // --- NUEVO: Registrar el ClassLoader para cerrarlo después ---
                 activeClassLoaders.add(child);
                 
-                ServiceLoader<MangaSource> loader = ServiceLoader.load(MangaSource.class, child);
+                ServiceLoader<AppExtension> loader = ServiceLoader.load(AppExtension.class, child);
                 
-                for (MangaSource source : loader) {
-                    registerSource(source);
-                    Logger.info("Loaded plugin:  " + source.getName());
+                for (AppExtension extension : loader) {
+                    extensions.add(extension);
+                    for(MangaSource source : extension.getSources()){
+                        registerSource(source);
+                    }
+                    Logger.info("Loaded plugin:  " + extension.getName());
                 }                
             } catch (Exception e){
                 Logger.error("Error loading plugin " + jar.getName() + ": " + e.getMessage());
@@ -120,6 +130,10 @@ public class SourceManager {
     
     public List<MangaSource> getAllSources() {
         return sources;
+    }
+    
+    public List<AppExtension> getExtensions() {
+        return extensions;
     }
     
     public List<Manga> searchManga(MangaSource source, String query) {
