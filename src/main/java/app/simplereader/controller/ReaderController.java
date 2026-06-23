@@ -47,15 +47,9 @@ public class ReaderController {
     private boolean inZoom = false;
     private boolean updatingUI = false;
     private boolean programmaticNav = false;
+    private boolean startAtLastPage = false;
     
-    private final java.util.Map<Integer, Image> cache = java.util.Collections.synchronizedMap(
-        new java.util.LinkedHashMap<Integer, Image>(5, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(java.util.Map.Entry<Integer, Image> eldest) {
-                return size() > 5;
-            }
-        }
-    );
+    // Se eliminó el LinkedHashMap local, ahora usamos la clase compartida app.simplereader.service.Cache
     
     private final Set<Integer> loadingPages = ConcurrentHashMap.newKeySet();
     private final ExecutorService preloader = Executors.newFixedThreadPool(2, r -> {
@@ -96,13 +90,19 @@ public class ReaderController {
     public void loadChapter(Chapter chapter, int index){
         disposed = false; // Reset the disposed flag so it can be reused
         
-        cache.clear();
+        // cache.clear(); ya no es necesario, el caché compartido se encarga
         loadingPages.clear();
         view.setImageViewImage(null); 
         
         this.chapter = chapter;
         this.chapterIndex = index;
-        this.currentPageIndex = chapter.isReaded() ? 0 : chapter.getLastRead();
+        
+        if (startAtLastPage) {
+            this.currentPageIndex = Math.max(0, chapter.getPageCount() - 1);
+            startAtLastPage = false;
+        } else {
+            this.currentPageIndex = chapter.isReaded() ? 0 : chapter.getLastRead();
+        }
         
         view.setChapter(chapter);
         nav.getStage().setTitle(view.getName());
@@ -129,7 +129,11 @@ public class ReaderController {
         }
         
         if (totalPages() > 0) {
+            if (paginaComboBox != null) paginaComboBox.setDisable(totalPages() <= 1);
             loadCurrentImage();
+        } else {
+            if (paginaComboBox != null) paginaComboBox.setDisable(true);
+            view.showNoPagesOverlay();
         }
         
         view.doUpdatePageLabel();
@@ -149,47 +153,7 @@ public class ReaderController {
     }
     
     public void changeToChapter(Chapter next, int nextIndex) {
-        if (next.hasPages()) {
-            programmaticNav = true;
-            loadChapter(next, nextIndex);
-            if (chapterComboBox != null) {
-                chapterComboBox.setValue(next);
-            }
-            programmaticNav = false;
-            return;
-        }
-        
-        MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-        if (src == null) return;
-        
-        preloader.submit(() -> {
-            if (disposed) return;
-            try {
-                List<String> pages = src.getPages(manga.getMangaID(), next.getChapterID());
-                next.setPages(pages);
-                if (disposed) return;
-                
-                if (next.hasPages()) {
-                    Platform.runLater(() -> {
-                        if (disposed) return;
-                        programmaticNav = true;
-                        loadChapter(next, nextIndex);
-                        if (chapterComboBox != null) {
-                            chapterComboBox.setValue(next);
-                        }
-                        programmaticNav = false;
-                    });
-                } else {
-                    Platform.runLater(() -> {
-                        if (!disposed) Logger.noPagesAlert(next.getTitle());
-                    });
-                }
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    if (!disposed) Logger.error("Error cargando capítulo: " + e.getMessage());
-                });
-            }
-        });
+        app.simplereader.controller.MangaMenuController.getInstance().openChapter(next);
     }
     
     public void previousPage() {
@@ -206,7 +170,6 @@ public class ReaderController {
         
         if (index == totalPages() - 1){
             chapter.markAsReaded();
-            lib.saveLibrary();
         }
         
         currentPageIndex = index;
@@ -233,54 +196,10 @@ public class ReaderController {
             Chapter next = chapters.get(nextIndex);
             chapter.markAsReaded();
             
-            if (next.hasPages()) {
-                programmaticNav = true;
-                loadChapter(next, nextIndex);
-                if (chapterComboBox != null) {
-                    chapterComboBox.setValue(next);
-                }
-                programmaticNav = false;
-                return;
-            }
-            
-            MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-            if (src == null) return;
-            
-            preloader.submit(() -> {
-                if (disposed) return; // Validación temprana
-                
-                try {
-                    List<String> pages = src.getPages(manga.getMangaID(), next.getChapterID());
-                    next.setPages(pages);
-                    
-                    if (disposed) return; // Validación después de red
-                    
-                    if (next.hasPages()) {
-                        Platform.runLater(() -> {
-                            if (disposed) return; // Evitar actualizar UI si ya se cerró
-                            
-                            programmaticNav = true;
-                            loadChapter(next, nextIndex);
-                            if (chapterComboBox != null) {
-                                chapterComboBox.setValue(next);
-                            }
-                            programmaticNav = false;
-                        });
-                    } else {
-                        Platform.runLater(() -> {
-                            if (!disposed) Logger.noPagesAlert(next.getTitle());
-                        });
-                    }
-                } catch (Exception e) {
-                    Platform.runLater(() -> {
-                        if (!disposed) Logger.error("Error cargando capítulo: " + e.getMessage());
-                    });
-                }
-            });
+            app.simplereader.controller.MangaMenuController.getInstance().openChapter(next);
         }
     }
-    
-    public void previousChapter() {
+     public void previousChapter() {
         List<Chapter> chapters = manga.getChapters();
         if (chapters == null) return;
         
@@ -288,57 +207,20 @@ public class ReaderController {
             int prevIndex = chapterIndex - 1;
             Chapter prev = chapters.get(prevIndex);
             
-            if (prev.hasPages()) {
-                programmaticNav = true;
-                loadChapter(prev, prevIndex);
-                if (chapterComboBox != null) {
-                    chapterComboBox.setValue(prev);
-                }
-                goToPage(prev.getPageCount() - 1);
-                programmaticNav = false;
-                return;
-            }
-            
-            MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-            if (src == null) return;
-            
-            preloader.submit(() -> {
-                if (disposed) return; // Validación
-                
-                try {
-                    List<String> pages = src.getPages(manga.getMangaID(), prev.getChapterID());
-                    prev.setPages(pages);
-                    
-                    if (disposed) return; 
-                    
-                    if (prev.hasPages()) {
-                        Platform.runLater(() -> {
-                            if (disposed) return;
-                            
-                            programmaticNav = true;
-                            loadChapter(prev, prevIndex);
-                            if (chapterComboBox != null) {
-                                chapterComboBox.setValue(prev);
-                            }
-                            goToPage(prev.getPageCount() - 1);
-                            programmaticNav = false;
-                        });
-                    } else {
-                        Platform.runLater(() -> {
-                            if (!disposed) Logger.noPagesAlert(prev.getTitle());
-                        });
-                    }
-                } catch (Exception e) {
-                    Platform.runLater(() -> {
-                        if (!disposed) Logger.error("Error cargando capítulo anterior: " + e.getMessage());
-                    });
-                }
-            });
-        }  
+            startAtLastPage = true;
+            app.simplereader.controller.MangaMenuController.getInstance().openChapter(prev);
+        }
+    }
+    
+    public void reloadCurrentImage() {
+        app.simplereader.service.Cache.getInstance().getPagesLRU().remove(chapter.getPage(currentPageIndex));
+        loadingPages.remove(currentPageIndex);
+        view.setImageViewImage(null);
+        loadCurrentImage();
     }
     
     public void loadCurrentImage() {
-        Image cached = cache.get(currentPageIndex);
+        Image cached = app.simplereader.service.Cache.getInstance().getPagesLRU().get(chapter.getPage(currentPageIndex));
         if (cached != null) {
             view.setImageViewImage(cached);
             view.fitImageToScreen();
@@ -367,7 +249,7 @@ public class ReaderController {
                 
                 loadingPages.remove(index);
                 if (img != null && !img.isError()) {
-                    cache.put(index, img);
+                    app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
                     if (index == currentPageIndex) {
                         view.setImageViewImage(img);
                         view.fitImageToScreen();
@@ -376,66 +258,97 @@ public class ReaderController {
                     Logger.info("Page " + index + " loaded (async).");
                 } else {
                     Logger.error("Error cargando página " + index);
+                    if (index == currentPageIndex) {
+                        view.showErrorOverlay();
+                    }
                 }
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
                 loadingPages.remove(index);
-                if (!disposed) Logger.error("Error cargando página " + index + ": " + e.getMessage());
+                if (!disposed) {
+                    Logger.error("Error cargando página " + index + ": " + e.getMessage());
+                    if (index == currentPageIndex) {
+                        view.showErrorOverlay();
+                    }
+                }
             });
             return null;
         });
     }
     
     private Image loadWebpOrNative(String url, boolean background) {
-        if (url.toLowerCase().contains(".webp")) {
+        if (url.startsWith("http")) {
             try {
-                BufferedImage bimg;
-                if (url.startsWith("http")) {
-                    HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                    conn.setConnectTimeout(5000); // 5 segundos de límite para conectar
-                    conn.setReadTimeout(10000);   // 10 segundos de límite para descargar
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                    try (InputStream in = conn.getInputStream()) {
-                        bimg = ImageIO.read(in);
-                    }
-                } else {
-                    bimg = ImageIO.read(new File(url));
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(5000); // 5 segundos de límite
+                conn.setReadTimeout(10000);   // 10 segundos de límite
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                
+                // Si la conexión manual arroja código de error, lanzamos excepción para ir al fallback
+                if (conn.getResponseCode() >= 400) {
+                    throw new java.io.IOException("HTTP " + conn.getResponseCode());
                 }
                 
-                if (bimg != null) {
-                    return SwingFXUtils.toFXImage(bimg, null);
+                try (InputStream in = conn.getInputStream()) {
+                    if (url.toLowerCase().contains(".webp")) {
+                        BufferedImage bimg = ImageIO.read(in);
+                        if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
+                    } else {
+                        return new Image(in);
+                    }
                 }
             } catch (Exception e) {
-                Logger.error("Error decodificando webp: " + e.getMessage());
+                
+                return new Image(url, background);
+            }
+            return null;
+        } else {
+            if (url.toLowerCase().contains(".webp")) {
+                try {
+                    // Si la URL empieza con file:, la leemos como URL, sino como File directo
+                    BufferedImage bimg;
+                    if (url.startsWith("file:")) {
+                        bimg = ImageIO.read(new java.net.URL(url));
+                    } else {
+                        bimg = ImageIO.read(new File(url));
+                    }
+                    
+                    if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
+                } catch (Exception e) {
+                    Logger.error("Error decodificando webp local (" + e.getClass().getSimpleName() + "). Usando fallback nativo.");
+                }
+                // Si falla o no se pudo cargar con ImageIO, hacemos el fallback a JavaFX
+                return new Image(url, background);
+            } else {
+                return new Image(url, background);
             }
         }
-        return new Image(url, background);
     }
     
     public Image getPage(int index) {
-        return cache.computeIfAbsent(index, k -> {
-            String url = chapter.getPage(k);
-            return loadWebpOrNative(url, true);
-        });
+        String url = chapter.getPage(index);
+        return app.simplereader.service.Cache.getInstance().getPagesLRU().computeIfAbsent(url, k -> loadWebpOrNative(k, true));
     }
     
     public void preloadPage(int index) {
         if (index < 0 || index >= totalPages()) return;
-        if (cache.get(index) != null) return;
+        if (app.simplereader.service.Cache.getInstance().getPagesLRU().get(chapter.getPage(index)) != null) return;
         if (!loadingPages.add(index)) return;
         
         Chapter currentTaskChapter = this.chapter;
         
         CompletableFuture.supplyAsync(() -> {
             if (disposed || this.chapter != currentTaskChapter) return null;
+            if (Math.abs(index - currentPageIndex) > 3) return null; // Cancela precargas si saltaste la página muy rápido
+            
             String url = currentTaskChapter.getPage(index);
             return loadWebpOrNative(url, false);
         }, preloader).thenAccept(img -> {
             if (disposed || this.chapter != currentTaskChapter) return;
             
             if (img != null && !img.isError()) {
-                cache.put(index, img);
+                app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
                 Logger.info("Preloaded page: " + index);
             }
             loadingPages.remove(index);
@@ -488,7 +401,6 @@ public class ReaderController {
     }
     
     public void showMenu() {
-        if (inZoom) return;
         menuVisible = true;
         if (view != null) view.setMenuVisible(true);
     }
@@ -502,18 +414,15 @@ public class ReaderController {
     }
     
     public void cleanupResources() {
-        disposed = true; // 3. Se levanta la bandera para detener peticiones
-        
-        cache.clear();
+        disposed = true; 
         loadingPages.clear();
-        
-        // Al ser Singleton, ya no destruimos el preloader ni los lazos con la UI
+        lib.saveLibrary();
     }
     
     public void saveAndCleanup() {
         disposed = true;
         
-        cache.clear();
+        // cache.clear(); Ya no es necesario con caché global
         loadingPages.clear();
         
         lib.saveLibrary();

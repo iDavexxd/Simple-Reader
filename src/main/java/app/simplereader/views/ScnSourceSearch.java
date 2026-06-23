@@ -42,12 +42,49 @@ public class ScnSourceSearch implements AppScene {
     private TextField searchField;
     private ListView<Manga> resultsList;
 
+    private BorderPane loadingPane;
+    private boolean loadingPane_visible = false;
+    private Image loadingGif;
+
     private final ObservableList<Manga> results = FXCollections.observableArrayList();
     public ScnSourceSearch(app.simplereader.repository.AppExtension extension) {
         this.extension = extension;
         if (extension.getSources() != null && !extension.getSources().isEmpty()) {
             this.currentSource = extension.getSources().get(0);
         }
+        try {
+            loadingGif = new Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+        } catch (Exception e) {
+            Logger.error("No se pudo cargar el gif de carga: " + e.getMessage());
+        }
+    }
+    
+    public void doConfigLoadingPane(){
+        ImageView gifView = new ImageView(loadingGif);
+        gifView.setFitWidth(150);
+        gifView.setFitHeight(150);
+        gifView.setPreserveRatio(true);
+        
+        Label loadingLabel = new Label("Cargando...");
+        loadingLabel.getStyleClass().add("reader-loading-label");
+        
+        VBox loadingOverlay = new VBox(15, gifView, loadingLabel);
+        loadingOverlay.setAlignment(Pos.CENTER);
+        
+        loadingPane = new BorderPane();
+        loadingPane.setCenter(loadingOverlay);
+        loadingPane.getStyleClass().add("menu-background");
+        loadingPane.setVisible(loadingPane_visible);
+    }
+
+    private void doShowLoadingPane(){
+        loadingPane_visible = true;
+        if(loadingPane != null) loadingPane.setVisible(loadingPane_visible);
+    }
+
+    private void doHideLoadingPane(){
+        loadingPane_visible = false;
+        if(loadingPane != null) loadingPane.setVisible(loadingPane_visible);
     }
     @Override
     public javafx.scene.Parent getScene() {
@@ -88,7 +125,7 @@ public class ScnSourceSearch implements AppScene {
                 cbLang.getSelectionModel().selectFirst();
             }
         }
-        cbLang.getStyleClass().add("search-lang-combo");
+        cbLang.getStyleClass().add("reader-combobox");
         cbLang.setOnAction(e -> {
             int index = cbLang.getSelectionModel().getSelectedIndex();
             if (index >= 0 && index < extension.getSources().size()) {
@@ -215,38 +252,47 @@ public class ScnSourceSearch implements AppScene {
                 if (mangaToRead == null) {
                     mangaToRead = selected;
                 }
-                // 3. Cargar capítulos frescos desde el Source
-                List<Chapter> newChapters = currentSource.getChapters(mangaToRead.getMangaID());
                 
-                // 4. CRUCIAL: Fusionar el progreso de lectura (leído/página) a los nuevos capítulos
-                if (mangaToRead.getChapters() != null) {
-                    Map<String, Chapter> oldChaptersMap = new HashMap<>();
-                    for (Chapter oldCh : mangaToRead.getChapters()) {
-                        oldChaptersMap.put(oldCh.getChapterID(), oldCh);
+                final Manga mangaToLoad = mangaToRead;
+                doShowLoadingPane();
+                
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    // 3. Cargar capítulos frescos desde el Source
+                    List<Chapter> newChapters = currentSource.getChapters(mangaToLoad.getMangaID());
+                    
+                    // 4. CRUCIAL: Fusionar el progreso de lectura (leído/página) a los nuevos capítulos
+                    if (mangaToLoad.getChapters() != null) {
+                        Map<String, Chapter> oldChaptersMap = new HashMap<>();
+                        for (Chapter oldCh : mangaToLoad.getChapters()) {
+                            oldChaptersMap.put(oldCh.getChapterID(), oldCh);
+                        }
+                        
+                        for (Chapter newCh : newChapters) {
+                            Chapter oldCh = oldChaptersMap.get(newCh.getChapterID());
+                            if (oldCh != null) {
+                                if (oldCh.isReaded()) newCh.markAsReaded();
+                                newCh.setLastRead(oldCh.getLastRead());
+                            }
+                            newCh.setManga(mangaToLoad); // Enlazar al padre
+                        }
+                    } else {
+                        for (Chapter ch : newChapters) {
+                            ch.setManga(mangaToLoad);
+                        }
                     }
                     
-                    for (Chapter newCh : newChapters) {
-                        Chapter oldCh = oldChaptersMap.get(newCh.getChapterID());
-                        if (oldCh != null) {
-                            if (oldCh.isReaded()) newCh.markAsReaded();
-                            newCh.setLastRead(oldCh.getLastRead());
-                        }
-                        newCh.setManga(mangaToRead); // Enlazar al padre
-                    }
-                } else {
-                    for (Chapter ch : newChapters) {
-                        ch.setManga(mangaToRead);
-                    }
-                }
-                
-                // 5. Asignar la lista fusionada y cargar metadatos
-                mangaToRead.setChapters(newChapters);
-                SourceManager.getInstance().fetchMangaData(mangaToRead);
-                
-                // 6. Navegar con la instancia correcta
-                ScnMangaMenu menu = ScnMangaMenu.getInstance();
-                menu.updateManga(mangaToRead);
-                nav.goTo(menu);
+                    // 5. Asignar la lista fusionada y cargar metadatos
+                    mangaToLoad.setChapters(newChapters);
+                    SourceManager.getInstance().fetchMangaData(mangaToLoad);
+                    
+                    // 6. Navegar con la instancia correcta
+                    javafx.application.Platform.runLater(() -> {
+                        doHideLoadingPane();
+                        ScnMangaMenu menu = ScnMangaMenu.getInstance();
+                        menu.updateManga(mangaToLoad);
+                        nav.goTo(menu);
+                    });
+                });
             }
         });
         VBox.setVgrow(resultsList, javafx.scene.layout.Priority.ALWAYS);
@@ -268,25 +314,33 @@ public class ScnSourceSearch implements AppScene {
         
         root.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                if(loadingPane_visible) return;
                 nav.backScene();
                 e.consume();
             }
         });
         
-        return root;
+        doConfigLoadingPane();
+        StackPane rootStack = new StackPane(root, loadingPane);
+        if(loadingPane_visible) loadingPane.setVisible(true);
+        else loadingPane.setVisible(false);
+        
+        return rootStack;
     }
     
     private void doSearch() {
         String query = searchField.getText();
         if (query.isBlank()) return;
         
-        results.clear(); // Limpiar anteriores
+        results.clear();
         searchField.setDisable(true);
+        doShowLoadingPane();
         
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             List<Manga> found = SourceManager.getInstance().searchManga(currentSource, query);
             
             javafx.application.Platform.runLater(() -> {
+                doHideLoadingPane();
                 if (found != null) {
                     results.addAll(found);
                 }

@@ -92,8 +92,13 @@ public class MangaMenuController {
     }
     
     public void openChapter(Chapter chapter){
+        app.simplereader.views.ScnLoading.getInstance().setAborted(false);
+        Platform.runLater(() -> nav.goTo(app.simplereader.views.ScnLoading.getInstance()));
+        
         if (chapter.hasPages()) {
-            navigateToReader(chapter);
+            Platform.runLater(() -> {
+                if (!app.simplereader.views.ScnLoading.getInstance().isAborted()) navigateToReader(chapter);
+            });
             return;
         }
         Logger.info("Cargando páginas para: " + chapter.getTitle());
@@ -111,7 +116,9 @@ public class MangaMenuController {
                 }
                 
                 chapter.setPages(localPages);
-                navigateToReader(chapter);
+                Platform.runLater(() -> {
+                    if (!app.simplereader.views.ScnLoading.getInstance().isAborted()) navigateToReader(chapter);
+                });
                 return; 
             }
         }
@@ -125,18 +132,17 @@ public class MangaMenuController {
                     if (disposed) return; 
                     
                     chapter.setPages(pages);
-                    if (chapter.hasPages()) {
-                        Platform.runLater(() -> {
-                            if (!disposed) navigateToReader(chapter);
-                        });
-                    } else {
-                        Platform.runLater(() -> {
-                            if (!disposed) Logger.noPagesAlert(chapter.getTitle());
-                        });
-                    }
+                    Platform.runLater(() -> {
+                        if (!disposed && !app.simplereader.views.ScnLoading.getInstance().isAborted()) {
+                            navigateToReader(chapter);
+                        }
+                    });
                 } catch (Exception e){
                     Platform.runLater(() -> {
-                        if (!disposed) Logger.error("Error loading chapter: "+chapter.getChapterID());
+                        if (!disposed) {
+                            Logger.error("Error loading chapter("+e.getClass().getSimpleName()+")"+chapter.getChapterID());
+                            nav.backScene();
+                        }
                     });
                 }
             });
@@ -216,7 +222,7 @@ public class MangaMenuController {
                             }
                             manga.setCoverURL("file://" + new File(localCoverPath).getAbsolutePath());
                         } catch (Exception e) {
-                            Logger.info("Could not download new cover, keeping the old one");
+                            Logger.info("Could not download new cover, keeping the old one ("+e.getClass().getSimpleName()+")");
                         }
                     }
                 }
@@ -277,7 +283,7 @@ public class MangaMenuController {
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    if (!disposed) Logger.error("Error reloading manga: " + e.getMessage());
+                    if (!disposed) Logger.error("Error reloading manga("+e.getClass().getSimpleName()+"): " + e.getMessage());
                 });
             }
         });

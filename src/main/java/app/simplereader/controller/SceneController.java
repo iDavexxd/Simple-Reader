@@ -48,6 +48,15 @@ public class SceneController {
         StackPane initialRoot = new StackPane();
         this.scene = new Scene(initialRoot, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         this.scene.getStylesheets().add(css);
+        
+        stage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+        this.scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.F11) {
+                stage.setFullScreen(!stage.isFullScreen());
+                e.consume();
+            }
+        });
+        
         stage.setScene(this.scene);
     }
     
@@ -70,10 +79,12 @@ public class SceneController {
             scnList.subList(existingIndex, scnList.size()).clear();
         }
         
-        scnList.add(s);
-        
-        if (scnList.size() > MAX_HISTORY_SIZE) {
-            scnList.remove(0); 
+        if (!s.getName().equals("Loading")) {
+            scnList.add(s);
+            
+            if (scnList.size() > MAX_HISTORY_SIZE) {
+                scnList.remove(0); 
+            }
         }
         // --- FIN DE BÚSQUEDA PROFUNDA ---
         

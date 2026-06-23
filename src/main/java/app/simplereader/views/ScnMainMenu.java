@@ -33,6 +33,8 @@ import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.ScrollBar;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 
 /**
@@ -137,20 +139,7 @@ public class ScnMainMenu implements AppScene{
         categoryTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         categoryTabPane.getStyleClass().add("category-tabpane");
         
-        categoryTabPane.widthProperty().addListener((obs, oldVal, newVal) -> {
-            int totalTabs = categoryTabPane.getTabs().size();
-            if (totalTabs > 0) {
-                // Asumimos un margen/padding global pequeño del área de pestañas (ej. 5 a 10 píxeles en total)
-                double totalPadding = 10; 
-
-                // Restamos el padding global al ancho total, y LUEGO dividimos equitativamente
-                double tabWidth = (newVal.doubleValue() - totalPadding) / totalTabs;
-
-                // JavaFX añade bordes internos a los tabs, restamos un valor mínimo (ej. 1 o 2 px) para evitar overflow
-                categoryTabPane.setTabMinWidth(tabWidth - 2);
-                categoryTabPane.setTabMaxWidth(tabWidth - 2);
-            }
-        });
+        categoryTabPane.setTabMinWidth(250);
         doCreateCategoryTabs();
 
         // Menu lateral
@@ -174,19 +163,24 @@ public class ScnMainMenu implements AppScene{
             doShowSourceMenu();
         });
         
-//        Scene rootCache = new Scene(root, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
-//        rootCache.getStylesheets().add(nav.getCss());
-//        rootCache.setOnKeyPressed( e -> {
-//            KeyCode key = e.getCode();
-//            switch (key){
-//                // case DIGIT1 -> controller.showCategory("Default"); // <- Puedes borrar esto también en tu MainMenuController si ya no usas atajos para cambiar de categoría
-//                case F5 -> {
-//                    Logger.info("F5");
-//                    controller.reloadMangas();
-//                }
-//                case F12 -> importFolder();
-//            }
-//        });
+        root.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            KeyCode key = e.getCode();
+            switch (key) {
+                case F5 -> {
+                    if (sourceMenuVisible) {
+                        Logger.info("- Reloading sources.");
+                        SourceManager.getInstance().reloadSources();
+                        sourceButtons.getChildren().clear();
+                        doCreateSourceButtons();
+                    } else {
+                        Logger.info("- Starting mangas reload.");
+                        controller.reloadMangas();
+                    }
+                    e.consume();
+                }
+                
+            }
+        });
         
         return root;
     }
@@ -212,12 +206,40 @@ public class ScnMainMenu implements AppScene{
                 tabScroll.setFitToHeight(true); 
 
                 tabScroll.widthProperty().addListener((obs, oldVal, newVal) -> {
+                    // Do nothing, rely on viewport bounds
+                });
+
+                // Lazy loading: cargar covers solo cuando son visibles
+                tabScroll.vvalueProperty().addListener((obs, oldVal, newVal) -> {
                     if (activePane == finalPane) {
-                        controller.resizeTiles(newVal.doubleValue());
+                        controller.updateVisibleTiles();
                     }
                 });
 
-                tab.setContent(tabScroll);
+                tabScroll.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> {
+                    if (activePane == finalPane) {
+                        if (newVal.getWidth() > 0) {
+                            controller.resizeTiles(newVal.getWidth());
+                        }
+                        controller.updateVisibleTiles();
+                    }
+                });
+
+                ScrollBar vBar = new ScrollBar();
+                vBar.setOrientation(javafx.geometry.Orientation.VERTICAL);
+                vBar.getStyleClass().add("main-menu-scrollbar");
+                vBar.minProperty().bind(tabScroll.vminProperty());
+                vBar.maxProperty().bind(tabScroll.vmaxProperty());
+                vBar.visibleAmountProperty().bind(
+                    tabScroll.heightProperty().divide(finalPane.heightProperty()).multiply(tabScroll.vmaxProperty())
+                );
+                vBar.valueProperty().bindBidirectional(tabScroll.vvalueProperty());
+                vBar.visibleProperty().bind(finalPane.heightProperty().greaterThan(tabScroll.heightProperty()));
+                
+                StackPane tabContent = new StackPane(tabScroll, vBar);
+                StackPane.setAlignment(vBar, Pos.CENTER_RIGHT);
+
+                tab.setContent(tabContent);
                 if (cat.getName().equals("Default")) {
                     categoryTabPane.getTabs().add(0, tab);
                 } else {
@@ -232,8 +254,12 @@ public class ScnMainMenu implements AppScene{
                 String tabName = newTab.getText();
                 activePane = getCategoriesPanes().get(tabName);
                 currentCategory = tabName;
-                ScrollPane activeScroll = (ScrollPane) newTab.getContent();
-                controller.resizeTiles(activeScroll.getWidth());
+                StackPane tabContent = (StackPane) newTab.getContent();
+                ScrollPane activeScroll = (ScrollPane) tabContent.getChildren().get(0);
+                if (activeScroll.getViewportBounds().getWidth() > 0) {
+                    controller.resizeTiles(activeScroll.getViewportBounds().getWidth());
+                }
+                controller.setActiveScroll(activeScroll);
                 controller.showCategory(tabName);
             }
         });
@@ -256,10 +282,12 @@ public class ScnMainMenu implements AppScene{
 
             final Tab finalTarget = targetTab;
             javafx.application.Platform.runLater(() -> {
-                ScrollPane activeScroll = (ScrollPane) finalTarget.getContent();
-                if (activeScroll != null && activeScroll.getWidth() > 0) {
-                    controller.resizeTiles(activeScroll.getWidth());
+                StackPane tabContent = (StackPane) finalTarget.getContent();
+                ScrollPane activeScroll = (ScrollPane) tabContent.getChildren().get(0);
+                if (activeScroll != null && activeScroll.getViewportBounds().getWidth() > 0) {
+                    controller.resizeTiles(activeScroll.getViewportBounds().getWidth());
                 }
+                controller.setActiveScroll(activeScroll);
             });
             controller.showCategory(targetTab.getText());
         }
@@ -317,6 +345,7 @@ public class ScnMainMenu implements AppScene{
         Button btnImport = new Button("",icons.getAddIcon());
         btnImport.setMinSize(30, 30);
         btnImport.setMaxSize(Double.MAX_VALUE, 30);
+        btnImport.setOnAction(e -> addSource());
         
         Region bottomSpacer = new Region();
         VBox.setVgrow(bottomSpacer, Priority.ALWAYS);
@@ -335,9 +364,28 @@ public class ScnMainMenu implements AppScene{
         sourceBorderPane.setCenter(sourceMenu);
     }
 
-    private void importFolder() {
-        // TODO: Implementar importación de carpetas
-        Logger.info("Import folder - pending implementation");
+    private void addSource() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Add Source Extension");
+        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Java Archive (*.jar)", "*.jar"));
+        
+        java.io.File selectedFile = fileChooser.showOpenDialog(null);
+        if (selectedFile != null) {
+            java.io.File pluginsFolder = new java.io.File(app.simplereader.model.AppConfig.PLUGIN_FOLDER);
+            if (!pluginsFolder.exists()) {
+                pluginsFolder.mkdirs();
+            }
+            java.io.File destination = new java.io.File(pluginsFolder, selectedFile.getName());
+            try {
+                java.nio.file.Files.copy(selectedFile.toPath(), destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                SourceManager.getInstance().reloadSources();
+                sourceButtons.getChildren().clear();
+                doCreateSourceButtons();
+                Logger.info("Added source: " + selectedFile.getName());
+            } catch (java.io.IOException ex) {
+                Logger.error("Failed to add source: " + ex.getMessage());
+            }
+        }
     }
 
     public Map<String, TilePane> getCategoriesPanes(){

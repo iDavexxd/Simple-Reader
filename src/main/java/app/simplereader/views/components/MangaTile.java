@@ -5,8 +5,6 @@ import app.simplereader.controller.MainMenuController;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Manga;
 import app.simplereader.views.ScnMangaMenu;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -27,6 +25,7 @@ public class MangaTile {
 
     private static final SceneController nav = SceneController.getInstance();
     private static final int COVER_MAX_SIZE = 400;
+    private static final int COVER_LOAD_SIZE = 200;
     
     
     private final Manga manga;
@@ -42,10 +41,7 @@ public class MangaTile {
     private boolean imageLoaded = false;
       
     
-    private static final Cache<String, Image> IMAGE_CACHE = Caffeine.newBuilder()
-        .maximumSize(50)
-        .build();
-    
+
     public MangaTile(Manga manga){
         this.manga = manga;
         this.title = manga.getTitle();
@@ -161,10 +157,12 @@ public class MangaTile {
         iconManga.setMinSize(0, 0);
 
         iconManga.setOnMouseClicked(e -> {
-            MainMenuController.getInstance().unloadAllCovers();
-            ScnMangaMenu menu = ScnMangaMenu.getInstance();
-            menu.updateManga(manga);
-            nav.goTo(menu);
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                MainMenuController.getInstance().unloadAllCovers();
+                ScnMangaMenu menu = ScnMangaMenu.getInstance();
+                menu.updateManga(manga);
+                nav.goTo(menu);
+            }
         });
 
         iconManga.getStyleClass().add("manga-icon");
@@ -179,7 +177,7 @@ public class MangaTile {
     public void loadImage(){
         if(imageLoaded) return;
         
-        Image cached = IMAGE_CACHE.getIfPresent(this.coverURL);
+        Image cached = app.simplereader.service.Cache.getInstance().getSharedCache().getIfPresent(this.coverURL);
         if(cached != null){
             this.coverView.setImage(cached);
             this.coverView.setCache(true);
@@ -205,7 +203,7 @@ public class MangaTile {
             loadWithImageIO();
         } else {
             // JavaFX nativo: escalado en carga, no bloquea, bajo consumo de RAM
-            Image originalImage = new Image(this.coverURL, COVER_MAX_SIZE, COVER_MAX_SIZE, true, true, true);
+            Image originalImage = new Image(this.coverURL, COVER_LOAD_SIZE, COVER_LOAD_SIZE, true, true, true);
 
             if (originalImage.isError()) {
                 loadWithImageIO();
@@ -253,15 +251,15 @@ public class MangaTile {
                     bimg = javax.imageio.ImageIO.read(in);
                 }
                 if (bimg != null) {
-                    if (bimg.getWidth() > COVER_MAX_SIZE || bimg.getHeight() > COVER_MAX_SIZE) {
+                    if (bimg.getWidth() > COVER_LOAD_SIZE || bimg.getHeight() > COVER_LOAD_SIZE) {
                         int newWidth = bimg.getWidth();
                         int newHeight = bimg.getHeight();
                         if (newWidth > newHeight) {
-                            newHeight = (int) (newHeight * ((double) COVER_MAX_SIZE / newWidth));
-                            newWidth = COVER_MAX_SIZE;
+                            newHeight = (int) (newHeight * ((double) COVER_LOAD_SIZE / newWidth));
+                            newWidth = COVER_LOAD_SIZE;
                         } else {
-                            newWidth = (int) (newWidth * ((double) COVER_MAX_SIZE / newHeight));
-                            newHeight = COVER_MAX_SIZE;
+                            newWidth = (int) (newWidth * ((double) COVER_LOAD_SIZE / newHeight));
+                            newHeight = COVER_LOAD_SIZE;
                         }
                         
                         java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
@@ -287,14 +285,14 @@ public class MangaTile {
     private void processAndSetImage(Image originalImage,boolean animate) {
         Image finalImage = originalImage;
 
-        if (originalImage.getWidth() > COVER_MAX_SIZE || originalImage.getHeight() > COVER_MAX_SIZE) {
+        if (originalImage.getWidth() > COVER_LOAD_SIZE || originalImage.getHeight() > COVER_LOAD_SIZE) {
             ImageView tempView = new ImageView(originalImage);
             tempView.setPreserveRatio(true);
 
             if (originalImage.getWidth() > originalImage.getHeight()) {
-                tempView.setFitWidth(COVER_MAX_SIZE);
+                tempView.setFitWidth(COVER_LOAD_SIZE);
             } else {
-                tempView.setFitHeight(COVER_MAX_SIZE);
+                tempView.setFitHeight(COVER_LOAD_SIZE);
             }
 
             javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
@@ -307,7 +305,7 @@ public class MangaTile {
         coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         updateImageFit.run();
-        IMAGE_CACHE.put(this.coverURL, finalImage);   // guarda en la caché
+        app.simplereader.service.Cache.getInstance().getSharedCache().put(this.coverURL, finalImage);   // guarda en la caché
         this.imageLoaded = true;	
         coverView.setOpacity(1.0);
         placeholder.setVisible(false);

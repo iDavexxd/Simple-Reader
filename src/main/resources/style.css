@@ -466,6 +466,25 @@
     -fx-text-fill: -fx-main-bg;
 }
 
+/* Barra de progreso dentro de la celda del capítulo */
+.chapter-download-progress {
+    -fx-pref-height: 4px;
+    -fx-max-height: 4px;
+    -fx-min-height: 4px;
+}
+
+.chapter-download-progress .track {
+    -fx-background-color: -fx-fourth-bg;
+    -fx-background-radius: 2;
+    -fx-background-insets: 0;
+}
+
+.chapter-download-progress .bar {
+    -fx-background-color: linear-gradient(to right, #5DADE2, #48C9B0);
+    -fx-background-radius: 2;
+    -fx-background-insets: 0;
+}
+
 /* =========================
    ICONOS Y BOTONES
 ========================= */
@@ -490,6 +509,27 @@
 
 .reader{
     -fx-background-color: -fx-reader-bg;
+}
+
+.reader-loading-label {
+    -fx-font-family: "Lato";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+}
+
+.reader-page-label {
+    -fx-font-family: "Roboto Slab";
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.reader-error-label {
+    -fx-font-family: "Lato";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ff6b6b;
 }
 
 .reader-menu {
@@ -915,4 +955,181 @@
 
 .config-panel-listview .list-cell:empty:hover {
     -fx-background-color: transparent;
+}
+
+/* =========================
+   PANEL DE DESCARGAS
+========================= */
+
+.downloads-title {
+    -fx-font-family: "Roboto Slab";
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+    -fx-font-size: 20px;
+}
+
+.downloads-count {
+    -fx-font-family: "Lato";
+    -fx-text-fill: rgba(236, 229, 240, 0.6);
+    -fx-font-size: 13px;
+}
+
+.downloads-placeholder {
+    -fx-font-family: "Lato";
+    -fx-text-fill: rgba(236, 229, 240, 0.35);
+    -fx-font-size: 14px;
+}
+
+.downloads-listview {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-color: -fx-fourth-bg;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.downloads-listview .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-accent;
+    -fx-padding: 2 0;
+}
+
+.downloads-listview .list-cell:hover {
+    -fx-background-color: rgba(46, 64, 83, 0.3);
+    -fx-background-radius: 8;
+}
+
+.downloads-listview .list-cell:empty {
+    -fx-background-color: transparent;
+}
+
+.downloads-listview .list-cell:empty:hover {
+    -fx-background-color: transparent;
+}
+
+/* Ancho base del scrollbar */
+.downloads-listview .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+.downloads-listview .scroll-bar:vertical .thumb {
+    -fx-background-color: -fx-accent;
+    -fx-background-insets: 0 3 0 3;
+    -fx-background-radius: 10;
+}
+
+.downloads-listview .scroll-bar:vertical:hover .thumb,
+.downloads-listview .scroll-bar:vertical:pressed .thumb,
+.downloads-listview .scroll-bar:vertical .thumb:pressed {
+    -fx-background-insets: 0 1 0 1;
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 10;
+}
+
+.downloads-listview .scroll-bar:vertical .increment-button,
+.downloads-listview .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-opacity: 0;
+}
+
+.downloads-listview .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.download-chapter-title {
+    -fx-font-family: "Roboto Slab";
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+    -fx-font-size: 14px;
+}
+
+.download-manga-title {
+    -fx-font-family: "Lato";
+    -fx-text-fill: rgba(236, 229, 240, 0.6);
+    -fx-font-size: 12px;
+}
+
+.download-status {
+    -fx-font-family: "Lato";
+    -fx-text-fill: rgba(236, 229, 240, 0.5);
+    -fx-font-size: 12px;
+}
+
+.download-progress {
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
+    -fx-min-height: 6px;
+    -fx-accent: #5DADE2;
+}
+
+.download-progress .track {
+    -fx-background-color: -fx-fourth-bg;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+}
+
+.download-progress .bar {
+    -fx-background-color: linear-gradient(to right, #5DADE2, #48C9B0);
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+}
+
+.download-cancel-btn {
+    -fx-background-color: #C0392B;
+    -fx-text-fill: white;
+    -fx-font-family: "Lato";
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 12 20;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.download-cancel-btn:hover {
+    -fx-background-color: #E74C3C;
+}
+
+/* =========================
+   MAIN MENU SCROLLBAR (OVERLAY)
+========================= */
+
+.main-menu-scrollbar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 11px;
+    -fx-padding: 0 5 0 0;
+}
+
+.main-menu-scrollbar:vertical .thumb {
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 3px;
+    -fx-pref-width: 6px;
+}
+
+.main-menu-scrollbar:vertical:hover,
+.main-menu-scrollbar:vertical:pressed {
+    -fx-pref-width: 17px;
+}
+
+.main-menu-scrollbar:vertical:hover .thumb,
+.main-menu-scrollbar:vertical:pressed .thumb,
+.main-menu-scrollbar:vertical .thumb:pressed {
+    -fx-pref-width: 12px;
+    -fx-background-radius: 6px;
+    -fx-background-color: -fx-accent;
+}
+
+.main-menu-scrollbar:vertical .increment-button,
+.main-menu-scrollbar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
+.main-menu-scrollbar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
 }

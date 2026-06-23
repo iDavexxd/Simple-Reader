@@ -17,6 +17,8 @@ import javafx.geometry.Insets;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
+import javafx.scene.control.ScrollPane;
+import javafx.application.Platform;
 
 /**
  *
@@ -24,6 +26,9 @@ import javafx.scene.layout.VBox;
  */
 public class MainMenuController {
     
+    public static final int MAX_COLUMNS = 7;
+    public static final double MIN_TILE_WIDTH = 150.0;
+
     private ScnMainMenu scene;
     private Boolean tilesLoaded = false;
     private final Map<String, List<MangaTile>> allTiles = new HashMap<>();
@@ -33,6 +38,7 @@ public class MainMenuController {
     private final LibraryController lib = LibraryController.getInstance();
     
     private String currentCategory = null;
+    private ScrollPane activeScroll;
     
     public MainMenuController(ScnMainMenu scene){
         this.scene = scene;
@@ -57,7 +63,7 @@ public class MainMenuController {
     
     
     public void doCreateCategoryPanes(){
-        int columns = 5;
+        int columns = MAX_COLUMNS;
         double hgap = 15;
         double vgap = 15;
         double padding = 15;  
@@ -84,13 +90,65 @@ public class MainMenuController {
             }
         }
 
-	// 2. Load la nueva
-        List<MangaTile> newTiles = allTiles.get(name);
-        if (newTiles != null) {
-            newTiles.forEach(MangaTile::loadImage);
-        }
-
+        // 2. La carga se hace por visibilidad (lazy loading)
         currentCategory = name;
+        Platform.runLater(this::updateVisibleTiles);
+    }
+    
+    public void setActiveScroll(ScrollPane scroll) {
+        this.activeScroll = scroll;
+    }
+    
+    public void updateVisibleTiles() {
+        if (currentCategory == null || activeScroll == null) return;
+        List<MangaTile> tiles = allTiles.get(currentCategory);
+        if (tiles == null || tiles.isEmpty()) return;
+        
+        TilePane pane = scene.getCategoriesPanes().get(currentCategory);
+        if (pane == null) return;
+        
+        javafx.geometry.Bounds viewportBounds = activeScroll.getViewportBounds();
+        double viewportHeight = viewportBounds.getHeight();
+        double contentHeight = pane.getHeight();
+        
+        if (viewportHeight <= 0 || contentHeight <= 0) {
+            // Layout no listo, cargar todo como fallback
+            tiles.forEach(MangaTile::loadImage);
+            return;
+        }
+        
+        int columns = pane.getPrefColumns();
+        if (columns <= 0) columns = 1;
+        
+        double tileHeight = pane.getPrefTileHeight();
+        double vgap = pane.getVgap();
+        double paddingTop = pane.getPadding().getTop();
+        
+        if (tileHeight <= 0) {
+            tiles.forEach(MangaTile::loadImage);
+            return;
+        }
+        
+        double scrollableHeight = Math.max(0, contentHeight - viewportHeight);
+        double topY = activeScroll.getVvalue() * scrollableHeight;
+        double bottomY = topY + viewportHeight;
+        
+        double rowHeight = tileHeight + vgap;
+        
+        // Buffer de 1 fila arriba y abajo para scroll suave
+        int firstVisibleRow = Math.max(0, (int) Math.floor((topY - paddingTop) / rowHeight) - 1);
+        int lastVisibleRow = (int) Math.ceil((bottomY - paddingTop) / rowHeight) + 1;
+        
+        int firstIndex = firstVisibleRow * columns;
+        int lastIndex = Math.min(tiles.size() - 1, (lastVisibleRow + 1) * columns - 1);
+        
+        for (int i = 0; i < tiles.size(); i++) {
+            if (i >= firstIndex && i <= lastIndex) {
+                tiles.get(i).loadImage();
+            } else {
+                tiles.get(i).unloadImage();
+            }
+        }
     }
     
     public void loadAllTiles() {
@@ -99,7 +157,7 @@ public class MainMenuController {
         for (Category cat : lib.getAllCategories()) {
             TilePane pane = scene.getCategoriesPanes().get(cat.getName());
             if (pane == null) {
-                pane = createTilePane(cat.getName(), 15, 15, 15, 5);
+                pane = createTilePane(cat.getName(), 15, 15, 15, MAX_COLUMNS);
                 scene.getCategoriesPanes().put(cat.getName(), pane);
             }
             allTiles.put(cat.getName(), new ArrayList<>());
@@ -136,14 +194,14 @@ public class MainMenuController {
         if (pane == null) return;
 
         double hgap = 15, vgap = 15, padding = 15;
-        double minTileWidth = 150.0; 
+        double minTileWidth = MIN_TILE_WIDTH; 
 
-        int columns = (int) Math.floor((totalWidth - padding * 2 - 5 + hgap) / (minTileWidth + hgap));
-        columns = Math.max(1, Math.min(5, columns));
+        int columns = (int) Math.floor((totalWidth - padding * 2 + hgap) / (minTileWidth + hgap));
+        columns = Math.max(1, Math.min(MAX_COLUMNS, columns));
 
         pane.setPrefColumns(columns);
 
-        double tileWidth = (totalWidth - padding * 2 - hgap * (columns - 1) - 5) / columns;
+        double tileWidth = Math.floor((totalWidth - padding * 2 - hgap * (columns - 1)) / columns);
         double tileHeight = tileWidth * 1.5;
 
         pane.setPrefTileWidth(tileWidth);
@@ -177,7 +235,9 @@ public class MainMenuController {
         TilePane currentPane = scene.getActivePane();
         if (currentPane != null && currentPane.getParent() instanceof javafx.scene.control.ScrollPane) {
             javafx.scene.control.ScrollPane activeScroll = (javafx.scene.control.ScrollPane) currentPane.getParent();
-            resizeTiles(activeScroll.getWidth());
+            if (activeScroll.getViewportBounds().getWidth() > 0) {
+                resizeTiles(activeScroll.getViewportBounds().getWidth());
+            }
         }
         
         String activeCat = scene.getCurrentCategory();

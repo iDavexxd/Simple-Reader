@@ -22,6 +22,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class Downloader {
 
@@ -35,10 +41,41 @@ public class Downloader {
     private final String DOWNLOADS_FOLDER = AppConfig.DATA_FOLDER;
     private final SourceManager sourceManager = SourceManager.getInstance();
 
+    // Observable list of active downloads for the UI
+    private final ObservableList<DownloadInfo> activeDownloads = FXCollections.observableArrayList();
+
+    /**
+     * Represents a single active download visible to the UI.
+     */
+    public static class DownloadInfo {
+        private final String chapterTitle;
+        private final String mangaTitle;
+        private final String chapterID;
+        private final DoubleProperty progress = new SimpleDoubleProperty(0.0);
+        private final StringProperty status = new SimpleStringProperty("En cola");
+
+        public DownloadInfo(String chapterTitle, String mangaTitle, String chapterID) {
+            this.chapterTitle = chapterTitle;
+            this.mangaTitle = mangaTitle;
+            this.chapterID = chapterID;
+        }
+
+        public String getChapterTitle() { return chapterTitle; }
+        public String getMangaTitle() { return mangaTitle; }
+        public String getChapterID() { return chapterID; }
+
+        public double getProgress() { return progress.get(); }
+        public DoubleProperty progressProperty() { return progress; }
+
+        public String getStatus() { return status.get(); }
+        public StringProperty statusProperty() { return status; }
+    }
+
     private static class DownloadTask {
         final Chapter chapter;
         final Manga manga;
         final Map<String, String> headers;
+        DownloadInfo info;
 
         DownloadTask(Chapter chapter, Manga manga, Map<String, String> headers) {
             this.chapter = chapter;
@@ -46,6 +83,8 @@ public class Downloader {
             this.headers = headers;
         }
     }
+
+    private volatile boolean cancelled = false;
 
     private Downloader() {
         int threads = 2;
@@ -63,6 +102,13 @@ public class Downloader {
         return INSTANCE;
     }
 
+    /**
+     * Returns the observable list of active downloads. Bind a ListView to this.
+     */
+    public ObservableList<DownloadInfo> getActiveDownloads() {
+        return activeDownloads;
+    }
+
     public void enqueue(Chapter chapter, Manga manga) {
         enqueue(chapter, manga, null);
     }
@@ -78,13 +124,38 @@ public class Downloader {
             downloading.add(chapter.getChapterID());
         }
 
-        queue.add(new DownloadTask(chapter, manga, headers));
+        DownloadInfo info = new DownloadInfo(
+            chapter.getTitle() != null ? chapter.getTitle() : chapter.getChapterID(),
+            manga.getTitle() != null ? manga.getTitle() : manga.getMangaID(),
+            chapter.getChapterID()
+        );
+
+        DownloadTask task = new DownloadTask(chapter, manga, headers);
+        task.info = info;
+
+        Platform.runLater(() -> activeDownloads.add(info));
+
+        queue.add(task);
         Logger.info("Encolado: " + chapter.getTitle());
     }
 
     public void cancelAll() {
+        cancelled = true;
         queue.clear();
-        queue.add(POISON);
+
+        synchronized (downloading) {
+            downloading.clear();
+        }
+
+        Platform.runLater(() -> activeDownloads.clear());
+
+        // Restart workers
+        cancelled = false;
+        for (int i = 0; i < 2; i++) {
+            workers.submit(this::workerLoop);
+        }
+
+        Logger.info("Todas las descargas han sido canceladas.");
     }
 
     private void workerLoop() {
@@ -93,7 +164,7 @@ public class Downloader {
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
 
-        while (true) {
+        while (!cancelled) {
             DownloadTask task;
             try {
                 task = queue.take();
@@ -107,17 +178,24 @@ public class Downloader {
                 break;
             }
 
+            if (cancelled) break;
+
+            Platform.runLater(() -> task.info.status.set("Descargando..."));
             downloadChapter(task, httpClient);
 
             synchronized (downloading) {
                 downloading.remove(task.chapter.getChapterID());
             }
+
+            // Remove from active downloads when done
+            Platform.runLater(() -> activeDownloads.remove(task.info));
         }
     }
 
     private void downloadChapter(DownloadTask task, HttpClient httpClient) {
         Chapter chapter = task.chapter;
         Manga manga = task.manga;
+        DownloadInfo info = task.info;
 
         try {
             File folder = new File(DOWNLOADS_FOLDER + manga.getSourceID() + "/downloads/"
@@ -127,15 +205,26 @@ public class Downloader {
             List<String> pagesURL = sourceManager.getSource(manga.getSourceID())
                     .getPages(manga.getMangaID(), chapter.getChapterID());
 
+            int totalPages = pagesURL.size();
+
             File[] existingFiles = folder.listFiles();
-            if (existingFiles != null && existingFiles.length >= pagesURL.size()) {
+            if (existingFiles != null && existingFiles.length >= totalPages) {
                 Logger.info("El capítulo ya está descargado por completo.");
-                Platform.runLater(() -> chapter.setDownloaded(true));
+                Platform.runLater(() -> {
+                    chapter.setDownloaded(true);
+                    info.progress.set(1.0);
+                    info.status.set("Completado");
+                });
                 return;
             }
 
             int pageNumber = 1;
             for (String urlString : pagesURL) {
+                if (cancelled) {
+                    Platform.runLater(() -> info.status.set("Cancelado"));
+                    return;
+                }
+
                 String extension = ".jpg";
                 int lastDot = urlString.lastIndexOf('.');
                 if (lastDot > 0 && lastDot < urlString.length() - 1) {
@@ -149,12 +238,18 @@ public class Downloader {
 
                 if (outputFile.exists() && outputFile.length() > 0) {
                     Logger.info("Página ya existe, omitiendo: " + fileName);
+                    final int currentPage = pageNumber;
+                    Platform.runLater(() -> {
+                        info.progress.set((double) currentPage / totalPages);
+                        info.status.set("Página " + currentPage + "/" + totalPages);
+                    });
                     pageNumber++;
                     continue;
                 }
 
                 boolean downloaded = false;
                 for (int attempt = 1; attempt <= 3 && !downloaded; attempt++) {
+                    if (cancelled) return;
                     try {
                         if (attempt > 1) {
                             pagesURL = sourceManager.getSource(manga.getSourceID())
@@ -201,17 +296,33 @@ public class Downloader {
                         }
                     }
                 }
-                if (!downloaded) break;
+
+                if (!downloaded) {
+                    Platform.runLater(() -> info.status.set("Error"));
+                    break;
+                }
+
+                final int currentPage = pageNumber;
+                Platform.runLater(() -> {
+                    info.progress.set((double) currentPage / totalPages);
+                    info.status.set("Página " + currentPage + "/" + totalPages);
+                });
+
                 pageNumber++;
             }
 
             File[] downloadedFiles = folder.listFiles();
             if (downloadedFiles != null && downloadedFiles.length >= pagesURL.size()) {
-                Platform.runLater(() -> chapter.setDownloaded(true));
+                Platform.runLater(() -> {
+                    chapter.setDownloaded(true);
+                    info.progress.set(1.0);
+                    info.status.set("Completado");
+                });
                 Logger.info("Proceso de descarga finalizado para " + chapter.getTitle() + ".");
             }
         } catch (Exception e) {
             Logger.error("Error descargando " + chapter.getTitle() + ": " + e.getMessage());
+            Platform.runLater(() -> info.status.set("Error"));
         }
     }
 }

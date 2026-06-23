@@ -7,6 +7,8 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Category;
 import app.simplereader.repository.AppScene;
+import app.simplereader.service.Downloader;
+import app.simplereader.service.Logger;
 import app.simplereader.views.components.SvgIcons;
 import java.util.List;
 import java.util.Optional;
@@ -21,8 +23,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.input.KeyCode;
+import static javafx.scene.input.KeyCode.F5;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -82,6 +88,7 @@ public class ScnConfig implements AppScene {
         // Los paneles pre-construidos
         VBox panelCategories = getCategoriesPanel();
         VBox panelGeneral = getGeneralPanel();
+        VBox panelDownloads = getDownloadsPanel();
         
         // Por defecto mostramos General
         scrollContent.setContent(panelGeneral);
@@ -103,7 +110,12 @@ public class ScnConfig implements AppScene {
         btnCategories.setMaxWidth(Double.MAX_VALUE);
         btnCategories.setOnAction(e -> scrollContent.setContent(panelCategories));
         
-        VBox botones = new VBox(10, btnGeneral, btnCategories);
+        Button btnDownloads = new Button("Descargas");
+        btnDownloads.getStyleClass().add("config-menu-btn");
+        btnDownloads.setMaxWidth(Double.MAX_VALUE);
+        btnDownloads.setOnAction(e -> scrollContent.setContent(panelDownloads));
+        
+        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads);
         coso.setCenter(botones);
         
         BorderPane content = new BorderPane();
@@ -302,6 +314,105 @@ public class ScnConfig implements AppScene {
         configBox.setPadding(new Insets(20));
         
         VBox panel = new VBox(generalLabel, configBox);
+        return panel;
+    }
+    
+    private VBox getDownloadsPanel(){
+        Downloader downloader = Downloader.getInstance();
+        
+        // Título
+        Label titleLabel = new Label("Descargas Activas");
+        titleLabel.getStyleClass().add("downloads-title");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);
+        titleLabel.setAlignment(Pos.TOP_CENTER);
+        
+        // ListView de descargas activas
+        ListView<Downloader.DownloadInfo> downloadListView = new ListView<>();
+        downloadListView.getStyleClass().add("downloads-listview");
+        downloadListView.setItems(downloader.getActiveDownloads());
+        
+        // Placeholder cuando no hay descargas
+        Label placeholderLabel = new Label("No hay descargas activas");
+        placeholderLabel.getStyleClass().add("downloads-placeholder");
+        downloadListView.setPlaceholder(placeholderLabel);
+        
+        // CellFactory con barra de progreso
+        downloadListView.setCellFactory(lv -> new ListCell<Downloader.DownloadInfo>() {
+            private final Label chapterLabel = new Label();
+            private final Label mangaLabel = new Label();
+            private final Label statusLabel = new Label();
+            private final ProgressBar progressBar = new ProgressBar(0);
+            private final VBox cellContent;
+            
+            {
+                chapterLabel.getStyleClass().add("download-chapter-title");
+                mangaLabel.getStyleClass().add("download-manga-title");
+                statusLabel.getStyleClass().add("download-status");
+                progressBar.getStyleClass().add("download-progress");
+                progressBar.setMaxWidth(Double.MAX_VALUE);
+                
+                HBox infoRow = new HBox(10, mangaLabel, statusLabel);
+                infoRow.setAlignment(Pos.CENTER_LEFT);
+                HBox.setHgrow(mangaLabel, Priority.ALWAYS);
+                
+                cellContent = new VBox(4, chapterLabel, infoRow, progressBar);
+                cellContent.setPadding(new Insets(8, 12, 8, 12));
+            }
+            
+            @Override
+            protected void updateItem(Downloader.DownloadInfo item, boolean empty) {
+                super.updateItem(item, empty);
+                
+                // Unbind previous
+                progressBar.progressProperty().unbind();
+                statusLabel.textProperty().unbind();
+                
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    chapterLabel.setText(item.getChapterTitle());
+                    mangaLabel.setText(item.getMangaTitle());
+                    progressBar.progressProperty().bind(item.progressProperty());
+                    statusLabel.textProperty().bind(item.statusProperty());
+                    setGraphic(cellContent);
+                }
+            }
+        });
+        
+        // Botón cancelar todo
+        Button btnCancelAll = new Button("Cancelar Todo");
+        btnCancelAll.getStyleClass().add("download-cancel-btn");
+        btnCancelAll.setMaxWidth(Double.MAX_VALUE);
+        btnCancelAll.setOnAction(e -> {
+            downloader.cancelAll();
+        });
+        
+        // Contador de descargas
+        Label countLabel = new Label();
+        countLabel.getStyleClass().add("downloads-count");
+        downloader.getActiveDownloads().addListener((javafx.collections.ListChangeListener<Downloader.DownloadInfo>) change -> {
+            int size = downloader.getActiveDownloads().size();
+            if (size == 0) {
+                countLabel.setText("");
+            } else {
+                countLabel.setText(size + (size == 1 ? " descarga activa" : " descargas activas"));
+            }
+        });
+        // Set initial value
+        int initialSize = downloader.getActiveDownloads().size();
+        if (initialSize > 0) {
+            countLabel.setText(initialSize + (initialSize == 1 ? " descarga activa" : " descargas activas"));
+        }
+        
+        HBox headerRow = new HBox(10, titleLabel, countLabel);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(titleLabel, Priority.ALWAYS);
+        
+        VBox panel = new VBox(10, headerRow, downloadListView, btnCancelAll);
+        panel.setPadding(new Insets(15));
+        VBox.setVgrow(downloadListView, Priority.ALWAYS);
+        
         return panel;
     }
 

@@ -42,33 +42,32 @@ public class AppConfig {
     
     
     
-    public final static String DATA_FOLDER = System.getProperty("user.home")
-            + File.separator
-            +"Documents"
-            +File.separator
-            +"SimpleReader"
-            + File.separator
-            + "/data/";
+    private static String getAppDataFolder() {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            String appData = System.getenv("APPDATA");
+            if (appData != null && !appData.isEmpty()) {
+                return appData + File.separator + "SimpleReader";
+            } else {
+                return System.getProperty("user.home") + File.separator + "AppData" + File.separator + "Roaming" + File.separator + "SimpleReader";
+            }
+        } else if (os.contains("mac")) {
+            return System.getProperty("user.home") + File.separator + "Library" + File.separator + "Application Support" + File.separator + "SimpleReader";
+        } else {
+            return System.getProperty("user.home") + File.separator + ".simplereader";
+        }
+    }
     
-    public static String MANGA_DATA_FOLDER = System.getProperty("user.home")
-            + File.separator
-            +"Documents"
-            +File.separator
-            +"SimpleReader"
-            + File.separator
-            + "/data/manga";
+    public final static String DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator;
     
+    public static String MANGA_DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator + "manga";
     
-    public final static String USER_DATA_FOLDER = DATA_FOLDER+"user";
-            
+    public final static String USER_DATA_FOLDER = DATA_FOLDER + "user";
     
-    public final String VERSION = "Beta 1.9";
+    public final String VERSION = "1.0.0-beta";
     
     public static AppConfig instance;
-    private static final String CONFIG_FILE = System.getProperty("user.home") 
-                                            + File.separator + "Documents" 
-                                            + File.separator + "SimpleReader" 
-                                            + File.separator + "config.json";
+    private static final String CONFIG_FILE = getAppDataFolder() + File.separator + "config.json";
     
     public static AppConfig get(){
         if (instance == null) {

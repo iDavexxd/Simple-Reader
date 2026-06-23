@@ -159,13 +159,17 @@ public class SourceManager {
             
             String currentCover = manga.getCoverURL();
             if (currentCover != null && currentCover.startsWith("http")) {
-                String fileName = currentCover.substring(currentCover.lastIndexOf('/') + 1);
-                if (fileName.contains("?")) {
-                    fileName = fileName.substring(0, fileName.indexOf('?'));
+                // Extraer solo la extensión del archivo de la URL (.jpg, .webp, .png, etc.)
+                String urlFileName = currentCover.substring(currentCover.lastIndexOf('/') + 1);
+                if (urlFileName.contains("?")) {
+                    urlFileName = urlFileName.substring(0, urlFileName.indexOf('?'));
                 }
-                if (fileName.isEmpty() || !fileName.contains(".")) {
-                    fileName = mangaId + ".jpg";
+                String ext = ".jpg"; // extensión por defecto
+                if (urlFileName.contains(".")) {
+                    ext = urlFileName.substring(urlFileName.lastIndexOf('.'));
                 }
+                // Siempre usar el ID del manga como nombre para evitar colisiones
+                String fileName = mangaId + ext;
                 String localCoverPath = coverDir + fileName;
                 File localCoverFile = new File(localCoverPath);
                 

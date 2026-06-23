@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>App.Reader</groupId>
     <artifactId>SimpleReader</artifactId>
-    <version>beta-1.9.1</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     
     <properties>
@@ -98,6 +98,11 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>app.simplereader.Main</mainClass>
+                    <options>
+                        <option>-XX:+UseZGC</option>
+                        <option>-XX:+ZGenerational</option>
+                        <option>-Xmx1024m</option>
+                    </options>
                 </configuration>
             </plugin>
 

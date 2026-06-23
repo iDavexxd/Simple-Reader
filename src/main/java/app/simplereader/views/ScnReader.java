@@ -28,6 +28,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
+import app.simplereader.views.components.SvgIcons;
 import java.util.List;
 
 /**
@@ -38,6 +39,7 @@ public class ScnReader implements AppScene {
 
     private final SceneController nav;
     private final ReaderController controller;
+    private final SvgIcons icons = SvgIcons.get();
     
     private Manga manga;
     private Chapter chapter;
@@ -58,14 +60,30 @@ public class ScnReader implements AppScene {
     private Label chnameLabel;
     private Label mangaTitleLabel;
     
+    private final StackPane FullScreenIcon = icons.getFullScreenIcon();
+    private final StackPane ExitFullScreenIcon = icons.getExitFullScreenIcon();
+    
     private javafx.beans.value.ChangeListener<Boolean> fullScreenListener;
     private javafx.event.EventHandler<javafx.stage.WindowEvent> originalCloseHandler;
+    
+    private javafx.scene.image.Image loadingGif;
+    private javafx.scene.image.Image errorGif;
+    private VBox loadingOverlay;
+    private VBox errorOverlay;
+    private VBox noPagesOverlay;
     
     private ScnReader() {
             this.nav = SceneController.getInstance();
             ReaderController.doInstance(this);
             this.controller = ReaderController.getInstance();
-        }
+            
+            try {
+                loadingGif = new javafx.scene.image.Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+                errorGif = new javafx.scene.image.Image(getClass().getResource("/icons/bochi.gif").toExternalForm());
+            } catch (Exception e) {
+                Logger.error("No se pudo cargar los gifs: " + e.getMessage());
+            }
+    }
 
     public static ScnReader getInstance() {
         if (instance == null) {
@@ -96,8 +114,6 @@ public class ScnReader implements AppScene {
     @Override
     public javafx.scene.Parent getScene() {
         
-        nav.getStage().setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);  
-        
         if (originalCloseHandler == null) {
             originalCloseHandler = nav.getStage().getOnCloseRequest();
         }
@@ -119,9 +135,23 @@ public class ScnReader implements AppScene {
         nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
         nav.getStage().fullScreenProperty().addListener(fullScreenListener);
         
-        if (myScene != null) return myScene;
+        if (myScene != null) {
+            if (nav.getStage().isFullScreen() && !myScene.getStyleClass().contains("fullscreen")) {
+                myScene.getStyleClass().add("fullscreen");
+            } else if (!nav.getStage().isFullScreen()) {
+                myScene.getStyleClass().remove("fullscreen");
+            }
+            javafx.application.Platform.runLater(() -> myScene.requestFocus());
+            return myScene;
+        }
 
         if (layout == null) layout = getPane();
+        
+        if (nav.getStage().isFullScreen() && !layout.getStyleClass().contains("fullscreen")) {
+            layout.getStyleClass().add("fullscreen");
+        } else if (!nav.getStage().isFullScreen()) {
+            layout.getStyleClass().remove("fullscreen");
+        }
         
         // Listeners de teclado (en el root, no en la Scene)
         layout.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
@@ -129,25 +159,19 @@ public class ScnReader implements AppScene {
             switch (key) {
                 case F5 -> {
                     controller.resetZoom();
+                    controller.reloadCurrentImage();
                 }
-                case F11 -> {
-                    boolean isFull = nav.getStage().isFullScreen();
-                    nav.getStage().setFullScreen(!isFull);
+                case SPACE -> {
+                    controller.nextPage();
+                    e.consume();
                 }
                 case ESCAPE -> {
                     controller.cleanupResources();
                     e.consume();
 
-                    nav.getStage().setFullScreen(false);
-                    // delay
-                    javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
-                    delay.setOnFinished(event -> {
-                        nav.getStage().setOnCloseRequest(originalCloseHandler);
-
-                        nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
-                        nav.backScene();
-                    });
-                    delay.play();
+                    nav.getStage().setOnCloseRequest(originalCloseHandler);
+                    nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
+                    nav.backScene();
                 }
                 case RIGHT -> {
                     boolean isLTR = AppConfig.get().READING_DIR.equals("LTR");
@@ -171,6 +195,7 @@ public class ScnReader implements AppScene {
         });
         
         myScene = layout;
+        javafx.application.Platform.runLater(() -> myScene.requestFocus());
         return myScene;
     }
     
@@ -199,10 +224,18 @@ public class ScnReader implements AppScene {
                 double zoomFactor = (deltaY > 0) ? 1.1 : 1 / 1.1;
                 double newScaleX = visor.getScaleX() * zoomFactor;
 
-                if (newScaleX <= 0.1 || newScaleX >= 10.0) {
+                if (newScaleX >= 10.0) {
                     event.consume();
                     return;
                 }
+
+                if (newScaleX <= 1.0) {
+                    controller.resetZoom();
+                    event.consume();
+                    return;
+                }
+                
+                controller.setInZoom(true);
 
                 double mouseX = event.getX();
                 double mouseY = event.getY();
@@ -228,9 +261,53 @@ public class ScnReader implements AppScene {
                 event.consume();
             }
         });
+        
+        ImageView gifView = new ImageView(loadingGif);
+        gifView.setFitWidth(150);
+        gifView.setFitHeight(150);
+        gifView.setPreserveRatio(true);
+        
+        Label loadingLabel = new Label("Cargando...");
+        loadingLabel.getStyleClass().add("reader-loading-label");
+        
+        loadingOverlay = new VBox(15, gifView, loadingLabel);
+        loadingOverlay.setAlignment(Pos.CENTER);
+        loadingOverlay.setMouseTransparent(true);
+        loadingOverlay.setVisible(true);
+        
+        // Error overlay
+        ImageView errorGifView = new ImageView(errorGif);
+        errorGifView.setFitWidth(150);
+        errorGifView.setFitHeight(150);
+        errorGifView.setPreserveRatio(true);
+        
+        Label errorLabel = new Label("Error cargando la imagen");
+        errorLabel.getStyleClass().add("reader-error-label");
+        
+        errorOverlay = new VBox(15, errorGifView, errorLabel);
+        errorOverlay.setAlignment(Pos.CENTER);
+        errorOverlay.setMouseTransparent(true);
+        errorOverlay.setVisible(false);
+        
+        // No pages overlay
+        ImageView noPagesGifView = new ImageView(errorGif);
+        noPagesGifView.setFitWidth(150);
+        noPagesGifView.setFitHeight(150);
+        noPagesGifView.setPreserveRatio(true);
+        
+        Label noPagesLabel = new Label("No hay páginas...");
+        noPagesLabel.getStyleClass().add("reader-error-label");
+        
+        noPagesOverlay = new VBox(15, noPagesGifView, noPagesLabel);
+        noPagesOverlay.setAlignment(Pos.CENTER);
+        noPagesOverlay.setMouseTransparent(true);
+        noPagesOverlay.setVisible(false);
                 
         StackPane spane = new StackPane();
         spane.getChildren().add(scrollVisor);
+        spane.getChildren().add(loadingOverlay);
+        spane.getChildren().add(errorOverlay);
+        spane.getChildren().add(noPagesOverlay);
         doConfigPagePane();
         spane.getChildren().add(pagePane);
         StackPane.setAlignment(pagePane, Pos.BOTTOM_RIGHT);
@@ -246,37 +323,58 @@ public class ScnReader implements AppScene {
                 fitImageToScreen();
             }
         });
-        spane.setOnMouseClicked(e -> {
-            double width = spane.getWidth();
-            double x = e.getX();
-            double leftZone = width * 0.4;
-            double rightZone = width * 0.6;
+        // Detección manual de clic (sin arrastre) sobre el scrollPane
+        final double[] pressXY = new double[2];
+        
+        scrollVisor.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                pressXY[0] = e.getScreenX();
+                pressXY[1] = e.getScreenY();
+            }
+        });
+        
+        scrollVisor.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, e -> {
+            if (e.getButton() != javafx.scene.input.MouseButton.PRIMARY) return;
+            
+            double dx = Math.abs(e.getScreenX() - pressXY[0]);
+            double dy = Math.abs(e.getScreenY() - pressXY[1]);
+            
+            // Si se movió más de 5px, fue un arrastre, no un clic
+            if (dx > 5 || dy > 5) return;
 
+            // Si el menú ya está abierto, cerrarlo
             if (controller.isMenuVisible()) {
-                if (x > 300) {
-                    controller.hideMenu();
-                }
+                controller.hideMenu();
                 return;
             }
 
+            // Si estamos en zoom, cualquier clic abre el menú
+            if (visor.getScaleX() != 1.0) {
+                controller.showMenu();
+                return;
+            }
+
+            // Sin zoom: zonas izquierda/derecha pasan página, centro abre menú
+            double width = scrollVisor.getViewportBounds().getWidth();
+            double x = e.getScreenX() - scrollVisor.localToScreen(scrollVisor.getBoundsInLocal()).getMinX();
+            double leftZone = width * 0.4;
+            double rightZone = width * 0.6;
+
             if (x < leftZone) {
-                if (!controller.isInZoom()) {
-                    if (AppConfig.get().READING_DIR.equals("LTR")) controller.previousPage();
-                    else controller.nextPage();
-                }
+                if (AppConfig.get().READING_DIR.equals("LTR")) controller.previousPage();
+                else controller.nextPage();
             } else if (x > rightZone) {
-                if (!controller.isInZoom()) {
-                    if (AppConfig.get().READING_DIR.equals("LTR")) controller.nextPage();
-                    else controller.previousPage();
-                }
+                if (AppConfig.get().READING_DIR.equals("LTR")) controller.nextPage();
+                else controller.previousPage();
             } else {
-                if (!controller.isInZoom()) controller.showMenu();
+                controller.showMenu();
             }
         });
 
         if (chapter.hasPages()) {
             controller.loadCurrentImage();
         }
+        doUpdatePageLabel();
         
         spane.getStyleClass().add("reader");
         return spane;
@@ -370,11 +468,11 @@ public class ScnReader implements AppScene {
         }
         caps.setValue(this.chapter);
         caps.setOnAction(e -> {
-            if (controller.isProgrammaticNav()) return;
+            if (controller.isUpdatingUI()) return;
             
             Chapter selected = caps.getValue();
             if (selected != null) {
-                int index = chapters.indexOf(selected);
+                int index = caps.getItems().indexOf(selected);
                 if (index >= 0) {
                     controller.changeToChapter(selected, index);
                 }
@@ -419,9 +517,68 @@ public class ScnReader implements AppScene {
         
         HBox capitulo = new HBox(btnBackCh, caps, btnNextCh);
         
-        VBox bottom = new VBox(paginas, capitulo);
+        //Botones de config
+        Button btnFullScreen = new Button("", nav.getStage().isFullScreen() ? icons.getExitFullScreenIcon() : icons.getFullScreenIcon());
+        btnFullScreen.getStyleClass().add("reader-button2");
+        btnFullScreen.setMinHeight(48);
+        btnFullScreen.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnFullScreen, Priority.ALWAYS);
+        
+        btnFullScreen.setOnAction(e -> {
+            boolean isFull = nav.getStage().isFullScreen();
+            nav.getStage().setFullScreen(!isFull);
+        });
+        
+        nav.getStage().fullScreenProperty().addListener((obs, oldV, isFull) -> {
+            btnFullScreen.setGraphic(isFull ? icons.getExitFullScreenIcon() : icons.getFullScreenIcon());
+        });
+
+        Button btnZoomIn = new Button("",icons.getZoomInIcon());
+        btnZoomIn.getStyleClass().add("reader-button2");
+        btnZoomIn.setMinHeight(48);
+        btnZoomIn.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnZoomIn, Priority.ALWAYS);
+        btnZoomIn.setOnAction(e -> {
+            controller.setInZoom(true);
+            double newScale = visor.getScaleX() * 1.1;
+            if(newScale <= 10.0) {
+                visor.setScaleX(newScale);
+                visor.setScaleY(newScale);
+            }
+        });
+        
+        Button btnZoomOut = new Button("",icons.getZoomOutIcon());
+        btnZoomOut.getStyleClass().add("reader-button2");
+        btnZoomOut.setMinHeight(48);
+        btnZoomOut.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnZoomOut, Priority.ALWAYS);
+        btnZoomOut.setOnAction(e -> {
+            double newScale = visor.getScaleX() / 1.1;
+            if (newScale <= 1.0) {
+                controller.resetZoom();
+            } else {
+                visor.setScaleX(newScale);
+                visor.setScaleY(newScale);
+            }
+        });
+        
+        Button btnConfig = new Button("",icons.getConfigIcon());
+        btnConfig.getStyleClass().add("reader-button2");
+        btnConfig.setMinHeight(48);
+        btnConfig.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnConfig, Priority.ALWAYS);
+        
+        btnConfig.setOnAction(e -> {
+            nav.goTo(new ScnConfig());
+        });
+        
+        
+        
+        HBox zoomBox = new HBox(btnZoomIn,btnZoomOut,btnFullScreen);
+        VBox bottom = new VBox(paginas, capitulo,zoomBox,btnConfig);
         paginas.setSpacing(5);
         capitulo.setSpacing(5);
+        zoomBox.setSpacing(5);
         bottom.setSpacing(5);
         
         HBox.setHgrow(pagina, Priority.ALWAYS);
@@ -456,8 +613,13 @@ public class ScnReader implements AppScene {
         pagePane.setMouseTransparent(true);
         
         HBox box = new HBox(5);
+        box.setPadding(new Insets(5)); // Un poco de margen para que no toque el borde
         pageLabelText = "0"+"/"+String.valueOf(chapter.getPageCount());
         pages = new Label(pageLabelText);
+        
+        // Aplica la clase CSS y el modo de fusión
+        pages.getStyleClass().add("reader-page-label");
+        pages.setBlendMode(javafx.scene.effect.BlendMode.DIFFERENCE);
         
         box.getChildren().add(pages);
         box.setAlignment(Pos.BOTTOM_RIGHT);
@@ -467,6 +629,9 @@ public class ScnReader implements AppScene {
     public void doUpdatePageLabel(){
         pageLabelText = String.valueOf(controller.getCurrentPageIndex()+1)+"/"+String.valueOf(chapter.getPageCount());
         pages.setText(pageLabelText);
+        if (pagePane != null) {
+            pagePane.setVisible(chapter.getPageCount() > 1);
+        }
     }
     
     private StackPane icn_Back() {
@@ -511,7 +676,28 @@ public class ScnReader implements AppScene {
     public void setImageViewImage(javafx.scene.image.Image img) {
         if (visor != null) {
             visor.setImage(img);
+            if (loadingOverlay != null) {
+                loadingOverlay.setVisible(img == null);
+            }
+            if (errorOverlay != null) {
+                errorOverlay.setVisible(false);
+            }
+            if (noPagesOverlay != null) {
+                noPagesOverlay.setVisible(false);
+            }
         }
+    }
+    
+    public void showErrorOverlay() {
+        if (loadingOverlay != null) loadingOverlay.setVisible(false);
+        if (noPagesOverlay != null) noPagesOverlay.setVisible(false);
+        if (errorOverlay != null) errorOverlay.setVisible(true);
+    }
+    
+    public void showNoPagesOverlay() {
+        if (loadingOverlay != null) loadingOverlay.setVisible(false);
+        if (errorOverlay != null) errorOverlay.setVisible(false);
+        if (noPagesOverlay != null) noPagesOverlay.setVisible(true);
     }
     
     public void setMenuVisible(boolean visible) {
@@ -523,6 +709,7 @@ public class ScnReader implements AppScene {
     
     public void fitImageToScreen() {
         if (visor == null || visor.getImage() == null || scrollVisor == null) return;
+        
         double containerW = scrollVisor.getViewportBounds().getWidth() - 2;
         double containerH = scrollVisor.getViewportBounds().getHeight() - 2;
         if (containerW <= 0 || containerH <= 0) return;

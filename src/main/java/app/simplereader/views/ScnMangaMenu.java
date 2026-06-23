@@ -7,6 +7,7 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.service.Logger;
+import app.simplereader.service.Downloader;
 import app.simplereader.controller.SceneController;
 import app.simplereader.model.Category;
 import javafx.collections.FXCollections;
@@ -16,6 +17,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -62,8 +64,9 @@ public class ScnMangaMenu implements AppScene{
     private final LibraryController lib = LibraryController.getInstance();
     
     private boolean isdown = true;
-    private boolean menuVisible = false;
-    private boolean covermenuvisible = false;
+    private boolean menu_visible = false;
+    private boolean covermenu_visible = false;
+    private boolean loadingPane_visible = false;
     
     private SVGPath icnArrow;
     private SVGPath icnLibrary;
@@ -87,10 +90,12 @@ public class ScnMangaMenu implements AppScene{
     private StackPane categoryMenu;
     private BorderPane categoryPane;
     private BorderPane coverPane;
+    private BorderPane loadingPane;
     private VBox categoryButtons;
     
     private ImageView coverMenuImageView; 
     private Image currentCoverImage; 
+    private Image loadingGif;
     private ChangeListener<Number> widthListener;
     private ChangeListener<Number> heightListener;
     
@@ -100,6 +105,12 @@ public class ScnMangaMenu implements AppScene{
     private ScnMangaMenu(){
         MangaMenuController.doInstance(this);
         this.controller = MangaMenuController.getInstance();
+        
+        try {
+                loadingGif = new javafx.scene.image.Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+        } catch (Exception e) {
+                Logger.error("No se pudo cargar el gif de carga: " + e.getMessage());
+        }
     }
     
     public static ScnMangaMenu getInstance() {
@@ -152,6 +163,7 @@ public class ScnMangaMenu implements AppScene{
     
     @Override
     public javafx.scene.Parent getScene() {
+        if (loadingPane != null) doHideLoadingPane();
         if (myScene != null) return myScene;
         
         /*
@@ -309,6 +321,7 @@ public class ScnMangaMenu implements AppScene{
             if (e.getClickCount() < 2) return;
             Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
             if (selChapter != null) {
+                doShowLoadingPane();
                 controller.openChapter(selChapter);
             }
         });
@@ -359,26 +372,56 @@ public class ScnMangaMenu implements AppScene{
         listaCaps.setCellFactory(lv -> new ListCell<Chapter>() {
             private final Label titleLabel = new Label();
             private final Label subLabel = new Label();
-            private final VBox cellBox = new VBox(2, titleLabel, subLabel);
+            private final ProgressBar progressBar = new ProgressBar(0);
+            private final VBox cellBox = new VBox(2, titleLabel, subLabel, progressBar);
 
             {
                 titleLabel.getStyleClass().add("chapter-title");
                 subLabel.getStyleClass().add("chapter-sub");
+                progressBar.getStyleClass().add("chapter-download-progress");
+                progressBar.setMaxWidth(Double.MAX_VALUE);
+                progressBar.setVisible(false);
+                progressBar.setManaged(false);
+            }
+
+            private Downloader.DownloadInfo findDownloadInfo(String chapterID) {
+                for (Downloader.DownloadInfo info : Downloader.getInstance().getActiveDownloads()) {
+                    if (info.getChapterID().equals(chapterID)) {
+                        return info;
+                    }
+                }
+                return null;
             }
 
             @Override
             protected void updateItem(Chapter cap, boolean empty) {
                 super.updateItem(cap, empty);
                 getStyleClass().removeAll("chapter-read", "chapter-unread");
+                progressBar.progressProperty().unbind();
+
                 if (empty || cap == null) {
                     setGraphic(null);
                     setText(null);
+                    progressBar.setVisible(false);
+                    progressBar.setManaged(false);
                 } else {
                     titleLabel.setText(cap.getTitle());
                     String date = cap.getDate();
                     if (date != null && date.length() >= 10) date = date.substring(0, 10);
                     String scan = cap.getScane();
                     subLabel.setText((date != null ? date : "") + (scan != null ? " | " + scan : ""));
+
+                    // Show progress bar if this chapter is downloading
+                    Downloader.DownloadInfo info = findDownloadInfo(cap.getChapterID());
+                    if (info != null) {
+                        progressBar.progressProperty().bind(info.progressProperty());
+                        progressBar.setVisible(true);
+                        progressBar.setManaged(true);
+                    } else {
+                        progressBar.setVisible(false);
+                        progressBar.setManaged(false);
+                    }
+
                     setGraphic(cellBox);
                     if (cap.isReaded()) {
                         getStyleClass().add("chapter-read");
@@ -390,6 +433,13 @@ public class ScnMangaMenu implements AppScene{
                 }
             }
         });
+
+        // Refresh cells when downloads start or finish
+        Downloader.getInstance().getActiveDownloads().addListener(
+            (javafx.collections.ListChangeListener<Downloader.DownloadInfo>) change -> {
+                listaCaps.refresh();
+            }
+        );
         
         SVGPath icnRead = new SVGPath();
         icnRead.setContent("M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z");
@@ -455,11 +505,13 @@ public class ScnMangaMenu implements AppScene{
         btnKeepReading.setOnAction(e -> {
             Chapter sel = listaCaps.getSelectionModel().getSelectedItem();
             if (sel != null) {
+                doShowLoadingPane();
                 controller.openChapter(sel);
                 return;
             }
             Chapter selChapter = controller.findFirstUnreadChapter();
             if (selChapter != null) {
+                doShowLoadingPane();
                 controller.openChapter(selChapter);
             } else {
                 Logger.info("No unread chapters.");
@@ -468,23 +520,32 @@ public class ScnMangaMenu implements AppScene{
         
         btnDownloadChapter = new Button("",icnDownload_container);
         doChangeDownloadIcon(0);
-        listaCaps.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                if(newValue.isDownloaded()){
-                    doChangeDownloadIcon(1);
-                } else{
-                    doChangeDownloadIcon(0);
-                }
-                
-            } else {
-                // No hay ningún capítulo seleccionado en la lista.
+        listaCaps.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener.Change<? extends Chapter> c) -> {
+            var selected = listaCaps.getSelectionModel().getSelectedItems();
+            if (selected.isEmpty()) {
                 doChangeDownloadIcon(0);
+                btnDownloadChapter.setDisable(true);
+            } else {
+                boolean allDownloaded = true;
+                for (Chapter ch : selected) {
+                    if (!ch.isDownloaded()) {
+                        allDownloaded = false;
+                        break;
+                    }
+                }
+                if (allDownloaded) {
+                    doChangeDownloadIcon(1);
+                    btnDownloadChapter.setDisable(true);
+                } else {
+                    doChangeDownloadIcon(0);
+                    btnDownloadChapter.setDisable(false);
+                }
             }
         });
         btnDownloadChapter.getStyleClass().add("mangamenu-button");
         btnDownloadChapter.setMaxSize(40, 40);
         btnDownloadChapter.setMinSize(40, 40);
-        btnDownloadChapter.disableProperty().bind(listaCaps.getSelectionModel().selectedItemProperty().isNull());
+        btnDownloadChapter.setDisable(true);
         btnDownloadChapter.setOnAction(e -> {
             for (Chapter ch : listaCaps.getSelectionModel().getSelectedItems()) {
                 controller.downloadChapter(ch);
@@ -549,7 +610,7 @@ public class ScnMangaMenu implements AppScene{
         categoryMenu = new StackPane();
         categoryMenu.getStyleClass().add("category-option");
         categoryMenu.setMaxSize(300, 450);
-        categoryMenu.setVisible(menuVisible);
+        categoryMenu.setVisible(menu_visible);
         categoryMenu.setPadding(new Insets(15));
         
         SVGPath icnClose = new SVGPath();
@@ -656,19 +717,23 @@ public class ScnMangaMenu implements AppScene{
         categoryPane.getStyleClass().add("menu-background");
 
         categoryPane.setCenter(categoryMenu);
-        categoryPane.setVisible(menuVisible);
+        categoryPane.setVisible(menu_visible);
         
         coverPane = new BorderPane();
         doConfigCoverMenu();
         coverPane.getStyleClass().add("menu-background");
-        coverPane.setVisible(covermenuvisible);
+        coverPane.setVisible(covermenu_visible);
         
         // AHORA CARGAMOS LA IMAGEN PARA TODAS LAS VISTAS
         if (manga.getCoverURL() != null) {
             loadCover(manga.getCoverURL());
         }
 
-        StackPane panel_menu = new StackPane(panel,categoryPane,coverPane);
+        doConfigLoadingPane();
+        loadingPane.getStyleClass().add("menu-background");
+        loadingPane.setVisible(loadingPane_visible);
+        
+        StackPane panel_menu = new StackPane(panel,categoryPane,coverPane,loadingPane);
         panel_menu.setMinSize(0, 0);
         
         BorderPane fullPanel = new BorderPane();
@@ -683,8 +748,8 @@ public class ScnMangaMenu implements AppScene{
                     e.consume();
                 }
                 case ESCAPE -> {
-                    if(covermenuvisible == false && menuVisible == false) nav.backScene();
-                    if(covermenuvisible) doHideCoverMenu();
+                    if(covermenu_visible == false && menu_visible == false && loadingPane_visible == false) nav.backScene();
+                    if(covermenu_visible) doHideCoverMenu();
                     e.consume();
                 }
             }
@@ -724,6 +789,31 @@ public class ScnMangaMenu implements AppScene{
         coverPane.setRight(left);
     }
     
+    public void doConfigLoadingPane(){
+        ImageView gifView = new ImageView(loadingGif);
+        gifView.setFitWidth(150);
+        gifView.setFitHeight(150);
+        gifView.setPreserveRatio(true);
+        
+        Label loadingLabel = new Label("Cargando...");
+        loadingLabel.getStyleClass().add("reader-loading-label");
+        
+        VBox loadingOverlay = new VBox(15, gifView, loadingLabel);
+        loadingOverlay.setAlignment(Pos.CENTER);
+        
+        loadingPane = new BorderPane();
+        loadingPane.setCenter(loadingOverlay);
+    }
+    
+    private void doShowLoadingPane(){
+        loadingPane_visible = true;
+        loadingPane.setVisible(loadingPane_visible);
+    }
+    private void doHideLoadingPane(){
+        loadingPane_visible = false;
+        loadingPane.setVisible(loadingPane_visible);
+    }
+    
     public void doAddChapters(){
         List<Chapter> chapters = controller.getChapters();
         for (Chapter cap : chapters) {
@@ -746,11 +836,14 @@ public class ScnMangaMenu implements AppScene{
         if (widthListener != null) coverContainer.widthProperty().removeListener(widthListener);
         if (heightListener != null) coverContainer.heightProperty().removeListener(heightListener);
         
-        currentCoverImage = new Image(url, true);
+        currentCoverImage = app.simplereader.service.Cache.getInstance().getCoverMenuCache().get(url, k -> new Image(k, true));
         
         coverView.setImage(currentCoverImage);
         if (bgView != null) bgView.setImage(currentCoverImage);
-        if (coverMenuImageView != null) coverMenuImageView.setImage(currentCoverImage);
+        
+        if (coverMenuImageView != null) {
+            coverMenuImageView.setImage(currentCoverImage);
+        }
         
         coverView.setOpacity(0.0);
         coverView.setCache(true);
@@ -791,7 +884,9 @@ public class ScnMangaMenu implements AppScene{
         coverContainer.heightProperty().addListener(heightListener);
         
         coverContainer.setOnMouseClicked(e -> {
-            doShowCoverMenu();
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                doShowCoverMenu();
+            }
         });
          currentCoverImage.progressProperty().addListener((obs, old, progress) -> {
             if (progress.doubleValue() >= 1.0 && !currentCoverImage.isError()) {
@@ -834,25 +929,25 @@ public class ScnMangaMenu implements AppScene{
     }
     
     private void doShowMenu(){
-        menuVisible = true;
-        categoryMenu.setVisible(menuVisible);
-        categoryPane.setVisible(menuVisible);
+        menu_visible = true;
+        categoryMenu.setVisible(menu_visible);
+        categoryPane.setVisible(menu_visible);
     }
     
     private void doHideMenu(){
-        menuVisible = false;
-        categoryMenu.setVisible(menuVisible);
-        categoryPane.setVisible(menuVisible);
+        menu_visible = false;
+        categoryMenu.setVisible(menu_visible);
+        categoryPane.setVisible(menu_visible);
     }
     
     private void doShowCoverMenu(){
-        covermenuvisible = true;
+        covermenu_visible = true;
         coverPane.setOpacity(1.0); 
         coverPane.setVisible(true);
     }
     
     private void doHideCoverMenu(){
-        covermenuvisible = false;
+        covermenu_visible = false;
         coverPane.setVisible(false);
     }
     
