@@ -35,12 +35,12 @@ public class Category {
     }
     
     public void addManga(Manga manga){
-        if(!this.mangas.containsKey(manga.getMangaID())){
-            this.mangas.put(manga.getMangaID(), manga);
+        if(!this.mangas.containsKey(manga.getUniqueID())){
+            this.mangas.put(manga.getUniqueID(), manga);
         }
     }
     
     public void removeManga(Manga manga){
-        this.mangas.remove(manga.getMangaID());
+        this.mangas.remove(manga.getUniqueID());
     }
 }
