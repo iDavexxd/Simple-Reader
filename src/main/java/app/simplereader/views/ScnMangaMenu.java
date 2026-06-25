@@ -164,7 +164,10 @@ public class ScnMangaMenu implements AppScene{
     @Override
     public javafx.scene.Parent getScene() {
         if (loadingPane != null) doHideLoadingPane();
-        if (myScene != null) return myScene;
+        if (myScene != null) {
+            if (listaCaps != null) listaCaps.refresh();
+            return myScene;
+        }
         
         /*
          * COVER

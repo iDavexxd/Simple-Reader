@@ -288,7 +288,6 @@ public class MangaMenuController {
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     view.doHideLoadingPane();
-
                     if (!disposed) Logger.error("Error reloading manga("+e.getClass().getSimpleName()+"): " + e.getMessage());
                 });
             }
