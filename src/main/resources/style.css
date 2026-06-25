@@ -678,6 +678,7 @@
     -fx-background-color: -fx-main-bg;
 }
 
+
 /* =========================
    MENU DE LOS SOURCES
 ========================= */
@@ -874,6 +875,13 @@
 
 .conf-root {
     -fx-background-color: -fx-main-bg;
+}
+
+.conf-label {
+    -fx-text-fill: -fx-accent;
+    -fx-font-family: "Lato";
+    -fx-font-size: 18px;
+    
 }
 
 

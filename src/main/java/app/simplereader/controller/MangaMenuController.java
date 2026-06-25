@@ -194,6 +194,7 @@ public class MangaMenuController {
     public void reloadManga(){
         preloader.submit(() -> {
             if (disposed) return;
+            view.doShowLoadingPane();
             try {
                 String remoteCover = source.getSource(manga.getSourceID()).getCoverURL(manga.getMangaID());
                 if (disposed) return;
@@ -280,9 +281,14 @@ public class MangaMenuController {
                     view.setTags(getTags());
                     view.doReloadChapters();
                     view.loadCover(manga.getCoverURL());
+                    
+                    view.doHideLoadingPane();
+
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
+                    view.doHideLoadingPane();
+
                     if (!disposed) Logger.error("Error reloading manga("+e.getClass().getSimpleName()+"): " + e.getMessage());
                 });
             }
