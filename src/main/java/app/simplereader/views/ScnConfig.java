@@ -89,7 +89,7 @@ public class ScnConfig implements AppScene {
         VBox panelCategories = getCategoriesPanel();
         VBox panelGeneral = getGeneralPanel();
         VBox panelDownloads = getDownloadsPanel();
-        
+        VBox panelAboutApp = getAboutBuildPanel();
         // Por defecto mostramos General
         scrollContent.setContent(panelGeneral);
         
@@ -115,7 +115,12 @@ public class ScnConfig implements AppScene {
         btnDownloads.setMaxWidth(Double.MAX_VALUE);
         btnDownloads.setOnAction(e -> scrollContent.setContent(panelDownloads));
         
-        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads);
+        Button btnAboutApp = new Button("Sobre la App");
+        btnAboutApp.getStyleClass().add("config-menu-btn");
+        btnAboutApp.setMaxWidth(Double.MAX_VALUE);
+        btnAboutApp.setOnAction(e -> scrollContent.setContent(panelAboutApp));
+        
+        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnAboutApp);
         coso.setCenter(botones);
         
         BorderPane content = new BorderPane();
@@ -139,7 +144,8 @@ public class ScnConfig implements AppScene {
     }
     
     private VBox getCategoriesPanel() {                                                                          
-        Label categoryLabel = new Label("Categories");                                                           
+        Label categoryLabel = new Label("Categories");  
+        categoryLabel.getStyleClass().add("downloads-title");
         categoryLabel.setMaxWidth(Double.MAX_VALUE);                                                             
         categoryLabel.setAlignment(Pos.TOP_CENTER);                                                              
 
@@ -273,12 +279,13 @@ public class ScnConfig implements AppScene {
             VBox categoryConfig = new VBox(categoryLabel, listAndButtons);                                           
             VBox.setVgrow(categoryConfig, Priority.ALWAYS);                                                          
             VBox.setVgrow(categoryListView, Priority.ALWAYS);                                                        
-            categoryConfig.setPadding(new Insets(5));
+            categoryConfig.setPadding(new Insets(15));
             return categoryConfig;                                                                                   
         }
         
     private VBox getGeneralPanel() {
         Label generalLabel = new Label("Ajustes del Lector");
+        generalLabel.getStyleClass().add("downloads-title");
         generalLabel.setMaxWidth(Double.MAX_VALUE);
         generalLabel.setAlignment(Pos.TOP_CENTER);
         
@@ -314,6 +321,7 @@ public class ScnConfig implements AppScene {
         configBox.setPadding(new Insets(20));
         
         VBox panel = new VBox(generalLabel, configBox);
+        panel.setPadding(new Insets(15));
         return panel;
     }
     
@@ -416,6 +424,24 @@ public class ScnConfig implements AppScene {
         return panel;
     }
 
+    private VBox getAboutBuildPanel(){
+        Label titleLabel = new Label("Sobre la app");
+        titleLabel.getStyleClass().add("downloads-title");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);
+        titleLabel.setAlignment(Pos.TOP_CENTER);
+        
+        Label appTitle = new Label(AppConfig.APP_TITLE+" by iDavexX");
+        appTitle.getStyleClass().add("conf-label");
+        Label appVersion = new Label("Build: "+AppConfig.VERSION);
+        appVersion.getStyleClass().add("conf-label");
+
+        VBox menu = new VBox(15,appTitle,appVersion);
+        menu.setPadding(new Insets(5));
+        VBox todo = new VBox(10,titleLabel,menu);
+        todo.setPadding(new Insets(15));
+        return todo;
+    }
+    
     @Override
     public String getName() {
         return "Configuration";

@@ -321,7 +321,6 @@ public class ScnMangaMenu implements AppScene{
             if (e.getClickCount() < 2) return;
             Chapter selChapter = listaCaps.getSelectionModel().getSelectedItem();
             if (selChapter != null) {
-                doShowLoadingPane();
                 controller.openChapter(selChapter);
             }
         });
@@ -505,13 +504,11 @@ public class ScnMangaMenu implements AppScene{
         btnKeepReading.setOnAction(e -> {
             Chapter sel = listaCaps.getSelectionModel().getSelectedItem();
             if (sel != null) {
-                doShowLoadingPane();
                 controller.openChapter(sel);
                 return;
             }
             Chapter selChapter = controller.findFirstUnreadChapter();
             if (selChapter != null) {
-                doShowLoadingPane();
                 controller.openChapter(selChapter);
             } else {
                 Logger.info("No unread chapters.");
@@ -805,11 +802,11 @@ public class ScnMangaMenu implements AppScene{
         loadingPane.setCenter(loadingOverlay);
     }
     
-    private void doShowLoadingPane(){
+    public void doShowLoadingPane(){
         loadingPane_visible = true;
         loadingPane.setVisible(loadingPane_visible);
     }
-    private void doHideLoadingPane(){
+    public void doHideLoadingPane(){
         loadingPane_visible = false;
         loadingPane.setVisible(loadingPane_visible);
     }
