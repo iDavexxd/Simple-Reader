@@ -704,6 +704,7 @@ public class ScnReader implements AppScene {
         if (lateralMenu != null) {
             lateralMenu.setVisible(visible);
             lateralMenu.setManaged(visible);
+            myScene.requestFocus();
         }
     }
     
