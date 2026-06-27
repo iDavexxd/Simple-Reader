@@ -59,7 +59,7 @@ public class LibraryController {
     
     public boolean onCategory(Category category, Manga manga){
         
-        if(category.getMangas().containsKey(manga.getMangaID())){
+        if(category.getMangas().containsKey(manga.getUniqueID())){
             return true;
         }
         return false;
@@ -151,7 +151,8 @@ public class LibraryController {
                     for (JsonElement elem : mangaList) {
                         JsonObject mangaObj = elem.getAsJsonObject();
                         String id = mangaObj.get("mangaID").getAsString();
-                        mangasMap.add(id, mangaObj);
+                        String sourceId = mangaObj.has("sourceID") ? mangaObj.get("sourceID").getAsString() : "unknown";
+                        mangasMap.add(sourceId + "|" + id, mangaObj);
                     }
                     catObj.add("mangas", mangasMap);
                     catObj.remove("mangaList");
@@ -174,9 +175,13 @@ public class LibraryController {
                     Category cat = entry.getValue();
                     
                     if (cat.getMangas() != null) {
+                        HashMap<String, Manga> newMangas = new HashMap<>();
                         for (Manga manga : cat.getMangas().values()) {
                             restoreChapterRefs(manga);
+                            newMangas.put(manga.getUniqueID(), manga);
                         }
+                        cat.getMangas().clear();
+                        cat.getMangas().putAll(newMangas);
                     }
                     
                     categories.put(catName, cat);
