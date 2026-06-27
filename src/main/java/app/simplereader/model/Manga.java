@@ -32,6 +32,26 @@ public class Manga {
         return this.mangaID;
     }
     
+    public String getUniqueID(){
+        return this.sourceID + "|" + this.mangaID;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Manga manga = (Manga) obj;
+        return (this.mangaID != null && this.mangaID.equals(manga.mangaID)) &&
+               (this.sourceID != null && this.sourceID.equals(manga.sourceID));
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mangaID != null ? mangaID.hashCode() : 0;
+        result = 31 * result + (sourceID != null ? sourceID.hashCode() : 0);
+        return result;
+    }
+    
     public String getTitle(){
         return this.title;
     }
