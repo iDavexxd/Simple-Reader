@@ -35,6 +35,9 @@ public class ScnSourceMenu implements AppScene {
     private SourceMenuController controller;
     
     private ListView<app.simplereader.repository.AppExtension> sourceListView;
+    private BorderPane extension_info_menu;
+    
+    private boolean infomenu_visible = false;
     
     public ScnSourceMenu(){
         SourceMenuController.doInstance(this);
@@ -111,6 +114,20 @@ public class ScnSourceMenu implements AppScene {
         return root;
     }
 
+    private void doConfigExtensionInfoMenu(){
+        
+    }
+    
+    private void doHideInfoMenu(){
+        infomenu_visible = false;
+        extension_info_menu.setVisible(infomenu_visible);
+    }
+    
+    private void doShowInfoMenu(){
+        infomenu_visible = true;
+        extension_info_menu.setVisible(infomenu_visible);
+    }
+    
     public ListView<app.simplereader.repository.AppExtension> getListView(){
         return this.sourceListView;
     }

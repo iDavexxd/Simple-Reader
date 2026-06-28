@@ -15,4 +15,11 @@ public abstract class AppExtension {
 
     public abstract List<MangaSource> getSources();
     
+    public String getVersion() {
+        return "Unknown";
+    }
+    
+    public String getAuthor() {
+        return "Unknown";
+    }
 }

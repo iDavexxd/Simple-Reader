@@ -1,6 +1,5 @@
 package app.simplereader.model;
 
-import app.simplereader.controller.SourceManager;
 import app.simplereader.repository.MangaSource;
 import java.util.List;
 

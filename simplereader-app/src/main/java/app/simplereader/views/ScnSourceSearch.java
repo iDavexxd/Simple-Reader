@@ -11,6 +11,7 @@ import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
 import app.simplereader.repository.AppScene;
 import app.simplereader.views.components.Buttons;
+import app.simplereader.views.components.SvgIcons;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import javafx.scene.image.Image;
@@ -38,6 +39,7 @@ public class ScnSourceSearch implements AppScene {
     private final SceneController nav = SceneController.getInstance();
     private final app.simplereader.repository.AppExtension extension;
     private MangaSource currentSource;
+    private final SvgIcons icons = SvgIcons.get();
     
     private TextField searchField;
     private ListView<Manga> resultsList;
@@ -45,6 +47,9 @@ public class ScnSourceSearch implements AppScene {
     private BorderPane loadingPane;
     private boolean loadingPane_visible = false;
     private Image loadingGif;
+    
+    private BorderPane infoBorderPane;
+    private boolean infoMenuVisible = false;
 
     private final ObservableList<Manga> results = FXCollections.observableArrayList();
     public ScnSourceSearch(app.simplereader.repository.AppExtension extension) {
@@ -86,12 +91,72 @@ public class ScnSourceSearch implements AppScene {
         loadingPane_visible = false;
         if(loadingPane != null) loadingPane.setVisible(loadingPane_visible);
     }
+    
+    public void doCreateInfoPane(){
+        // top
+        Label menuTitle = new Label();
+        menuTitle.setText("Info");
+        
+        Button btnClose = new Button("",icons.getCloseIcon());
+        btnClose.setMinSize(30, 30);
+        btnClose.setMaxSize(30, 30);
+        btnClose.setOnAction(e -> doHideInfoMenu());
+        
+        javafx.scene.layout.Region topSpacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(topSpacer, javafx.scene.layout.Priority.ALWAYS);
+        
+        HBox topcontent = new HBox(menuTitle,topSpacer,btnClose);
+        
+        // center
+        Label lblTitle = new Label(extension.getName());
+        lblTitle.getStyleClass().add("info-label");
+        if(lblTitle.getStyleClass().isEmpty()) {} // avoid issues if style missing
+        Label lblVersion = new Label("Version: " + extension.getVersion());
+        lblVersion.getStyleClass().add("info-label");
+        
+        Label lblAuthor = new Label("Author: " + extension.getAuthor());
+        lblAuthor.getStyleClass().add("info-label");
+        
+        VBox centercontent = new VBox(15, lblTitle, lblVersion, lblAuthor);
+        centercontent.setAlignment(Pos.CENTER_LEFT);
+        
+        VBox allContent = new VBox(20, topcontent, centercontent);
+        
+        StackPane infoMenu = new StackPane(allContent);
+        infoMenu.getStyleClass().add("source-menu");
+        infoMenu.setPadding(new Insets(15));
+
+        infoMenu.setMaxSize(300, 450);
+        infoMenu.setMinHeight(450);
+
+        infoBorderPane = new BorderPane();
+        infoBorderPane.getStyleClass().add("menu-background");
+        infoBorderPane.setCenter(infoMenu);
+        infoBorderPane.setVisible(infoMenuVisible);
+    }
+    
+    private void doShowInfoMenu(){
+        infoMenuVisible = true;
+        if(infoBorderPane != null) infoBorderPane.setVisible(infoMenuVisible);
+    }
+    
+    private void doHideInfoMenu(){
+        infoMenuVisible = false;
+        if(infoBorderPane != null) infoBorderPane.setVisible(infoMenuVisible);
+    }
+
     @Override
     public javafx.scene.Parent getScene() {
         SideMenu lateralmenu = new SideMenu();
         Button btnBack = Buttons.getBackButton();
         
+        Button btnInfo = new Button("", icons.getInfoIcon());
+        btnInfo.setMinSize(24, 24);
+        btnInfo.setMaxSize(24, 24);
+        btnInfo.setOnAction(e -> doShowInfoMenu());
+        
         lateralmenu.addTop(btnBack);
+        lateralmenu.addBottom(btnInfo);
         btnBack.setOnAction(e-> nav.backScene());
         searchField = new TextField();
         searchField.setPromptText("Buscar en " + extension.getName() + "...");
@@ -321,7 +386,8 @@ public class ScnSourceSearch implements AppScene {
         });
         
         doConfigLoadingPane();
-        StackPane rootStack = new StackPane(root, loadingPane);
+        doCreateInfoPane();
+        StackPane rootStack = new StackPane(root, loadingPane, infoBorderPane);
         if(loadingPane_visible) loadingPane.setVisible(true);
         else loadingPane.setVisible(false);
         
