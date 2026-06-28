@@ -1,4 +1,4 @@
-# Simple Reader v.1.0.1
+# Simple Reader v.1.1.0
 ### Lector de mangas básico.
 
 
