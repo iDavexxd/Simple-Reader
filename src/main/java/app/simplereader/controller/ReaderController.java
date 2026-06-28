@@ -233,69 +233,154 @@ public class ReaderController {
         int index = currentPageIndex; 
         if (!loadingPages.add(index)) return;
         
+        view.setLoadingProgress(0);
         preloadAroundCurrent();
         
-        Chapter currentTaskChapter = this.chapter; // Guardar el capítulo actual para validar después
+        String url = chapter.getPage(index);
+        Chapter currentTaskChapter = this.chapter;
         
-        CompletableFuture.supplyAsync(() -> {
-            if (disposed || this.chapter != currentTaskChapter) return null; // Abortar si ya se cerró o se cambió de cap
-            String url = currentTaskChapter.getPage(index);
-            return loadWebpOrNative(url, false);
-        }, preloader).thenAccept(img -> {
-            if (disposed || this.chapter != currentTaskChapter) return; // Abortar si cambió de capítulo
+        // Check if the source requires custom headers for image loading
+        boolean isWebp = url.toLowerCase().contains(".webp");
+        java.util.Map<String, String> sourceHeaders = null;
+        app.simplereader.repository.MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
+        if (src != null) {
+            sourceHeaders = src.getImageHeaders();
+        }
+        boolean needsHeaders = sourceHeaders != null && !sourceHeaders.isEmpty();
+        
+        if (!isWebp && url.startsWith("http") && !needsHeaders) {
+            // Use JavaFX native background loading with built-in progress tracking
+            Image img = new Image(url, true);
             
-            Platform.runLater(() -> {
-                if (disposed || this.chapter != currentTaskChapter) return; 
-                
+            img.progressProperty().addListener((obs, old, val) -> {
+                if (disposed || this.chapter != currentTaskChapter) return;
+                if (index == currentPageIndex) {
+                    view.setLoadingProgress(val.doubleValue());
+                }
+            });
+            
+            img.errorProperty().addListener((obs, old, isError) -> {
+                if (!isError || disposed || this.chapter != currentTaskChapter) return;
                 loadingPages.remove(index);
-                if (img != null && !img.isError()) {
+                String errorMsg = img.getException() != null ? img.getException().getMessage() : "desconocido";
+                Logger.error("Error cargando página " + index + ": " + errorMsg);
+                if (index == currentPageIndex) {
+                    view.showErrorOverlay();
+                }
+            });
+            
+            img.progressProperty().addListener((obs, old, val) -> {
+                if (val.doubleValue() >= 1.0 && !img.isError()) {
+                    if (disposed || this.chapter != currentTaskChapter) return;
+                    loadingPages.remove(index);
                     app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
                     if (index == currentPageIndex) {
                         view.setImageViewImage(img);
                         view.fitImageToScreen();
                         resetZoom();
                     }
-                    Logger.info("Page " + index + " loaded (async).");
-                } else {
-                    Logger.error("Error cargando página " + index);
-                    if (index == currentPageIndex) {
-                        view.showErrorOverlay();
-                    }
+                    Logger.info("Page " + index + " loaded (native bg).");
                 }
             });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                loadingPages.remove(index);
-                if (!disposed) {
-                    Logger.error("Error cargando página " + index + ": " + e.getMessage());
-                    if (index == currentPageIndex) {
-                        view.showErrorOverlay();
+        } else {
+            // Webp, local files, or sources with custom headers: use CompletableFuture with indeterminate progress
+            view.setLoadingProgress(-1);
+            
+            CompletableFuture.supplyAsync(() -> {
+                if (disposed || this.chapter != currentTaskChapter) return null;
+                return loadWebpOrNative(url, false, index);
+            }, preloader).thenAccept(img -> {
+                if (disposed || this.chapter != currentTaskChapter) return;
+                
+                Platform.runLater(() -> {
+                    if (disposed || this.chapter != currentTaskChapter) return; 
+                    
+                    loadingPages.remove(index);
+                    if (img != null && !img.isError()) {
+                        app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
+                        if (index == currentPageIndex) {
+                            view.setImageViewImage(img);
+                            view.fitImageToScreen();
+                            resetZoom();
+                        }
+                        Logger.info("Page " + index + " loaded (async).");
+                    } else {
+                        String errMsg = (img != null && img.getException() != null) ? img.getException().getMessage() : "Desconocido";
+                        Logger.error("Error cargando página " + index + ": " + errMsg);
+                        if (index == currentPageIndex) {
+                            view.showErrorOverlay();
+                        }
                     }
-                }
+                });
+            }).exceptionally(e -> {
+                Platform.runLater(() -> {
+                    loadingPages.remove(index);
+                    if (!disposed) {
+                        Logger.error("Error cargando página " + index + ": " + e.getMessage());
+                        if (index == currentPageIndex) {
+                            view.showErrorOverlay();
+                        }
+                    }
+                });
+                return null;
             });
-            return null;
-        });
+        }
     }
     
-    private Image loadWebpOrNative(String url, boolean background) {
+    private Image loadWebpOrNative(String url, boolean background, int index) {
         if (url.startsWith("http")) {
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                conn.setConnectTimeout(5000); // 5 segundos de límite
-                conn.setReadTimeout(10000);   // 10 segundos de límite
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                app.simplereader.repository.MangaSource src = manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID()) : null;
+                HttpURLConnection conn = (HttpURLConnection) app.simplereader.service.Http.getConnection(url, src);
                 
                 // Si la conexión manual arroja código de error, lanzamos excepción para ir al fallback
                 if (conn.getResponseCode() >= 400) {
                     throw new java.io.IOException("HTTP " + conn.getResponseCode());
                 }
                 
-                try (InputStream in = conn.getInputStream()) {
-                    if (url.toLowerCase().contains(".webp")) {
-                        BufferedImage bimg = ImageIO.read(in);
-                        if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
-                    } else {
-                        return new Image(in);
+                long totalBytes = conn.getContentLengthLong();
+                try (InputStream in = conn.getInputStream();
+                     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
+                     
+                    byte[] chunk = new byte[8192];
+                    long bytesRead = 0;
+                    int n;
+                    long lastUpdate = 0;
+                    
+                    while ((n = in.read(chunk)) != -1) {
+                        buffer.write(chunk, 0, n);
+                        bytesRead += n;
+                        
+                        if (totalBytes > 0 && index == currentPageIndex) {
+                            long now = System.currentTimeMillis();
+                            if (now - lastUpdate > 50) { // Max 20fps update to avoid UI lag
+                                lastUpdate = now;
+                                double progress = (double) bytesRead / totalBytes;
+                                Platform.runLater(() -> {
+                                    if (!disposed && index == currentPageIndex) {
+                                        view.setLoadingProgress(progress);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Finalizamos asegurándonos de que la barra llegue al 100% si es la actual
+                    if (totalBytes > 0 && index == currentPageIndex) {
+                        Platform.runLater(() -> {
+                            if (!disposed && index == currentPageIndex) {
+                                view.setLoadingProgress(1.0);
+                            }
+                        });
+                    }
+                    
+                    try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(buffer.toByteArray())) {
+                        if (url.toLowerCase().contains(".webp")) {
+                            BufferedImage bimg = ImageIO.read(bin);
+                            if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
+                        } else {
+                            return new Image(bin);
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -328,7 +413,7 @@ public class ReaderController {
     
     public Image getPage(int index) {
         String url = chapter.getPage(index);
-        return app.simplereader.service.Cache.getInstance().getPagesLRU().computeIfAbsent(url, k -> loadWebpOrNative(k, true));
+        return app.simplereader.service.Cache.getInstance().getPagesLRU().computeIfAbsent(url, k -> loadWebpOrNative(k, true, index));
     }
     
     public void preloadPage(int index) {
@@ -343,7 +428,7 @@ public class ReaderController {
             if (Math.abs(index - currentPageIndex) > 3) return null; // Cancela precargas si saltaste la página muy rápido
             
             String url = currentTaskChapter.getPage(index);
-            return loadWebpOrNative(url, false);
+            return loadWebpOrNative(url, false, index);
         }, preloader).thenAccept(img -> {
             if (disposed || this.chapter != currentTaskChapter) return;
             

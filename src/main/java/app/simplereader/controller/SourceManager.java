@@ -175,7 +175,7 @@ public class SourceManager {
                 
                 if (!localCoverFile.exists()) {
                     Logger.info("Downloading cover for " + manga.getTitle());
-                    downloadFile(currentCover, localCoverPath);
+                    downloadFile(currentCover, localCoverPath, getSource(sourceId));
                 }
                 
                 manga.setCoverURL(localCoverFile.toURI().toURL().toString());
@@ -185,7 +185,7 @@ public class SourceManager {
             try (FileWriter writer = new FileWriter(path)) {
                 gson.toJson(manga, writer);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             Logger.error("Error guardando manga: " + e.getMessage());
         }
     }
@@ -213,8 +213,9 @@ public class SourceManager {
         }
     }
     
-    private void downloadFile(String url, String destination) throws IOException {
-        try (InputStream in = new URL(url).openStream()) {
+    private void downloadFile(String url, String destination, MangaSource source) throws Exception {
+        java.net.URLConnection conn = app.simplereader.service.Http.getConnection(url, source);
+        try (InputStream in = conn.getInputStream()) {
             Files.copy(in, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
         }
     }

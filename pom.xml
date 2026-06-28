@@ -3,14 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>App.Reader</groupId>
     <artifactId>SimpleReader</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <exec.mainClass>app.simplereader.Main</exec.mainClass>
-        <api.version>2.0</api.version>
+        <api.version>2.1</api.version>
     </properties>
     
     <dependencies>

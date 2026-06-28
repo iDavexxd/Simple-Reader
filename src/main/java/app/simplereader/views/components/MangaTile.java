@@ -241,11 +241,8 @@ public class MangaTile {
     private void loadWithImageIO() {
         java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
-                java.net.URL urlObj = new java.net.URL(this.coverURL);
-                java.net.URLConnection conn = urlObj.openConnection();
-                if (this.coverURL.startsWith("http")) {
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                }
+                app.simplereader.repository.MangaSource src = this.manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(this.manga.getSourceID()) : null;
+                java.net.URLConnection conn = app.simplereader.service.Http.getConnection(this.coverURL, src);
                 java.awt.image.BufferedImage bimg;
                 try (java.io.InputStream in = conn.getInputStream()) {
                     bimg = javax.imageio.ImageIO.read(in);

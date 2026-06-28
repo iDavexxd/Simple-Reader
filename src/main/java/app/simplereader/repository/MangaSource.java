@@ -22,6 +22,13 @@ public interface MangaSource {
     
     void fetchMangaData(Manga manga);
     
-    
+    /**
+     * Returns HTTP headers required to load images from this source.
+     * Override this in sources that need custom headers (e.g. Referer).
+     * Return null or empty map if no special headers are needed.
+     */
+    default java.util.Map<String, String> getImageHeaders() {
+        return null;
+    }
         
 }

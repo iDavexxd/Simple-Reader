@@ -18,6 +18,8 @@ public class SimpleReader extends Application{
           
     @Override
     public void start(Stage stage) {
+        System.setProperty("http.agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoSlab-Regular.ttf"), 14);
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/RobotoSlab-Bold.ttf"), 14);
         javafx.scene.text.Font.loadFont(getClass().getResourceAsStream("/fonts/Lato-Regular.ttf"), 14);

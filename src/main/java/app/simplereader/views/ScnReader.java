@@ -14,6 +14,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -30,6 +31,7 @@ import javafx.scene.shape.SVGPath;
 import app.simplereader.repository.AppScene;
 import app.simplereader.views.components.SvgIcons;
 import java.util.List;
+import javafx.scene.control.ProgressBar;
 
 /**
  *
@@ -69,6 +71,7 @@ public class ScnReader implements AppScene {
     private javafx.scene.image.Image loadingGif;
     private javafx.scene.image.Image errorGif;
     private VBox loadingOverlay;
+    private ProgressBar loadingProgressBar;
     private VBox errorOverlay;
     private VBox noPagesOverlay;
     
@@ -262,6 +265,7 @@ public class ScnReader implements AppScene {
             }
         });
         
+        // Loading overlay
         ImageView gifView = new ImageView(loadingGif);
         gifView.setFitWidth(150);
         gifView.setFitHeight(150);
@@ -270,7 +274,12 @@ public class ScnReader implements AppScene {
         Label loadingLabel = new Label("Cargando...");
         loadingLabel.getStyleClass().add("reader-loading-label");
         
-        loadingOverlay = new VBox(15, gifView, loadingLabel);
+        loadingProgressBar = new ProgressBar(ProgressBar.INDETERMINATE_PROGRESS);
+        loadingProgressBar.getStyleClass().add("reader-loading-progress");
+        loadingProgressBar.setPrefWidth(300);
+        loadingProgressBar.setMaxWidth(300);
+        
+        loadingOverlay = new VBox(15, gifView, loadingLabel, loadingProgressBar);
         loadingOverlay.setAlignment(Pos.CENTER);
         loadingOverlay.setMouseTransparent(true);
         loadingOverlay.setVisible(true);
@@ -378,6 +387,10 @@ public class ScnReader implements AppScene {
         
         spane.getStyleClass().add("reader");
         return spane;
+    }
+    
+    public void setPageLoadingProgress(Double progress){
+        if(loadingProgressBar != null) loadingProgressBar.setProgress(progress);
     }
     
     private Parent getLateralMenu() {
@@ -685,6 +698,12 @@ public class ScnReader implements AppScene {
             if (noPagesOverlay != null) {
                 noPagesOverlay.setVisible(false);
             }
+        }
+    }
+    
+    public void setLoadingProgress(double value) {
+        if (loadingProgressBar != null) {
+            loadingProgressBar.setProgress(value);
         }
     }
     

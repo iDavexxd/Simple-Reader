@@ -401,11 +401,7 @@ public class ScnSourceSearch implements AppScene {
     private void loadWithImageIO(String coverURL, java.util.function.Consumer<Image> callback) {
         java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
-                java.net.URL urlObj = new java.net.URL(coverURL);
-                java.net.URLConnection conn = urlObj.openConnection();
-                if (coverURL.startsWith("http")) {
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                }
+                java.net.URLConnection conn = app.simplereader.service.Http.getConnection(coverURL, currentSource);
                 java.awt.image.BufferedImage bimg;
                 try (java.io.InputStream in = conn.getInputStream()) {
                     bimg = javax.imageio.ImageIO.read(in);

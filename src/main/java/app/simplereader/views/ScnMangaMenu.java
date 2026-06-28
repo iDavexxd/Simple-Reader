@@ -836,7 +836,24 @@ public class ScnMangaMenu implements AppScene{
         if (widthListener != null) coverContainer.widthProperty().removeListener(widthListener);
         if (heightListener != null) coverContainer.heightProperty().removeListener(heightListener);
         
-        currentCoverImage = app.simplereader.service.Cache.getInstance().getCoverMenuCache().get(url, k -> new Image(k, true));
+        currentCoverImage = app.simplereader.service.Cache.getInstance().getCoverMenuCache().get(url, k -> {
+            if (k.startsWith("http")) {
+                app.simplereader.repository.MangaSource src = app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID());
+                boolean needsHeaders = src != null && src.getImageHeaders() != null && !src.getImageHeaders().isEmpty();
+                if (needsHeaders) {
+                    try {
+                        java.net.URLConnection conn = app.simplereader.service.Http.getConnection(k, src);
+                        try (java.io.InputStream in = conn.getInputStream()) {
+                            return new Image(in);
+                        }
+                    } catch (Exception e) {
+                        Logger.error("Error cargando cover menu con headers: " + e.getMessage());
+                        return new Image(k, true); // Fallback
+                    }
+                }
+            }
+            return new Image(k, true);
+        });
         
         coverView.setImage(currentCoverImage);
         if (bgView != null) bgView.setImage(currentCoverImage);

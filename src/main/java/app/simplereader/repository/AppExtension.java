@@ -11,7 +11,6 @@ public abstract class AppExtension {
     
     protected final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     
-    
     public abstract String getName();
 
     public abstract List<MangaSource> getSources();
