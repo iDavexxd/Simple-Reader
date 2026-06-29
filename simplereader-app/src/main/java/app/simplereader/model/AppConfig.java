@@ -62,6 +62,7 @@ public class AppConfig {
     }
     
     public final static String DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator;
+    public final static String COOKIES_FOLDER = DATA_FOLDER + "cookies" + File.separator;
     
     public static String MANGA_DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator + "manga";
     

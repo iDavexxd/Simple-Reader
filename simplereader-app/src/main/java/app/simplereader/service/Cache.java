@@ -30,17 +30,28 @@ public class Cache {
             })
             .build();
             
-        // Caché estricto LRU para páginas del lector
-        pagesLRU = java.util.Collections.synchronizedMap(new java.util.LinkedHashMap<String, Image>(10, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(java.util.Map.Entry<String, Image> eldest) {
-                if (size() > 10) {
-                    if (eldest.getValue() != null) eldest.getValue().cancel();
-                    return true;
-                }
-                return false;
-            }
-        });
+        // Caché estricto LRU para páginas del lector migrado a Caffeine por peso
+        com.github.benmanes.caffeine.cache.Cache<String, Image> pagesCache = Caffeine.newBuilder()
+            // Límite de peso: por ejemplo, 200 MB en memoria
+            .maximumWeight(200)
+            .weigher((String key, Image image) -> {
+                // Calculamos el peso aproximado de la imagen en MB (ancho * alto * 4 bytes)
+                // Aseguramos de que el peso mínimo sea 1 para evitar un peso de 0.
+                if (image == null) return 1;
+                double width = image.getWidth();
+                double height = image.getHeight();
+                int weightMB = (int) ((width * height * 4.0) / (1024.0 * 1024.0));
+                return Math.max(1, weightMB);
+            })
+            .executor(Runnable::run)
+            .removalListener((String key, Image image, RemovalCause cause) -> {
+                if (image != null) image.cancel();
+            })
+            .build();
+            
+        // Exponemos el caché de Caffeine como un Map para mantener la compatibilidad 
+        // con tu método getPagesLRU() y el resto del código
+        pagesLRU = pagesCache.asMap();
             
         // Caché para la imagen de portada en máxima calidad (ScnMangaMenu CoverMenu)
         coverMenuCache = Caffeine.newBuilder()

@@ -17,6 +17,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -28,8 +30,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
@@ -40,6 +42,11 @@ public class ScnSourceSearch implements AppScene {
     private final app.simplereader.repository.AppExtension extension;
     private MangaSource currentSource;
     private final SvgIcons icons = SvgIcons.get();
+    private static final java.util.concurrent.ExecutorService networkExecutor = java.util.concurrent.Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+    });
     
     private TextField searchField;
     private ListView<Manga> resultsList;
@@ -357,6 +364,11 @@ public class ScnSourceSearch implements AppScene {
                         menu.updateManga(mangaToLoad);
                         nav.goTo(menu);
                     });
+                }, networkExecutor).exceptionally(ex -> {
+                    Logger.error("Error en CompletableFuture: " + ex.getMessage());
+                    ex.printStackTrace();
+                    javafx.application.Platform.runLater(() -> doHideLoadingPane());
+                    return null;
                 });
             }
         });
@@ -412,7 +424,7 @@ public class ScnSourceSearch implements AppScene {
                 }
                 searchField.setDisable(false);
             });
-        });
+        }, networkExecutor);
     }
     
     @Override
@@ -497,7 +509,7 @@ public class ScnSourceSearch implements AppScene {
                 Logger.error("Error decodificando cover de búsqueda con ImageIO: " + e.getMessage());
             }
             return null;
-        }).thenAccept(img -> {
+        }, networkExecutor).thenAccept(img -> {
             if (img != null) {
                 javafx.application.Platform.runLater(() -> {
                     SEARCH_IMAGE_CACHE.put(coverURL, img);

@@ -837,19 +837,19 @@ public class ScnMangaMenu implements AppScene{
         if (heightListener != null) coverContainer.heightProperty().removeListener(heightListener);
         
         currentCoverImage = app.simplereader.service.Cache.getInstance().getCoverMenuCache().get(url, k -> {
-            if (k.startsWith("http")) {
+            if (k.startsWith("http") || k.toLowerCase().contains(".webp")) {
                 app.simplereader.repository.MangaSource src = app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID());
-                boolean needsHeaders = src != null && src.getImageHeaders() != null && !src.getImageHeaders().isEmpty();
-                if (needsHeaders) {
-                    try {
-                        java.net.URLConnection conn = app.simplereader.service.Http.getConnection(k, src);
-                        try (java.io.InputStream in = conn.getInputStream()) {
-                            return new Image(in);
-                        }
-                    } catch (Exception e) {
-                        Logger.error("Error cargando cover menu con headers: " + e.getMessage());
-                        return new Image(k, true); // Fallback
+                try {
+                    java.net.URLConnection conn = app.simplereader.service.Http.getConnection(k, src);
+                    java.awt.image.BufferedImage bimg;
+                    try (java.io.InputStream in = conn.getInputStream()) {
+                        bimg = javax.imageio.ImageIO.read(in);
                     }
+                    if (bimg != null) {
+                        return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
+                    }
+                } catch (Exception e) {
+                    Logger.error("Error cargando cover menu con ImageIO: " + e.getMessage());
                 }
             }
             return new Image(k, true);

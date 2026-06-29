@@ -6,7 +6,7 @@ import java.util.Map;
 import app.simplereader.repository.MangaSource;
 
 public class Http {
-    public static final String DEFAULT_USER_AGENT = "SimpleReader/1.0";
+    public static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
     
     /**
      * Creates and configures an HttpURLConnection for a given URL and source.
