@@ -89,8 +89,7 @@
                 <configuration>
                     <mainClass>app.simplereader.Main</mainClass>
                     <options>
-                        <option>-XX:+UseZGC</option>
-                        <option>-XX:+ZGenerational</option>
+                        <option>-XX:+UseG1GC</option>
                         <option>-Xmx1024m</option>
                     </options>
                 </configuration>
