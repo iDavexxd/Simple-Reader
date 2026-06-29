@@ -1,6 +1,6 @@
 package app.simplereader.repository;
 
-import java.net.http.HttpClient;
+import okhttp3.OkHttpClient;
 import java.util.List;
 
 /**
@@ -9,7 +9,8 @@ import java.util.List;
  */
 public abstract class AppExtension {
     
-    protected final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
+    // Todas las extensiones heredarán este cliente global (OkHttp)
+    protected final OkHttpClient client = GlobalNetwork.getInstance().getClient();
     
     public abstract String getName();
 
