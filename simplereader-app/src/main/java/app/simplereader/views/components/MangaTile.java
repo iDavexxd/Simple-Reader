@@ -39,6 +39,8 @@ public class MangaTile {
     private Image cover;
     private Runnable updateImageFit;
     private boolean imageLoaded = false;
+    private Image currentNativeLoad = null;
+    private java.util.concurrent.CompletableFuture<?> currentIOLoad = null;
       
     
 
@@ -192,6 +194,14 @@ public class MangaTile {
     }
 
     public void unloadImage() {
+        if (currentNativeLoad != null) {
+            currentNativeLoad.cancel();
+            currentNativeLoad = null;
+        }
+        if (currentIOLoad != null) {
+            currentIOLoad.cancel(true);
+            currentIOLoad = null;
+        }
         this.coverView.setImage(null);      // libera la imagen del ImageView
         this.coverView.setOpacity(0.0);     // la deja invisible para el próximo loadImage()
         this.placeholder.setVisible(true);  // muestra el placeholder gris
@@ -203,7 +213,8 @@ public class MangaTile {
             loadWithImageIO();
         } else {
             // JavaFX nativo: escalado en carga, no bloquea, bajo consumo de RAM
-            Image originalImage = new Image(this.coverURL, COVER_LOAD_SIZE, COVER_LOAD_SIZE, true, true, true);
+            currentNativeLoad = new Image(this.coverURL, COVER_LOAD_SIZE, COVER_LOAD_SIZE, true, true, true);
+            Image originalImage = currentNativeLoad;
 
             if (originalImage.isError()) {
                 loadWithImageIO();
@@ -239,7 +250,7 @@ public class MangaTile {
     }
 
     private void loadWithImageIO() {
-        java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+        currentIOLoad = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
                 app.simplereader.repository.MangaSource src = this.manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(this.manga.getSourceID()) : null;
                 java.net.URLConnection conn = app.simplereader.service.Http.getConnection(this.coverURL, src);

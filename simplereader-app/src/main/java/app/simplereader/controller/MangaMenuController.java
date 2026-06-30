@@ -151,6 +151,9 @@ public class MangaMenuController {
     }
 
     private void navigateToReader(Chapter chapter){
+        // Las covers ya no se necesitan → liberar memoria
+        app.simplereader.service.Cache.getInstance().getSharedCache().invalidateAll();
+        
         List<Chapter> chapters = manga.getChapters();
         int index = chapters != null ? chapters.indexOf(chapter) : -1;
         Logger.info("Selected: " + chapter.getTitle());

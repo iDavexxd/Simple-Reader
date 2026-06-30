@@ -60,6 +60,8 @@ public class ScnMainMenu implements AppScene{
     
     private final Map<String, TilePane> categoryPanes = new HashMap<>();
     
+    private Parent myScene;
+    
     public ScnMainMenu(){
         MainMenuController.doInstance(this);
         this.controller = MainMenuController.getInstance();
@@ -75,6 +77,12 @@ public class ScnMainMenu implements AppScene{
  
     @Override
     public Parent getScene(){      
+        
+        if (myScene != null) {
+            // Refrescar visibilidad de covers si volvemos de otra escena
+            controller.updateVisibleTiles();
+            return myScene;
+        }
         
         // Crear TilePanes para cada categoría
         controller.doCreateCategoryPanes();
@@ -182,6 +190,7 @@ public class ScnMainMenu implements AppScene{
             }
         });
         
+        myScene = root;
         return root;
     }
     

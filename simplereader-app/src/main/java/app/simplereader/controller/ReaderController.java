@@ -90,7 +90,8 @@ public class ReaderController {
     public void loadChapter(Chapter chapter, int index){
         disposed = false; // Reset the disposed flag so it can be reused
         
-        // cache.clear(); ya no es necesario, el caché compartido se encarga
+        // Limpiar páginas del capítulo anterior para liberar RAM inmediatamente
+        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
         loadingPages.clear();
         view.setImageViewImage(null); 
         
@@ -213,14 +214,14 @@ public class ReaderController {
     }
     
     public void reloadCurrentImage() {
-        app.simplereader.service.Cache.getInstance().getPagesLRU().remove(chapter.getPage(currentPageIndex));
+        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidate(chapter.getPage(currentPageIndex));
         loadingPages.remove(currentPageIndex);
         view.setImageViewImage(null);
         loadCurrentImage();
     }
     
     public void loadCurrentImage() {
-        Image cached = app.simplereader.service.Cache.getInstance().getPagesLRU().get(chapter.getPage(currentPageIndex));
+        Image cached = app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(currentPageIndex));
         if (cached != null) {
             view.setImageViewImage(cached);
             view.fitImageToScreen();
@@ -413,12 +414,12 @@ public class ReaderController {
     
     public Image getPage(int index) {
         String url = chapter.getPage(index);
-        return app.simplereader.service.Cache.getInstance().getPagesLRU().computeIfAbsent(url, k -> loadWebpOrNative(k, true, index));
+        return app.simplereader.service.Cache.getInstance().getPagesLRU().get(url, k -> loadWebpOrNative(k, true, index));
     }
     
     public void preloadPage(int index) {
         if (index < 0 || index >= totalPages()) return;
-        if (app.simplereader.service.Cache.getInstance().getPagesLRU().get(chapter.getPage(index)) != null) return;
+        if (app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(index)) != null) return;
         if (!loadingPages.add(index)) return;
         
         Chapter currentTaskChapter = this.chapter;
@@ -501,18 +502,25 @@ public class ReaderController {
     public void cleanupResources() {
         disposed = true; 
         loadingPages.clear();
+        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
+        if (view != null) view.setImageViewImage(null);
         lib.saveLibrary();
+        
+        // Sugerir fuertemente al GC que limpie la memoria off-heap de las imágenes de JavaFX
+        System.gc();
     }
     
     public void saveAndCleanup() {
         disposed = true;
         
-        // cache.clear(); Ya no es necesario con caché global
         loadingPages.clear();
+        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
+        if (view != null) view.setImageViewImage(null);
         
         lib.saveLibrary();
         
         // Al ser Singleton, ya no destruimos el preloader ni los lazos con la UI
+        System.gc();
     }
     
     public Manga getManga() {
