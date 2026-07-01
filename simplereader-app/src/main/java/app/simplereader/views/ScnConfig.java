@@ -90,6 +90,7 @@ public class ScnConfig implements AppScene {
         VBox panelGeneral = getGeneralPanel();
         VBox panelDownloads = getDownloadsPanel();
         VBox panelAboutApp = getAboutBuildPanel();
+        VBox panelPerformance = getPerformancePanel();
         // Por defecto mostramos General
         scrollContent.setContent(panelGeneral);
         
@@ -120,7 +121,13 @@ public class ScnConfig implements AppScene {
         btnAboutApp.setMaxWidth(Double.MAX_VALUE);
         btnAboutApp.setOnAction(e -> scrollContent.setContent(panelAboutApp));
         
-        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnAboutApp);
+        
+        Button btnPerformance = new Button("Performance");
+        btnPerformance.getStyleClass().add("config-menu-btn");
+        btnPerformance.setMaxWidth(Double.MAX_VALUE);
+        btnPerformance.setOnAction(e -> scrollContent.setContent(panelPerformance));
+        
+        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnPerformance,btnAboutApp);
         coso.setCenter(botones);
         
         BorderPane content = new BorderPane();
@@ -318,7 +325,6 @@ public class ScnConfig implements AppScene {
         });
         
         VBox configBox = new VBox(15, lblDir, cbDirection, lblScale, cbScaling);
-        configBox.setPadding(new Insets(20));
         
         VBox panel = new VBox(generalLabel, configBox);
         panel.setPadding(new Insets(15));
@@ -440,6 +446,33 @@ public class ScnConfig implements AppScene {
         VBox todo = new VBox(10,titleLabel,menu);
         todo.setPadding(new Insets(15));
         return todo;
+    }
+    
+    private VBox getPerformancePanel(){
+        Label titleLabel = new Label("Performance");  
+        titleLabel.getStyleClass().add("downloads-title");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);                                                             
+        titleLabel.setAlignment(Pos.TOP_CENTER); 
+        
+        Label limitLabel = new Label("Limit image quality:");
+        
+        javafx.scene.control.ComboBox<String> cbLimitQuality = new javafx.scene.control.ComboBox<>();
+        cbLimitQuality.getStyleClass().add("reader-combobox");
+        cbLimitQuality.getItems().addAll("Activado", "Desactivado");
+        cbLimitQuality.setValue(AppConfig.get().limitPageQuality ? "Activado" : "Desactivado");
+        
+        cbLimitQuality.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                AppConfig.get().limitPageQuality = newVal.equals("Activado");
+                AppConfig.get().save();
+            }
+        });
+        
+        VBox configBox = new VBox(15, limitLabel, cbLimitQuality);
+        VBox panel = new VBox(15,titleLabel,configBox);
+        panel.setPadding(new Insets(15));
+        return panel; 
+        
     }
     
     @Override

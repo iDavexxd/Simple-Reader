@@ -52,8 +52,24 @@ public class ReaderController {
     // Se eliminó el LinkedHashMap local, ahora usamos la clase compartida app.simplereader.service.Cache
     
     private final Set<Integer> loadingPages = ConcurrentHashMap.newKeySet();
-    private final ExecutorService preloader = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "preloader");
+    
+    // Ejecutor para la página actual (prioridad)
+    private final ExecutorService currentLoader = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "current-loader");
+        t.setDaemon(true);
+        return t;
+    });
+
+    // Ejecutor para precargar hacia adelante (máx 1 a la vez para ahorrar RAM)
+    private final ExecutorService preloaderForward = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "preloader-fw");
+        t.setDaemon(true);
+        return t;
+    });
+    
+    // Ejecutor para precargar hacia atrás
+    private final ExecutorService preloaderBackward = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "preloader-bw");
         t.setDaemon(true);
         return t;
     });
@@ -251,7 +267,12 @@ public class ReaderController {
         
         if (!isWebp && url.startsWith("http") && !needsHeaders) {
             // Use JavaFX native background loading with built-in progress tracking
-            Image img = new Image(url, true);
+            Image img;
+            if (app.simplereader.model.AppConfig.get().limitPageQuality) {
+                img = new Image(url, 0, 720, true, true, true);
+            } else {
+                img = new Image(url, true);
+            }
             
             img.progressProperty().addListener((obs, old, val) -> {
                 if (disposed || this.chapter != currentTaskChapter) return;
@@ -290,7 +311,7 @@ public class ReaderController {
             CompletableFuture.supplyAsync(() -> {
                 if (disposed || this.chapter != currentTaskChapter) return null;
                 return loadWebpOrNative(url, false, index);
-            }, preloader).thenAccept(img -> {
+            }, currentLoader).thenAccept(img -> {
                 if (disposed || this.chapter != currentTaskChapter) return;
                 
                 Platform.runLater(() -> {
@@ -380,12 +401,18 @@ public class ReaderController {
                             BufferedImage bimg = ImageIO.read(bin);
                             if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
                         } else {
+                            if (app.simplereader.model.AppConfig.get().limitPageQuality) {
+                                return new Image(bin, 0, 720, true, true);
+                            }
                             return new Image(bin);
                         }
                     }
                 }
             } catch (Exception e) {
                 
+                if (!url.toLowerCase().contains(".webp") && app.simplereader.model.AppConfig.get().limitPageQuality) {
+                    return new Image(url, 0, 720, true, true, background);
+                }
                 return new Image(url, background);
             }
             return null;
@@ -407,6 +434,9 @@ public class ReaderController {
                 // Si falla o no se pudo cargar con ImageIO, hacemos el fallback a JavaFX
                 return new Image(url, background);
             } else {
+                if (app.simplereader.model.AppConfig.get().limitPageQuality) {
+                    return new Image(url, 0, 720, true, true, background);
+                }
                 return new Image(url, background);
             }
         }
@@ -417,7 +447,7 @@ public class ReaderController {
         return app.simplereader.service.Cache.getInstance().getPagesLRU().get(url, k -> loadWebpOrNative(k, true, index));
     }
     
-    public void preloadPage(int index) {
+    public void preloadPage(int index, ExecutorService executor) {
         if (index < 0 || index >= totalPages()) return;
         if (app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(index)) != null) return;
         if (!loadingPages.add(index)) return;
@@ -430,7 +460,7 @@ public class ReaderController {
             
             String url = currentTaskChapter.getPage(index);
             return loadWebpOrNative(url, false, index);
-        }, preloader).thenAccept(img -> {
+        }, executor).thenAccept(img -> {
             if (disposed || this.chapter != currentTaskChapter) return;
             
             if (img != null && !img.isError()) {
@@ -455,10 +485,14 @@ public class ReaderController {
     }
     
     public void preloadAroundCurrent() {
-        preloadPage(currentPageIndex + 1);
-        preloadPage(currentPageIndex + 2);
-        preloadPage(currentPageIndex - 1);
-        preloadPage(currentPageIndex - 2);
+        // Hacia adelante (usando su propio hilo)
+        preloadPage(currentPageIndex + 1, preloaderForward);
+        preloadPage(currentPageIndex + 2, preloaderForward);
+        preloadPage(currentPageIndex + 3, preloaderForward);
+        
+        // Hacia atrás (usando su propio hilo)
+        preloadPage(currentPageIndex - 1, preloaderBackward);
+        preloadPage(currentPageIndex - 2, preloaderBackward);
     }
     
     public void resetZoom() {

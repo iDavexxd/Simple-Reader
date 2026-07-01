@@ -840,12 +840,53 @@ public class ScnMangaMenu implements AppScene{
             if (k.startsWith("http") || k.toLowerCase().contains(".webp")) {
                 app.simplereader.repository.MangaSource src = app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID());
                 try {
-                    java.net.URLConnection conn = app.simplereader.service.Http.getConnection(k, src);
-                    java.awt.image.BufferedImage bimg;
-                    try (java.io.InputStream in = conn.getInputStream()) {
-                        bimg = javax.imageio.ImageIO.read(in);
+                    java.awt.image.BufferedImage bimg = null;
+                    try (java.io.InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(k, src)) {
+                        javax.imageio.stream.ImageInputStream iis = javax.imageio.ImageIO.createImageInputStream(in);
+                        if (iis != null) {
+                            java.util.Iterator<javax.imageio.ImageReader> readers = javax.imageio.ImageIO.getImageReaders(iis);
+                            if (readers.hasNext()) {
+                                javax.imageio.ImageReader reader = readers.next();
+                                reader.setInput(iis, true, true);
+                                int w = reader.getWidth(0);
+                                int h = reader.getHeight(0);
+                                javax.imageio.ImageReadParam param = reader.getDefaultReadParam();
+                                
+                                int maxSize = 600;
+                                if (w > maxSize || h > maxSize) {
+                                    int scale = Math.max(w / maxSize, h / maxSize);
+                                    if (scale < 1) scale = 1;
+                                    param.setSourceSubsampling(scale, scale, 0, 0);
+                                }
+                                bimg = reader.read(0, param);
+                                reader.dispose();
+                            }
+                            iis.close();
+                        }
                     }
                     if (bimg != null) {
+                        int maxSize = 600;
+                        if (bimg.getWidth() > maxSize || bimg.getHeight() > maxSize) {
+                            int newWidth = bimg.getWidth();
+                            int newHeight = bimg.getHeight();
+                            if (newWidth > newHeight) {
+                                newHeight = (int) (newHeight * ((double) maxSize / newWidth));
+                                newWidth = maxSize;
+                            } else {
+                                newWidth = (int) (newWidth * ((double) maxSize / newHeight));
+                                newHeight = maxSize;
+                            }
+                            
+                            java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
+                            java.awt.image.BufferedImage scaledBimg = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                            java.awt.Graphics2D g2d = scaledBimg.createGraphics();
+                            g2d.drawImage(tmp, 0, 0, null);
+                            g2d.dispose();
+                            bimg = scaledBimg;
+                            
+                            // Limpiar agresivamente para librar la memoria de la imagen gigante leída
+                            System.gc();
+                        }
                         return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
                     }
                 } catch (Exception e) {

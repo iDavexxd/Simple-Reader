@@ -259,17 +259,41 @@ public class Downloader {
                             outputFile = new File(folder, fileName);
                         }
 
+                        app.simplereader.repository.MangaSource source = sourceManager.getSource(manga.getSourceID());
+                        String customUA = null;
+                        if (source != null) {
+                            customUA = source.getUserAgent();
+                            if (customUA == null && source.getImageHeaders() != null) {
+                                for (Map.Entry<String, String> entry : source.getImageHeaders().entrySet()) {
+                                    if (entry.getKey().equalsIgnoreCase("User-Agent")) {
+                                        customUA = entry.getValue();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        String uaToUse = (attempt == 1 && customUA != null) ? customUA : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
                         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                                 .uri(URI.create(urlString))
-                                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                                .header("User-Agent", uaToUse)
                                 .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
                                 .timeout(Duration.ofSeconds(15))
                                 .GET();
 
                         if (task.headers != null) {
-                            task.headers.forEach(reqBuilder::header);
-                        } else {
-                            reqBuilder.header("Referer", "https://mangadex.org/");
+                            for (Map.Entry<String, String> entry : task.headers.entrySet()) {
+                                if (!entry.getKey().equalsIgnoreCase("User-Agent")) {
+                                    reqBuilder.header(entry.getKey(), entry.getValue());
+                                }
+                            }
+                        } else if (source != null && source.getImageHeaders() != null) {
+                            for (Map.Entry<String, String> entry : source.getImageHeaders().entrySet()) {
+                                if (!entry.getKey().equalsIgnoreCase("User-Agent")) {
+                                    reqBuilder.header(entry.getKey(), entry.getValue());
+                                }
+                            }
                         }
 
                         HttpResponse<InputStream> response = httpClient.send(

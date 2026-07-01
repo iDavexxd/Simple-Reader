@@ -20,8 +20,8 @@ public class Cache {
     private Cache(){
         // Configuramos el caché compartido de Caffeine.
         sharedCache = Caffeine.newBuilder()
-            .maximumSize(100) 
-            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .maximumSize(500) 
+            .expireAfterAccess(15, TimeUnit.MINUTES)
             .scheduler(Scheduler.systemScheduler())
             // Esto obliga a Caffeine a procesar las limpiezas en el mismo hilo (síncrono), 
             // haciéndolo reaccionar un poco más rápido.

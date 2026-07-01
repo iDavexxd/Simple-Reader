@@ -19,11 +19,13 @@ public class AppConfig {
     public int HEIGHT = 720;
     public static String APP_TITLE = "Simple Reader";
     
-    public static final String VERSION = "1.0.2";
+    public static final String VERSION = "1.2.0";
 
     
     public String READING_DIR = "LTR";
     public String SCALING_MODE = "FIT_HEIGHT";
+    
+    public boolean limitPageQuality = false;
     
     public final static String PLUGIN_FOLDER = System.getProperty("user.home")
             +File.separator

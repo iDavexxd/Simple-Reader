@@ -217,8 +217,7 @@ public class SourceManager {
     }
     
     private void downloadFile(String url, String destination, MangaSource source) throws Exception {
-        java.net.URLConnection conn = app.simplereader.service.Http.getConnection(url, source);
-        try (InputStream in = conn.getInputStream()) {
+        try (InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(url, source)) {
             Files.copy(in, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
         }
     }

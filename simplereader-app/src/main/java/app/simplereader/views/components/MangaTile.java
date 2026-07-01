@@ -253,10 +253,28 @@ public class MangaTile {
         currentIOLoad = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
                 app.simplereader.repository.MangaSource src = this.manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(this.manga.getSourceID()) : null;
-                java.net.URLConnection conn = app.simplereader.service.Http.getConnection(this.coverURL, src);
-                java.awt.image.BufferedImage bimg;
-                try (java.io.InputStream in = conn.getInputStream()) {
-                    bimg = javax.imageio.ImageIO.read(in);
+                java.awt.image.BufferedImage bimg = null;
+                try (java.io.InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(this.coverURL, src)) {
+                    javax.imageio.stream.ImageInputStream iis = javax.imageio.ImageIO.createImageInputStream(in);
+                    if (iis != null) {
+                        java.util.Iterator<javax.imageio.ImageReader> readers = javax.imageio.ImageIO.getImageReaders(iis);
+                        if (readers.hasNext()) {
+                            javax.imageio.ImageReader reader = readers.next();
+                            reader.setInput(iis, true, true);
+                            int w = reader.getWidth(0);
+                            int h = reader.getHeight(0);
+                            javax.imageio.ImageReadParam param = reader.getDefaultReadParam();
+                            
+                            if (w > COVER_LOAD_SIZE || h > COVER_LOAD_SIZE) {
+                                int scale = Math.max(w / COVER_LOAD_SIZE, h / COVER_LOAD_SIZE);
+                                if (scale < 1) scale = 1;
+                                param.setSourceSubsampling(scale, scale, 0, 0);
+                            }
+                            bimg = reader.read(0, param);
+                            reader.dispose();
+                        }
+                        iis.close();
+                    }
                 }
                 if (bimg != null) {
                     if (bimg.getWidth() > COVER_LOAD_SIZE || bimg.getHeight() > COVER_LOAD_SIZE) {
@@ -276,6 +294,9 @@ public class MangaTile {
                         g2d.drawImage(tmp, 0, 0, null);
                         g2d.dispose();
                         bimg = scaledBimg;
+                        
+                        // Suggest aggressive GC to clean up the large original BufferedImage immediately
+                        System.gc();
                     }
                     return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
                 }
