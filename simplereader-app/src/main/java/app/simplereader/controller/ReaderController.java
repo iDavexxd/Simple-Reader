@@ -399,10 +399,25 @@ public class ReaderController {
                     try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(buffer.toByteArray())) {
                         if (url.toLowerCase().contains(".webp")) {
                             BufferedImage bimg = ImageIO.read(bin);
-                            if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
+                            if (bimg != null) {
+                                if (app.simplereader.model.AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
+                                    int newHeight = 1080;
+                                    int newWidth = (int) (bimg.getWidth() * (1080.0 / bimg.getHeight()));
+                                    java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                                    java.awt.Graphics2D g2d = scaled.createGraphics();
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                                    g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
+                                    g2d.dispose();
+                                    bimg.flush();
+                                    bimg = scaled;
+                                }
+                                Image fxImg = SwingFXUtils.toFXImage(bimg, null);
+                                bimg.flush();
+                                return fxImg;
+                            }
                         } else {
                             if (app.simplereader.model.AppConfig.get().limitPageQuality) {
-                                return new Image(bin, 0, 720, true, true);
+                                return new Image(bin, 0, 1080, true, true);
                             }
                             return new Image(bin);
                         }
@@ -427,7 +442,22 @@ public class ReaderController {
                         bimg = ImageIO.read(new File(url));
                     }
                     
-                    if (bimg != null) return SwingFXUtils.toFXImage(bimg, null);
+                    if (bimg != null) {
+                        if (app.simplereader.model.AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
+                            int newHeight = 1080;
+                            int newWidth = (int) (bimg.getWidth() * (1080.0 / bimg.getHeight()));
+                            java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                            java.awt.Graphics2D g2d = scaled.createGraphics();
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                            g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
+                            g2d.dispose();
+                            bimg.flush();
+                            bimg = scaled;
+                        }
+                        Image fxImg = SwingFXUtils.toFXImage(bimg, null);
+                        bimg.flush();
+                        return fxImg;
+                    }
                 } catch (Exception e) {
                     Logger.error("Error decodificando webp local (" + e.getClass().getSimpleName() + "). Usando fallback nativo.");
                 }

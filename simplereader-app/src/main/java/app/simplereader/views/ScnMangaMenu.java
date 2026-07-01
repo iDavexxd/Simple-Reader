@@ -877,17 +877,18 @@ public class ScnMangaMenu implements AppScene{
                                 newHeight = maxSize;
                             }
                             
-                            java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
                             java.awt.image.BufferedImage scaledBimg = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                             java.awt.Graphics2D g2d = scaledBimg.createGraphics();
-                            g2d.drawImage(tmp, 0, 0, null);
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                            g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
                             g2d.dispose();
-                            bimg = scaledBimg;
                             
-                            // Limpiar agresivamente para librar la memoria de la imagen gigante leída
-                            System.gc();
+                            bimg.flush(); // Liberar original
+                            bimg = scaledBimg;
                         }
-                        return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
+                        Image fxImg = javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
+                        bimg.flush(); // Liberar bimg
+                        return fxImg;
                     }
                 } catch (Exception e) {
                     Logger.error("Error cargando cover menu con ImageIO: " + e.getMessage());

@@ -288,17 +288,18 @@ public class MangaTile {
                             newHeight = COVER_LOAD_SIZE;
                         }
                         
-                        java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
                         java.awt.image.BufferedImage scaledBimg = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                         java.awt.Graphics2D g2d = scaledBimg.createGraphics();
-                        g2d.drawImage(tmp, 0, 0, null);
+                        g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                        g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
                         g2d.dispose();
-                        bimg = scaledBimg;
                         
-                        // Suggest aggressive GC to clean up the large original BufferedImage immediately
-                        System.gc();
+                        bimg.flush(); // Liberar memoria nativa de la imagen original gigante
+                        bimg = scaledBimg;
                     }
-                    return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
+                    Image fxImg = javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
+                    bimg.flush(); // Liberar BufferedImage ahora que ya es un Image de JavaFX
+                    return fxImg;
                 }
             } catch (Exception e) {
                 Logger.error("Error decodificando cover con ImageIO: " + e.getMessage());

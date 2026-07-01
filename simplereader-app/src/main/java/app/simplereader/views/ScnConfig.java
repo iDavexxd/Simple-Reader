@@ -135,7 +135,7 @@ public class ScnConfig implements AppScene {
         btnWeb.setMaxWidth(Double.MAX_VALUE);
         btnWeb.setOnAction(e -> scrollContent.setContent(panelWeb));
         
-        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnWeb,btnAboutApp);
+        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnPerformance,btnWeb,btnAboutApp);
         coso.setCenter(botones);
         
         BorderPane content = new BorderPane();
