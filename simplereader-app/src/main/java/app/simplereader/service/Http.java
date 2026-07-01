@@ -6,8 +6,6 @@ import java.util.Map;
 import app.simplereader.repository.MangaSource;
 
 public class Http {
-    public static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
-    
     /**
      * Creates and configures an HttpURLConnection for a given URL and source.
      * Applies the source's User-Agent (if available), otherwise default User-Agent.
@@ -32,7 +30,7 @@ public class Http {
             }
             
             // Priorizamos el UA de la extensión. Si no existe, usamos el por defecto.
-            String uaToUse = (customUA != null && !customUA.trim().isEmpty()) ? customUA : DEFAULT_USER_AGENT;
+            String uaToUse = (customUA != null && !customUA.trim().isEmpty()) ? customUA : app.simplereader.model.AppConfig.get().USER_AGENT;
             conn.setRequestProperty("User-Agent", uaToUse);
             
             // Aplicamos los demás headers, ignorando un posible "User-Agent" que ya procesamos
@@ -60,11 +58,11 @@ public class Http {
         } catch (Exception e) {
             app.simplereader.service.Logger.info("Error en la primera conexión. Reintentando con User-Agent por defecto de Chrome...");
             
-            // Reintento: Forzamos el uso del DEFAULT_USER_AGENT
+            // Reintento: Forzamos el uso del User-Agent de AppConfig
             java.net.URLConnection conn2 = new URL(urlStr).openConnection();
             conn2.setConnectTimeout(5000);
             conn2.setReadTimeout(10000);
-            conn2.setRequestProperty("User-Agent", DEFAULT_USER_AGENT);
+            conn2.setRequestProperty("User-Agent", app.simplereader.model.AppConfig.get().USER_AGENT);
             
             if (source != null && source.getImageHeaders() != null) {
                 for (Map.Entry<String, String> entry : source.getImageHeaders().entrySet()) {

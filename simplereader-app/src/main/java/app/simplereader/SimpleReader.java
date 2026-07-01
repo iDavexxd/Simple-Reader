@@ -25,7 +25,7 @@ public class SimpleReader extends Application{
           
     @Override
     public void start(Stage stage) {
-        System.setProperty("http.agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        System.setProperty("http.agent", app.simplereader.model.AppConfig.get().USER_AGENT);
         
         // Configurar OkHttp global con Cookies persistentes (Fase 2) antes de cargar extensiones
         File cookieDir = new File(AppConfig.COOKIES_FOLDER);

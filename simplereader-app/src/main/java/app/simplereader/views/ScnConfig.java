@@ -25,6 +25,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F5;
@@ -74,6 +75,7 @@ public class ScnConfig implements AppScene {
 
         Button btnBackToMenu = new Button("",back_container);
         btnBackToMenu.setOnAction(e ->{
+            AppConfig.get().save();
             nav.backScene();
         });
         btnBackToMenu.setPrefSize(24, 24);
@@ -91,6 +93,7 @@ public class ScnConfig implements AppScene {
         VBox panelDownloads = getDownloadsPanel();
         VBox panelAboutApp = getAboutBuildPanel();
         VBox panelPerformance = getPerformancePanel();
+        VBox panelWeb = getWebPanel();
         // Por defecto mostramos General
         scrollContent.setContent(panelGeneral);
         
@@ -127,7 +130,12 @@ public class ScnConfig implements AppScene {
         btnPerformance.setMaxWidth(Double.MAX_VALUE);
         btnPerformance.setOnAction(e -> scrollContent.setContent(panelPerformance));
         
-        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnPerformance,btnAboutApp);
+        Button btnWeb = new Button("Web");
+        btnWeb.getStyleClass().add("config-menu-btn");
+        btnWeb.setMaxWidth(Double.MAX_VALUE);
+        btnWeb.setOnAction(e -> scrollContent.setContent(panelWeb));
+        
+        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnWeb,btnAboutApp);
         coso.setCenter(botones);
         
         BorderPane content = new BorderPane();
@@ -141,6 +149,7 @@ public class ScnConfig implements AppScene {
         
         root.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                AppConfig.get().save();
                 nav.backScene();
                 e.consume();
             }
@@ -473,6 +482,28 @@ public class ScnConfig implements AppScene {
         panel.setPadding(new Insets(15));
         return panel; 
         
+    }
+    
+    private VBox getWebPanel(){
+        Label titleLabel = new Label("Web");  
+        titleLabel.getStyleClass().add("downloads-title");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);                                                             
+        titleLabel.setAlignment(Pos.TOP_CENTER); 
+        
+        Label limitLabel = new Label("User-Agent");
+        TextField useragentField = new TextField();
+        useragentField.setText(AppConfig.get().USER_AGENT);
+        useragentField.textProperty().addListener((obs, oldVal, newVal) -> {
+            AppConfig.get().USER_AGENT = newVal;
+        });
+        useragentField.setMaxWidth(Double.MAX_VALUE);
+        useragentField.setMaxHeight(40);
+        VBox configBox = new VBox(15,limitLabel,useragentField);
+        
+        VBox panel = new VBox(15,titleLabel,configBox);
+        panel.setPadding(new Insets(15));
+
+        return panel;
     }
     
     @Override

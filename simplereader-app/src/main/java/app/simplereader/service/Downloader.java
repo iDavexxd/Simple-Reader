@@ -273,7 +273,7 @@ public class Downloader {
                             }
                         }
 
-                        String uaToUse = (attempt == 1 && customUA != null) ? customUA : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+                        String uaToUse = (attempt == 1 && customUA != null) ? customUA : app.simplereader.model.AppConfig.get().USER_AGENT;
 
                         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                                 .uri(URI.create(urlString))
