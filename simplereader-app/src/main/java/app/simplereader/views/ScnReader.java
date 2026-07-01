@@ -429,7 +429,6 @@ public class ScnReader implements AppScene {
         btnBackToMenu.setOnAction(e -> {
             controller.cleanupResources();
             nav.getStage().setOnCloseRequest(originalCloseHandler); 
-            nav.getStage().setFullScreen(false);
             nav.getStage().fullScreenProperty().removeListener(fullScreenListener);
             nav.backScene();
         });
