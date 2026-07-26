@@ -350,126 +350,17 @@ public class ReaderController {
     }
     
     private Image loadWebpOrNative(String url, boolean background, int index) {
-        if (url.startsWith("http")) {
-            try {
-                app.simplereader.repository.MangaSource src = manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID()) : null;
-                HttpURLConnection conn = (HttpURLConnection) app.simplereader.service.Http.getConnection(url, src);
-                
-                // Si la conexión manual arroja código de error, lanzamos excepción para ir al fallback
-                if (conn.getResponseCode() >= 400) {
-                    throw new java.io.IOException("HTTP " + conn.getResponseCode());
+        app.simplereader.repository.MangaSource src = manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID()) : null;
+        java.util.function.Consumer<Double> progressCallback = null;
+        if (index == currentPageIndex) {
+            progressCallback = progress -> {
+                if (!disposed && index == currentPageIndex) {
+                    view.setLoadingProgress(progress);
                 }
-                
-                long totalBytes = conn.getContentLengthLong();
-                try (InputStream in = conn.getInputStream();
-                     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
-                     
-                    byte[] chunk = new byte[8192];
-                    long bytesRead = 0;
-                    int n;
-                    long lastUpdate = 0;
-                    
-                    while ((n = in.read(chunk)) != -1) {
-                        buffer.write(chunk, 0, n);
-                        bytesRead += n;
-                        
-                        if (totalBytes > 0 && index == currentPageIndex) {
-                            long now = System.currentTimeMillis();
-                            if (now - lastUpdate > 50) { // Max 20fps update to avoid UI lag
-                                lastUpdate = now;
-                                double progress = (double) bytesRead / totalBytes;
-                                Platform.runLater(() -> {
-                                    if (!disposed && index == currentPageIndex) {
-                                        view.setLoadingProgress(progress);
-                                    }
-                                });
-                            }
-                        }
-                    }
-                    
-                    // Finalizamos asegurándonos de que la barra llegue al 100% si es la actual
-                    if (totalBytes > 0 && index == currentPageIndex) {
-                        Platform.runLater(() -> {
-                            if (!disposed && index == currentPageIndex) {
-                                view.setLoadingProgress(1.0);
-                            }
-                        });
-                    }
-                    
-                    try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(buffer.toByteArray())) {
-                        if (url.toLowerCase().contains(".webp")) {
-                            BufferedImage bimg = ImageIO.read(bin);
-                            if (bimg != null) {
-                                if (app.simplereader.model.AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
-                                    int newHeight = 1080;
-                                    int newWidth = (int) (bimg.getWidth() * (1080.0 / bimg.getHeight()));
-                                    java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                                    java.awt.Graphics2D g2d = scaled.createGraphics();
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                                    g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
-                                    g2d.dispose();
-                                    bimg.flush();
-                                    bimg = scaled;
-                                }
-                                Image fxImg = SwingFXUtils.toFXImage(bimg, null);
-                                bimg.flush();
-                                return fxImg;
-                            }
-                        } else {
-                            if (app.simplereader.model.AppConfig.get().limitPageQuality) {
-                                return new Image(bin, 0, 1080, true, true);
-                            }
-                            return new Image(bin);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                
-                if (!url.toLowerCase().contains(".webp") && app.simplereader.model.AppConfig.get().limitPageQuality) {
-                    return new Image(url, 0, 720, true, true, background);
-                }
-                return new Image(url, background);
-            }
-            return null;
-        } else {
-            if (url.toLowerCase().contains(".webp")) {
-                try {
-                    // Si la URL empieza con file:, la leemos como URL, sino como File directo
-                    BufferedImage bimg;
-                    if (url.startsWith("file:")) {
-                        bimg = ImageIO.read(new java.net.URL(url));
-                    } else {
-                        bimg = ImageIO.read(new File(url));
-                    }
-                    
-                    if (bimg != null) {
-                        if (app.simplereader.model.AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
-                            int newHeight = 1080;
-                            int newWidth = (int) (bimg.getWidth() * (1080.0 / bimg.getHeight()));
-                            java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                            java.awt.Graphics2D g2d = scaled.createGraphics();
-                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                            g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
-                            g2d.dispose();
-                            bimg.flush();
-                            bimg = scaled;
-                        }
-                        Image fxImg = SwingFXUtils.toFXImage(bimg, null);
-                        bimg.flush();
-                        return fxImg;
-                    }
-                } catch (Exception e) {
-                    Logger.error("Error decodificando webp local (" + e.getClass().getSimpleName() + "). Usando fallback nativo.");
-                }
-                // Si falla o no se pudo cargar con ImageIO, hacemos el fallback a JavaFX
-                return new Image(url, background);
-            } else {
-                if (app.simplereader.model.AppConfig.get().limitPageQuality) {
-                    return new Image(url, 0, 720, true, true, background);
-                }
-                return new Image(url, background);
-            }
+            };
         }
+        // Llamamos al ImageManager para la lógica unificada
+        return app.simplereader.service.ImageManager.getInstance().loadPage(url, src, index, progressCallback);
     }
     
     public Image getPage(int index) {

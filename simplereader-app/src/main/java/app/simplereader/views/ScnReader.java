@@ -81,8 +81,8 @@ public class ScnReader implements AppScene {
             this.controller = ReaderController.getInstance();
             
             try {
-                loadingGif = new javafx.scene.image.Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
-                errorGif = new javafx.scene.image.Image(getClass().getResource("/icons/bochi.gif").toExternalForm());
+                loadingGif = app.simplereader.service.ImageManager.getInstance().getLoadingGif();
+                errorGif = app.simplereader.service.ImageManager.getInstance().getErrorGif();
             } catch (Exception e) {
                 Logger.error("No se pudo cargar los gifs: " + e.getMessage());
             }

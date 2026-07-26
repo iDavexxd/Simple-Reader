@@ -107,7 +107,7 @@ public class ScnMangaMenu implements AppScene{
         this.controller = MangaMenuController.getInstance();
         
         try {
-                loadingGif = new javafx.scene.image.Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+                loadingGif = app.simplereader.service.ImageManager.getInstance().getLoadingGif();
         } catch (Exception e) {
                 Logger.error("No se pudo cargar el gif de carga: " + e.getMessage());
         }

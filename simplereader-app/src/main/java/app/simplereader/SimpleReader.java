@@ -63,7 +63,7 @@ public class SimpleReader extends Application{
             Platform.exit();
             LibraryController.getInstance().saveLibrary();
             });
-        stage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icons/app_icon.png")));
+        stage.getIcons().add(app.simplereader.service.ImageManager.getInstance().getAppIcon());
         stage.show();
         stage.setResizable(true);
     }

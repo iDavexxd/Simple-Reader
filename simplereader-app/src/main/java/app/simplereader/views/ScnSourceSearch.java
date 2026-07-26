@@ -65,7 +65,7 @@ public class ScnSourceSearch implements AppScene {
             this.currentSource = extension.getSources().get(0);
         }
         try {
-            loadingGif = new Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+            loadingGif = app.simplereader.service.ImageManager.getInstance().getLoadingGif();
         } catch (Exception e) {
             Logger.error("No se pudo cargar el gif de carga: " + e.getMessage());
         }
@@ -284,14 +284,7 @@ public class ScnSourceSearch implements AppScene {
                     currentUrl = url;
                     coverView.setImage(null);
                     
-                    Image cached = SEARCH_IMAGE_CACHE.getIfPresent(url);
-                    if (cached != null) {
-                        coverView.setImage(cached);
-                        updateImageFit.run();
-                        return;
-                    }
-                    
-                    loadScaledCoverAsync(url, img -> {
+                    app.simplereader.service.ImageManager.getInstance().loadCoverAsync(url, false, img -> {
                         if (url.equals(currentUrl)) {
                             coverView.setImage(img);
                             updateImageFit.run();
@@ -432,90 +425,6 @@ public class ScnSourceSearch implements AppScene {
     @Override
     public String getParentName() { return "Source"; }
     
-    private static final Cache<String, Image> SEARCH_IMAGE_CACHE = Caffeine.newBuilder()
-        .maximumSize(100)
-        .build();
+    
 
-    private void loadScaledCoverAsync(String coverURL, java.util.function.Consumer<Image> callback) {
-        if (coverURL != null && coverURL.toLowerCase().contains(".webp")) {
-            loadWithImageIO(coverURL, callback);
-        } else {
-            Image originalImage = new Image(coverURL, 100, 150, true, true, true);
-            if (originalImage.isError()) {
-                loadWithImageIO(coverURL, callback);
-            } else if (originalImage.getProgress() >= 1.0) {
-                javafx.application.Platform.runLater(() -> {
-                    SEARCH_IMAGE_CACHE.put(coverURL, originalImage);
-                    callback.accept(originalImage);
-                });
-            } else {
-                originalImage.progressProperty().addListener(new javafx.beans.value.ChangeListener<Number>() {
-                    @Override
-                    public void changed(javafx.beans.value.ObservableValue<? extends Number> obs, Number old, Number progress) {
-                        if (progress.doubleValue() >= 1.0) {
-                            originalImage.progressProperty().removeListener(this);
-                            if (!originalImage.isError()) {
-                                javafx.application.Platform.runLater(() -> {
-                                    SEARCH_IMAGE_CACHE.put(coverURL, originalImage);
-                                    callback.accept(originalImage);
-                                });
-                            }
-                        }
-                    }
-                });
-                originalImage.errorProperty().addListener(new javafx.beans.value.ChangeListener<Boolean>() {
-                    @Override
-                    public void changed(javafx.beans.value.ObservableValue<? extends Boolean> obs, Boolean old, Boolean isError) {
-                        if (isError) {
-                            originalImage.errorProperty().removeListener(this);
-                            loadWithImageIO(coverURL, callback);
-                        }
-                    }
-                });
-            }
-        }
-    }
-
-    private void loadWithImageIO(String coverURL, java.util.function.Consumer<Image> callback) {
-        java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-            try {
-                java.net.URLConnection conn = app.simplereader.service.Http.getConnection(coverURL, currentSource);
-                java.awt.image.BufferedImage bimg;
-                try (java.io.InputStream in = conn.getInputStream()) {
-                    bimg = javax.imageio.ImageIO.read(in);
-                }
-                if (bimg != null) {
-                    int COVER_MAX_SIZE = 150;
-                    if (bimg.getWidth() > COVER_MAX_SIZE || bimg.getHeight() > COVER_MAX_SIZE) {
-                        int newWidth = bimg.getWidth();
-                        int newHeight = bimg.getHeight();
-                        if (newWidth > newHeight) {
-                            newHeight = (int) (newHeight * ((double) COVER_MAX_SIZE / newWidth));
-                            newWidth = COVER_MAX_SIZE;
-                        } else {
-                            newWidth = (int) (newWidth * ((double) COVER_MAX_SIZE / newHeight));
-                            newHeight = COVER_MAX_SIZE;
-                        }
-                        java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
-                        java.awt.image.BufferedImage scaledBimg = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                        java.awt.Graphics2D g2d = scaledBimg.createGraphics();
-                        g2d.drawImage(tmp, 0, 0, null);
-                        g2d.dispose();
-                        bimg = scaledBimg;
-                    }
-                    return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
-                }
-            } catch (Exception e) {
-                Logger.error("Error decodificando cover de búsqueda con ImageIO: " + e.getMessage());
-            }
-            return null;
-        }, networkExecutor).thenAccept(img -> {
-            if (img != null) {
-                javafx.application.Platform.runLater(() -> {
-                    SEARCH_IMAGE_CACHE.put(coverURL, img);
-                    callback.accept(img);
-                });
-            }
-        });
-    }
 }

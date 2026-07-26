@@ -214,7 +214,7 @@ public class MangaMenuController {
                         String localCoverPath = coverDir + fileName;
                         try {
                             Files.createDirectories(Paths.get(coverDir));
-                            try (InputStream in = new URL(remoteCover).openStream()) {
+                            try (InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(remoteCover, source.getSource(manga.getSourceID()))) {
                                 Files.copy(in, Paths.get(localCoverPath), StandardCopyOption.REPLACE_EXISTING);
                             }
                             if (currentURL != null && currentURL.startsWith("file://")) {
