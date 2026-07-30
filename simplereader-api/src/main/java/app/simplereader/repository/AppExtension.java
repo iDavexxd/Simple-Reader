@@ -10,11 +10,15 @@ import java.util.List;
 public abstract class AppExtension {
     
     // Todas las extensiones heredarán este cliente global (OkHttp)
-    protected final OkHttpClient client = GlobalNetwork.getInstance().getClient();
+    public final OkHttpClient client = GlobalNetwork.getInstance().getClient();
     
     public abstract String getName();
 
     public abstract List<MangaSource> getSources();
+    
+    public OkHttpClient getClient(){
+        return this.client;
+    }
     
     public String getVersion() {
         return "Unknown";

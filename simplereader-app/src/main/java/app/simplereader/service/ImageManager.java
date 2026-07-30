@@ -97,8 +97,17 @@ public class ImageManager {
         CompletableFuture.supplyAsync(() -> {
             try {
                 java.awt.image.BufferedImage bimg = null;
-                try (InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(url, null)) {
-                    javax.imageio.stream.ImageInputStream iis = ImageIO.createImageInputStream(in);
+                InputStream in1 = null;
+                okhttp3.Response response1 = null;
+                try {
+                    if (url.startsWith("file:")) {
+                        in1 = new java.net.URL(url).openStream();
+                    } else {
+                        response1 = app.simplereader.service.Http.getOkHttpResponse(url, null);
+                        in1 = response1.body().byteStream();
+                    }
+                    
+                    javax.imageio.stream.ImageInputStream iis = ImageIO.createImageInputStream(in1);
                     if (iis != null) {
                         java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(iis);
                         if (readers.hasNext()) {
@@ -118,11 +127,25 @@ public class ImageManager {
                         }
                         iis.close();
                     }
+                } finally {
+                    if (in1 != null) in1.close();
+                    if (response1 != null) response1.close();
                 }
+                
                 if (bimg == null) {
-                    java.net.URLConnection conn = app.simplereader.service.Http.getConnection(url, null);
-                    try (InputStream in = conn.getInputStream()) {
-                        bimg = ImageIO.read(in);
+                    InputStream in2 = null;
+                    okhttp3.Response response2 = null;
+                    try {
+                        if (url.startsWith("file:")) {
+                            in2 = new java.net.URL(url).openStream();
+                        } else {
+                            response2 = app.simplereader.service.Http.getOkHttpResponse(url, null);
+                            in2 = response2.body().byteStream();
+                        }
+                        bimg = ImageIO.read(in2);
+                    } finally {
+                        if (in2 != null) in2.close();
+                        if (response2 != null) response2.close();
                     }
                 }
                 
@@ -166,14 +189,13 @@ public class ImageManager {
 
     public Image loadPage(String url, MangaSource source, int index, Consumer<Double> progressCallback) {
         if (url.startsWith("http")) {
-            try {
-                HttpURLConnection conn = (HttpURLConnection) app.simplereader.service.Http.getConnection(url, source);
-                if (conn.getResponseCode() >= 400) {
-                    throw new java.io.IOException("HTTP " + conn.getResponseCode());
+            try (okhttp3.Response response = app.simplereader.service.Http.getOkHttpResponse(url, source)) {
+                if (!response.isSuccessful()) {
+                    throw new java.io.IOException("HTTP " + response.code());
                 }
                 
-                long totalBytes = conn.getContentLengthLong();
-                try (InputStream in = conn.getInputStream();
+                long totalBytes = response.body().contentLength();
+                try (InputStream in = response.body().byteStream();
                      java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
                      
                     byte[] chunk = new byte[8192];

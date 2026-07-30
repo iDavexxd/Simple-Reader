@@ -3,6 +3,7 @@ package app.simplereader.repository;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -22,14 +23,13 @@ public interface MangaSource {
     
     void fetchMangaData(Manga manga);
     
-    /**
-     * Returns HTTP headers required to load images from this source.
-     * Override this in sources that need custom headers (e.g. Referer).
-     * Return null or empty map if no special headers are needed.
-     * @return 
-     */
-    default java.util.Map<String, String> getImageHeaders() {
+    
+    default Map<String, String> getImageHeaders() {
         return null;
+    }
+    
+    default okhttp3.OkHttpClient getClient() {
+            return GlobalNetwork.getInstance().getClient();
     }
     
     default String getUserAgent(){
