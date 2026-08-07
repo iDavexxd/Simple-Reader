@@ -4,7 +4,7 @@
     <parent>
         <groupId>App.Reader</groupId>
         <artifactId>SimpleReader</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.1</version>
     </parent>
     <artifactId>simplereader-app</artifactId>
     <packaging>jar</packaging>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>21</version> 
+            <version>22.0.1</version> 
         </dependency>
         
         <dependency>
@@ -47,12 +47,17 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>21</version>
+            <version>22.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
-            <version>21</version>
+            <version>22.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>22.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.github.usefulness</groupId>
@@ -63,6 +68,11 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>3.1.8</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.matrixlab.webp4j</groupId>
+            <artifactId>webp4j-core</artifactId>
+            <version>2.5.0</version>
         </dependency>
     </dependencies>
 
@@ -84,9 +94,9 @@
                 <configuration>
                     <mainClass>app.simplereader.Main</mainClass>
                     <options>
-                        <option>-XX:+UseZGC</option>
-                        <option>-XX:+ZGenerational</option>
+                        <option>-XX:+UseG1GC</option>
                         <option>-Xmx1024m</option>
+                        <option>--enable-native-access=ALL-UNNAMED</option>
                     </options>
                 </configuration>
             </plugin>

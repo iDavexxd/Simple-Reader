@@ -67,7 +67,7 @@ public class ScnLoading implements AppScene {
 
         Image loadingGif = null;
         try {
-            loadingGif = new Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+            loadingGif = app.simplereader.service.ImageManager.getInstance().getLoadingGif();
         } catch (Exception e) {
             Logger.error("No se pudo cargar el gif de carga: " + e.getMessage());
         }

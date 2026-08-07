@@ -151,6 +151,7 @@ public class MangaMenuController {
     }
 
     private void navigateToReader(Chapter chapter){
+
         List<Chapter> chapters = manga.getChapters();
         int index = chapters != null ? chapters.indexOf(chapter) : -1;
         Logger.info("Selected: " + chapter.getTitle());
@@ -200,31 +201,44 @@ public class MangaMenuController {
                 if (disposed) return;
                 
                 if (remoteCover != null && remoteCover.startsWith("http")) {
-                    String currentURL = manga.getCoverURL();
-                    if (currentURL == null || !currentURL.equals(remoteCover)) {
-                        String fileName = remoteCover.substring(remoteCover.lastIndexOf('/') + 1);
-                        if (fileName.contains("?")) {
-                            fileName = fileName.substring(0, fileName.indexOf('?'));
+                    String urlFileName = remoteCover.substring(remoteCover.lastIndexOf('/') + 1);
+                    if (urlFileName.contains("?")) {
+                        urlFileName = urlFileName.substring(0, urlFileName.indexOf('?'));
+                    }
+                    String ext = ".jpg";
+                    if (urlFileName.contains(".")) {
+                        ext = urlFileName.substring(urlFileName.lastIndexOf('.'));
+                    }
+                    String safeMangaId = manga.getMangaID().replace("/", "_");
+                    String fileName = safeMangaId + ext;
+                    String coverDir = AppConfig.DATA_FOLDER + manga.getSourceID() + "/covers/";
+                    java.nio.file.Path localPath = Paths.get(coverDir + fileName);
+                    java.nio.file.Path tempPath = Paths.get(coverDir + fileName + ".tmp");
+
+                    try {
+                        Files.createDirectories(Paths.get(coverDir));
+                        try (InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(remoteCover, source.getSource(manga.getSourceID()))) {
+                            Files.copy(in, tempPath, StandardCopyOption.REPLACE_EXISTING);
                         }
-                        if (fileName.isEmpty() || !fileName.contains(".")) {
-                            fileName = manga.getMangaID() + ".jpg";
-                        }
-                        String coverDir = AppConfig.DATA_FOLDER + manga.getSourceID() + "/covers/";
-                        String localCoverPath = coverDir + fileName;
+
+                        // Reemplazo atómico de la portada vieja por la recién descargada
                         try {
-                            Files.createDirectories(Paths.get(coverDir));
-                            try (InputStream in = new URL(remoteCover).openStream()) {
-                                Files.copy(in, Paths.get(localCoverPath), StandardCopyOption.REPLACE_EXISTING);
-                            }
-                            if (currentURL != null && currentURL.startsWith("file://")) {
-                                try {
-                                    Files.deleteIfExists(Paths.get(URI.create(currentURL)));
-                                } catch (Exception e) { /* ignore */ }
-                            }
-                            manga.setCoverURL("file://" + new File(localCoverPath).getAbsolutePath());
-                        } catch (Exception e) {
-                            Logger.info("Could not download new cover, keeping the old one ("+e.getClass().getSimpleName()+")");
+                            Files.move(tempPath, localPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                        } catch (Exception ex) {
+                            Files.move(tempPath, localPath, StandardCopyOption.REPLACE_EXISTING);
                         }
+
+                        String oldCoverUrl = manga.getCoverURL();
+                        String newCoverUrl = localPath.toUri().toString();
+                        manga.setCoverURL(newCoverUrl);
+
+                        // Limpiar todas las cachés de memoria para que la interfaz descargue/recargue el nuevo archivo
+                        app.simplereader.service.Cache.getInstance().invalidateCover(oldCoverUrl);
+                        app.simplereader.service.Cache.getInstance().invalidateCover(newCoverUrl);
+                        app.simplereader.service.Cache.getInstance().invalidateCover(remoteCover);
+                    } catch (Exception e) {
+                        try { Files.deleteIfExists(tempPath); } catch (Exception ignored) {}
+                        Logger.info("Could not download new cover, keeping old one (" + e.getClass().getSimpleName() + ")");
                     }
                 }
             

@@ -25,6 +25,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
 import static javafx.scene.input.KeyCode.F5;
@@ -74,6 +75,7 @@ public class ScnConfig implements AppScene {
 
         Button btnBackToMenu = new Button("",back_container);
         btnBackToMenu.setOnAction(e ->{
+            AppConfig.get().save();
             nav.backScene();
         });
         btnBackToMenu.setPrefSize(24, 24);
@@ -90,6 +92,8 @@ public class ScnConfig implements AppScene {
         VBox panelGeneral = getGeneralPanel();
         VBox panelDownloads = getDownloadsPanel();
         VBox panelAboutApp = getAboutBuildPanel();
+        VBox panelPerformance = getPerformancePanel();
+        VBox panelWeb = getWebPanel();
         // Por defecto mostramos General
         scrollContent.setContent(panelGeneral);
         
@@ -120,7 +124,18 @@ public class ScnConfig implements AppScene {
         btnAboutApp.setMaxWidth(Double.MAX_VALUE);
         btnAboutApp.setOnAction(e -> scrollContent.setContent(panelAboutApp));
         
-        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnAboutApp);
+        
+        Button btnPerformance = new Button("Performance");
+        btnPerformance.getStyleClass().add("config-menu-btn");
+        btnPerformance.setMaxWidth(Double.MAX_VALUE);
+        btnPerformance.setOnAction(e -> scrollContent.setContent(panelPerformance));
+        
+        Button btnWeb = new Button("Web");
+        btnWeb.getStyleClass().add("config-menu-btn");
+        btnWeb.setMaxWidth(Double.MAX_VALUE);
+        btnWeb.setOnAction(e -> scrollContent.setContent(panelWeb));
+        
+        VBox botones = new VBox(10, btnGeneral, btnCategories, btnDownloads,btnPerformance,btnWeb,btnAboutApp);
         coso.setCenter(botones);
         
         BorderPane content = new BorderPane();
@@ -134,6 +149,7 @@ public class ScnConfig implements AppScene {
         
         root.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                AppConfig.get().save();
                 nav.backScene();
                 e.consume();
             }
@@ -318,7 +334,6 @@ public class ScnConfig implements AppScene {
         });
         
         VBox configBox = new VBox(15, lblDir, cbDirection, lblScale, cbScaling);
-        configBox.setPadding(new Insets(20));
         
         VBox panel = new VBox(generalLabel, configBox);
         panel.setPadding(new Insets(15));
@@ -440,6 +455,55 @@ public class ScnConfig implements AppScene {
         VBox todo = new VBox(10,titleLabel,menu);
         todo.setPadding(new Insets(15));
         return todo;
+    }
+    
+    private VBox getPerformancePanel(){
+        Label titleLabel = new Label("Performance");  
+        titleLabel.getStyleClass().add("downloads-title");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);                                                             
+        titleLabel.setAlignment(Pos.TOP_CENTER); 
+        
+        Label limitLabel = new Label("Limit image quality:");
+        
+        javafx.scene.control.ComboBox<String> cbLimitQuality = new javafx.scene.control.ComboBox<>();
+        cbLimitQuality.getStyleClass().add("reader-combobox");
+        cbLimitQuality.getItems().addAll("Activado", "Desactivado");
+        cbLimitQuality.setValue(AppConfig.get().limitPageQuality ? "Activado" : "Desactivado");
+        
+        cbLimitQuality.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                AppConfig.get().limitPageQuality = newVal.equals("Activado");
+                AppConfig.get().save();
+            }
+        });
+        
+        VBox configBox = new VBox(15, limitLabel, cbLimitQuality);
+        VBox panel = new VBox(15,titleLabel,configBox);
+        panel.setPadding(new Insets(15));
+        return panel; 
+        
+    }
+    
+    private VBox getWebPanel(){
+        Label titleLabel = new Label("Web");  
+        titleLabel.getStyleClass().add("downloads-title");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);                                                             
+        titleLabel.setAlignment(Pos.TOP_CENTER); 
+        
+        Label limitLabel = new Label("User-Agent");
+        TextField useragentField = new TextField();
+        useragentField.setText(AppConfig.get().USER_AGENT);
+        useragentField.textProperty().addListener((obs, oldVal, newVal) -> {
+            AppConfig.get().USER_AGENT = newVal;
+        });
+        useragentField.setMaxWidth(Double.MAX_VALUE);
+        useragentField.setMaxHeight(40);
+        VBox configBox = new VBox(15,limitLabel,useragentField);
+        
+        VBox panel = new VBox(15,titleLabel,configBox);
+        panel.setPadding(new Insets(15));
+
+        return panel;
     }
     
     @Override

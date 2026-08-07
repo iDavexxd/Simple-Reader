@@ -39,6 +39,8 @@ public class MangaTile {
     private Image cover;
     private Runnable updateImageFit;
     private boolean imageLoaded = false;
+    private Image currentNativeLoad = null;
+    private java.util.concurrent.CompletableFuture<?> currentIOLoad = null;
       
     
 
@@ -177,18 +179,18 @@ public class MangaTile {
     public void loadImage(){
         if(imageLoaded) return;
         
-        Image cached = app.simplereader.service.Cache.getInstance().getSharedCache().getIfPresent(this.coverURL);
-        if(cached != null){
-            this.coverView.setImage(cached);
-            this.coverView.setCache(true);
-            this.coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
-            this.updateImageFit.run();
-            this.coverView.setOpacity(1.0);
-            this.placeholder.setVisible(false);
-            this.imageLoaded = true;
-            return;
-        }
-        loadScaledCoverAsync();
+        app.simplereader.service.ImageManager.getInstance().loadCoverAsync(this.coverURL, false, finalImage -> {
+            Platform.runLater(() -> {
+                coverView.setImage(finalImage);
+                coverView.setCache(true);
+                coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
+
+                updateImageFit.run();
+                this.imageLoaded = true;	
+                coverView.setOpacity(1.0);
+                placeholder.setVisible(false);
+            });
+        });
     }
 
     public void unloadImage() {
@@ -196,115 +198,5 @@ public class MangaTile {
         this.coverView.setOpacity(0.0);     // la deja invisible para el próximo loadImage()
         this.placeholder.setVisible(true);  // muestra el placeholder gris
         this.imageLoaded = false;           // permite que loadImage() vuelva a cargar
-    }
-    
-    private void loadScaledCoverAsync() {
-        if (this.coverURL != null && this.coverURL.toLowerCase().contains(".webp")) {
-            loadWithImageIO();
-        } else {
-            // JavaFX nativo: escalado en carga, no bloquea, bajo consumo de RAM
-            Image originalImage = new Image(this.coverURL, COVER_LOAD_SIZE, COVER_LOAD_SIZE, true, true, true);
-
-            if (originalImage.isError()) {
-                loadWithImageIO();
-            } else if (originalImage.getProgress() >= 1.0) {
-                Platform.runLater(() -> processAndSetImage(originalImage, false));
-            } else {
-                ChangeListener<Number> progressListener = new ChangeListener<Number>() {
-                    @Override
-                    public void changed(ObservableValue<? extends Number> obs, Number old, Number progress) {
-                        if (progress.doubleValue() >= 1.0) {
-                            originalImage.progressProperty().removeListener(this);
-                            if (!originalImage.isError()) {
-                                Platform.runLater(() -> processAndSetImage(originalImage, true));
-                            }
-                        }
-                    }
-                };
-                
-                ChangeListener<Boolean> errorListener = new ChangeListener<Boolean>() {
-                    @Override
-                    public void changed(ObservableValue<? extends Boolean> obs, Boolean old, Boolean isError) {
-                        if (isError) {
-                            originalImage.errorProperty().removeListener(this);
-                            loadWithImageIO();
-                        }
-                    }
-                };
-
-                originalImage.progressProperty().addListener(progressListener);
-                originalImage.errorProperty().addListener(errorListener);
-            }
-        }
-    }
-
-    private void loadWithImageIO() {
-        java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-            try {
-                app.simplereader.repository.MangaSource src = this.manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(this.manga.getSourceID()) : null;
-                java.net.URLConnection conn = app.simplereader.service.Http.getConnection(this.coverURL, src);
-                java.awt.image.BufferedImage bimg;
-                try (java.io.InputStream in = conn.getInputStream()) {
-                    bimg = javax.imageio.ImageIO.read(in);
-                }
-                if (bimg != null) {
-                    if (bimg.getWidth() > COVER_LOAD_SIZE || bimg.getHeight() > COVER_LOAD_SIZE) {
-                        int newWidth = bimg.getWidth();
-                        int newHeight = bimg.getHeight();
-                        if (newWidth > newHeight) {
-                            newHeight = (int) (newHeight * ((double) COVER_LOAD_SIZE / newWidth));
-                            newWidth = COVER_LOAD_SIZE;
-                        } else {
-                            newWidth = (int) (newWidth * ((double) COVER_LOAD_SIZE / newHeight));
-                            newHeight = COVER_LOAD_SIZE;
-                        }
-                        
-                        java.awt.Image tmp = bimg.getScaledInstance(newWidth, newHeight, java.awt.Image.SCALE_SMOOTH);
-                        java.awt.image.BufferedImage scaledBimg = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                        java.awt.Graphics2D g2d = scaledBimg.createGraphics();
-                        g2d.drawImage(tmp, 0, 0, null);
-                        g2d.dispose();
-                        bimg = scaledBimg;
-                    }
-                    return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);
-                }
-            } catch (Exception e) {
-                Logger.error("Error decodificando cover con ImageIO: " + e.getMessage());
-            }
-            return null;
-        }).thenAccept(originalImage -> {
-            if (originalImage != null) {
-                Platform.runLater(() -> processAndSetImage(originalImage, true));
-            }
-        });
-    }
-
-    private void processAndSetImage(Image originalImage,boolean animate) {
-        Image finalImage = originalImage;
-
-        if (originalImage.getWidth() > COVER_LOAD_SIZE || originalImage.getHeight() > COVER_LOAD_SIZE) {
-            ImageView tempView = new ImageView(originalImage);
-            tempView.setPreserveRatio(true);
-
-            if (originalImage.getWidth() > originalImage.getHeight()) {
-                tempView.setFitWidth(COVER_LOAD_SIZE);
-            } else {
-                tempView.setFitHeight(COVER_LOAD_SIZE);
-            }
-
-            javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
-            params.setFill(Color.TRANSPARENT);
-            finalImage = tempView.snapshot(params, null);
-        }
-
-        coverView.setImage(finalImage);
-        coverView.setCache(true);
-        coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
-
-        updateImageFit.run();
-        app.simplereader.service.Cache.getInstance().getSharedCache().put(this.coverURL, finalImage);   // guarda en la caché
-        this.imageLoaded = true;	
-        coverView.setOpacity(1.0);
-        placeholder.setVisible(false);
     }
 }

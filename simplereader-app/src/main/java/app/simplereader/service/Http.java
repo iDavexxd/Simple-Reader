@@ -1,34 +1,78 @@
 package app.simplereader.service;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Map;
 import app.simplereader.repository.MangaSource;
 
 public class Http {
-    public static final String DEFAULT_USER_AGENT = "SimpleReader/1.0";
-    
+
     /**
-     * Creates and configures an HttpURLConnection for a given URL and source.
-     * Applies the default User-Agent and any source-specific headers (like Referer).
+     * Intenta obtener el InputStream. Si falla (ej. error 400 por bloqueo del servidor de imagenes),
+     * reintenta usando el User-Agent por defecto (Chrome).
      */
-    public static java.net.URLConnection getConnection(String urlStr, MangaSource source) throws Exception {
-        java.net.URLConnection conn = new URL(urlStr).openConnection();
-        conn.setConnectTimeout(5000);
-        conn.setReadTimeout(10000);
+    public static java.io.InputStream getInputStreamWithRetry(String urlStr, MangaSource source) throws Exception {
+        if (urlStr.startsWith("file:")) {
+            return new java.net.URL(urlStr).openStream();
+        }
         
-        if (conn instanceof HttpURLConnection) {
-            // Default User-Agent
-            conn.setRequestProperty("User-Agent", DEFAULT_USER_AGENT);
+        okhttp3.Response response = getOkHttpResponse(urlStr, source);
+        if (!response.isSuccessful()) {
+            response.close();
+            app.simplereader.service.Logger.info("Error en la primera conexión. Reintentando con User-Agent por defecto de Chrome...");
             
-            // Apply custom headers from the source (can override User-Agent if needed)
+            // Reintento: Forzamos el uso del User-Agent de AppConfig
+            okhttp3.OkHttpClient client = (source != null) ? source.getClient() : app.simplereader.repository.GlobalNetwork.getInstance().getClient();
+            okhttp3.Request.Builder builder = new okhttp3.Request.Builder().url(urlStr);
+            builder.header("User-Agent", app.simplereader.model.AppConfig.get().USER_AGENT);
+            
             if (source != null && source.getImageHeaders() != null) {
                 for (Map.Entry<String, String> entry : source.getImageHeaders().entrySet()) {
-                    conn.setRequestProperty(entry.getKey(), entry.getValue());
+                    if (!entry.getKey().equalsIgnoreCase("User-Agent")) {
+                        builder.header(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            
+            okhttp3.Response response2 = client.newCall(builder.build()).execute();
+            if (!response2.isSuccessful()) {
+                response2.close();
+                throw new Exception("HTTP " + response2.code());
+            }
+            return response2.body().byteStream();
+        }
+        return response.body().byteStream();
+    }
+
+    /**
+     * Obtiene una respuesta de OkHttp usando el cliente de la extensión (si lo hay) o el global.
+     */
+    public static okhttp3.Response getOkHttpResponse(String urlStr, MangaSource source) throws Exception {
+        okhttp3.OkHttpClient client = (source != null) ? source.getClient() : app.simplereader.repository.GlobalNetwork.getInstance().getClient();
+        okhttp3.Request.Builder builder = new okhttp3.Request.Builder().url(urlStr);
+        
+        String customUA = null;
+        if (source != null) {
+            customUA = source.getUserAgent();
+            if (customUA == null && source.getImageHeaders() != null) {
+                for (Map.Entry<String, String> entry : source.getImageHeaders().entrySet()) {
+                    if (entry.getKey().equalsIgnoreCase("User-Agent")) {
+                        customUA = entry.getValue();
+                        break;
+                    }
                 }
             }
         }
         
-        return conn;
+        String uaToUse = (customUA != null && !customUA.trim().isEmpty()) ? customUA : app.simplereader.model.AppConfig.get().USER_AGENT;
+        builder.header("User-Agent", uaToUse);
+        
+        if (source != null && source.getImageHeaders() != null) {
+            for (Map.Entry<String, String> entry : source.getImageHeaders().entrySet()) {
+                if (!entry.getKey().equalsIgnoreCase("User-Agent")) {
+                    builder.header(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        
+        return client.newCall(builder.build()).execute();
     }
 }

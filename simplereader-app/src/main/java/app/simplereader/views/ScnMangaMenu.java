@@ -46,6 +46,7 @@ import javafx.scene.paint.Color;
 
 // Importaciones para las animaciones y listeners
 import javafx.animation.FadeTransition;
+import javafx.application.Platform;
 import javafx.util.Duration;
 import javafx.beans.value.ChangeListener;
 
@@ -89,11 +90,11 @@ public class ScnMangaMenu implements AppScene{
     private ListView<Chapter> listaCaps;
     private StackPane categoryMenu;
     private BorderPane categoryPane;
-    private BorderPane coverPane;
+    private BorderPane hdCoverPane;
     private BorderPane loadingPane;
     private VBox categoryButtons;
     
-    private ImageView coverMenuImageView; 
+    private ImageView hdCoverMenu; 
     private Image currentCoverImage; 
     private Image loadingGif;
     private ChangeListener<Number> widthListener;
@@ -107,7 +108,7 @@ public class ScnMangaMenu implements AppScene{
         this.controller = MangaMenuController.getInstance();
         
         try {
-                loadingGif = new javafx.scene.image.Image(getClass().getResource("/icons/koruko.gif").toExternalForm());
+                loadingGif = app.simplereader.service.ImageManager.getInstance().getLoadingGif();
         } catch (Exception e) {
                 Logger.error("No se pudo cargar el gif de carga: " + e.getMessage());
         }
@@ -719,10 +720,10 @@ public class ScnMangaMenu implements AppScene{
         categoryPane.setCenter(categoryMenu);
         categoryPane.setVisible(menu_visible);
         
-        coverPane = new BorderPane();
-        doConfigCoverMenu();
-        coverPane.getStyleClass().add("menu-background");
-        coverPane.setVisible(covermenu_visible);
+        hdCoverPane = new BorderPane();
+        doConfigHDCoverMenu();
+        hdCoverPane.getStyleClass().add("menu-background");
+        hdCoverPane.setVisible(covermenu_visible);
         
         // AHORA CARGAMOS LA IMAGEN PARA TODAS LAS VISTAS
         if (manga.getCoverURL() != null) {
@@ -733,7 +734,7 @@ public class ScnMangaMenu implements AppScene{
         loadingPane.getStyleClass().add("menu-background");
         loadingPane.setVisible(loadingPane_visible);
         
-        StackPane panel_menu = new StackPane(panel,categoryPane,coverPane,loadingPane);
+        StackPane panel_menu = new StackPane(panel,categoryPane,hdCoverPane,loadingPane);
         panel_menu.setMinSize(0, 0);
         
         BorderPane fullPanel = new BorderPane();
@@ -759,11 +760,12 @@ public class ScnMangaMenu implements AppScene{
         return myScene;
     }
     
-    public void doConfigCoverMenu(){
-        coverMenuImageView = new ImageView();
-        coverMenuImageView.setPreserveRatio(true);
-        coverMenuImageView.fitHeightProperty().bind(coverPane.heightProperty());
-        StackPane stackpane = new StackPane(coverMenuImageView);
+    public void doConfigHDCoverMenu(){
+        // Menu con la cover en hd.
+        hdCoverMenu = new ImageView();
+        hdCoverMenu.setPreserveRatio(true);
+        hdCoverMenu.fitHeightProperty().bind(hdCoverPane.heightProperty());
+        StackPane stackpane = new StackPane(hdCoverMenu);
         stackpane.setMinSize(0, 0);
         
         SVGPath svg = new SVGPath();
@@ -785,8 +787,8 @@ public class ScnMangaMenu implements AppScene{
         VBox.setVgrow(spacer, Priority.ALWAYS);
         VBox left = new VBox(btnBack,spacer);
         left.setPadding(new Insets(15));
-        coverPane.setCenter(stackpane);
-        coverPane.setRight(left);
+        hdCoverPane.setCenter(stackpane);
+        hdCoverPane.setRight(left);
     }
     
     public void doConfigLoadingPane(){
@@ -829,105 +831,71 @@ public class ScnMangaMenu implements AppScene{
         }
     }
     
-    public void loadCover(String url){
+    public void loadCover(String url) {
         if (url == null) return;
         
-        // Limpiamos listeners si la escena se recargó con F5
         if (widthListener != null) coverContainer.widthProperty().removeListener(widthListener);
         if (heightListener != null) coverContainer.heightProperty().removeListener(heightListener);
         
-        currentCoverImage = app.simplereader.service.Cache.getInstance().getCoverMenuCache().get(url, k -> {
-            if (k.startsWith("http")) {
-                app.simplereader.repository.MangaSource src = app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID());
-                boolean needsHeaders = src != null && src.getImageHeaders() != null && !src.getImageHeaders().isEmpty();
-                if (needsHeaders) {
-                    try {
-                        java.net.URLConnection conn = app.simplereader.service.Http.getConnection(k, src);
-                        try (java.io.InputStream in = conn.getInputStream()) {
-                            return new Image(in);
-                        }
-                    } catch (Exception e) {
-                        Logger.error("Error cargando cover menu con headers: " + e.getMessage());
-                        return new Image(k, true); // Fallback
-                    }
-                }
-            }
-            return new Image(k, true);
-        });
-        
-        coverView.setImage(currentCoverImage);
-        if (bgView != null) bgView.setImage(currentCoverImage);
-        
-        if (coverMenuImageView != null) {
-            coverMenuImageView.setImage(currentCoverImage);
-        }
-        
+        coverView.setImage(null);
         coverView.setOpacity(0.0);
-        coverView.setCache(true);
-        coverView.setCacheHint(javafx.scene.CacheHint.SPEED); 
-        
-        if (bgView != null) {
-            bgView.setOpacity(1.0);
-        }
-        
+        if (bgView != null) bgView.setImage(null);
+        if (hdCoverMenu != null) hdCoverMenu.setImage(null);
         placeholder.setVisible(true);
-        
-        Runnable updateImageFit = () -> {
-            if (currentCoverImage.getProgress() < 1.0 || currentCoverImage.isError()) return;
 
-            double imgW = currentCoverImage.getWidth();
-            double imgH = currentCoverImage.getHeight();
-            double contW = coverContainer.getWidth();
-            double contH = coverContainer.getHeight();
-
-            if (imgW == 0 || imgH == 0 || contW == 0 || contH == 0) return;
-
-            double imageRatio = imgW / imgH;
-            double realContainerRatio = contW / contH; 
-
-            if (imageRatio < realContainerRatio) {
-                coverView.setFitWidth(contW);
-                coverView.setFitHeight(0); 
-            } else {
-                coverView.setFitHeight(contH);
-                coverView.setFitWidth(0); 
-            }
-        };
-
-        widthListener = (obs, oldV, newV) -> updateImageFit.run();
-        heightListener = (obs, oldV, newV) -> updateImageFit.run();
-        
-        coverContainer.widthProperty().addListener(widthListener);
-        coverContainer.heightProperty().addListener(heightListener);
-        
         coverContainer.setOnMouseClicked(e -> {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
                 doShowCoverMenu();
             }
         });
-         currentCoverImage.progressProperty().addListener((obs, old, progress) -> {
-            if (progress.doubleValue() >= 1.0 && !currentCoverImage.isError()) {
-                updateImageFit.run();
-                
-                javafx.application.Platform.runLater(() -> {
-                    coverView.setOpacity(1.0);
-                    placeholder.setVisible(false);
-                    
-                    if (bgView != null) {
-                        bgView.setOpacity(1.0);
-                    }
-                });
-            }
+
+        app.simplereader.service.ImageManager.getInstance().loadCoverAsync(url, true, img -> {
+            if (img == null) return;
+            Platform.runLater(() -> {
+                currentCoverImage = img;
+                coverView.setImage(img);
+                if (bgView != null) bgView.setImage(img);
+                if (hdCoverMenu != null) hdCoverMenu.setImage(img);
+
+                coverView.setCache(true);
+                coverView.setCacheHint(javafx.scene.CacheHint.SPEED);
+
+                updateImageFit(img);
+                coverView.setOpacity(1.0);
+                placeholder.setVisible(false);
+                if (bgView != null) {
+                    bgView.setOpacity(1.0);
+                }
+
+                widthListener = (obs, oldV, newV) -> updateImageFit(currentCoverImage);
+                heightListener = (obs, oldV, newV) -> updateImageFit(currentCoverImage);
+                coverContainer.widthProperty().addListener(widthListener);
+                coverContainer.heightProperty().addListener(heightListener);
+            });
         });
-        
-        if (currentCoverImage.getProgress() >= 1.0) {
-            updateImageFit.run();
-            coverView.setOpacity(1.0);
-            placeholder.setVisible(false);
-            if (bgView != null) {
-                bgView.setOpacity(1.0);
-            }
-        }       }
+    }
+
+    private void updateImageFit(Image img) {
+        if (img == null || img.getProgress() < 1.0 || img.isError()) return;
+
+        double imgW = img.getWidth();
+        double imgH = img.getHeight();
+        double contW = coverContainer.getWidth();
+        double contH = coverContainer.getHeight();
+
+        if (imgW == 0 || imgH == 0 || contW == 0 || contH == 0) return;
+
+        double imageRatio = imgW / imgH;
+        double realContainerRatio = contW / contH; 
+
+        if (imageRatio < realContainerRatio) {
+            coverView.setFitWidth(contW);
+            coverView.setFitHeight(0); 
+        } else {
+            coverView.setFitHeight(contH);
+            coverView.setFitWidth(0); 
+        }
+    }
     
     public void setTitle(String title){
         this.title.setText(title);
@@ -959,13 +927,13 @@ public class ScnMangaMenu implements AppScene{
     
     private void doShowCoverMenu(){
         covermenu_visible = true;
-        coverPane.setOpacity(1.0); 
-        coverPane.setVisible(true);
+        hdCoverPane.setOpacity(1.0); 
+        hdCoverPane.setVisible(true);
     }
     
     private void doHideCoverMenu(){
         covermenu_visible = false;
-        coverPane.setVisible(false);
+        hdCoverPane.setVisible(false);
     }
     
     private void doChangeDownloadIcon(int op){

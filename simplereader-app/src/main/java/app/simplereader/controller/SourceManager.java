@@ -169,7 +169,8 @@ public class SourceManager {
                     ext = urlFileName.substring(urlFileName.lastIndexOf('.'));
                 }
                 // Siempre usar el ID del manga como nombre para evitar colisiones
-                String fileName = mangaId + ext;
+                String safeMangaId = mangaId.replace("/", "_");
+                String fileName = safeMangaId + ext;
                 String localCoverPath = coverDir + fileName;
                 File localCoverFile = new File(localCoverPath);
                 
@@ -181,7 +182,8 @@ public class SourceManager {
                 manga.setCoverURL(localCoverFile.toURI().toURL().toString());
             }
             
-            String path = dir + mangaId + ".json";
+            String safeMangaId = mangaId.replace("/", "_");
+            String path = dir + safeMangaId + ".json";
             try (FileWriter writer = new FileWriter(path)) {
                 gson.toJson(manga, writer);
             }
@@ -191,7 +193,8 @@ public class SourceManager {
     }
     
     public Manga loadManga(String sourceID, String mangaID) {
-        String path = DATA_FOLDER + sourceID + "/" + mangaID + ".json";
+        String safeMangaId = mangaID.replace("/", "_");
+        String path = DATA_FOLDER + sourceID + "/" + safeMangaId + ".json";
         File file = new File(path);
         if (!file.exists()) return null;
         
@@ -214,8 +217,7 @@ public class SourceManager {
     }
     
     private void downloadFile(String url, String destination, MangaSource source) throws Exception {
-        java.net.URLConnection conn = app.simplereader.service.Http.getConnection(url, source);
-        try (InputStream in = conn.getInputStream()) {
+        try (InputStream in = app.simplereader.service.Http.getInputStreamWithRetry(url, source)) {
             Files.copy(in, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
         }
     }

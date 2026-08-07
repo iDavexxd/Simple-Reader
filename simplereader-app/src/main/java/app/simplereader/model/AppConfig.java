@@ -19,11 +19,15 @@ public class AppConfig {
     public int HEIGHT = 720;
     public static String APP_TITLE = "Simple Reader";
     
-    public static final String VERSION = "v1.1.0";
 
+    public static final String VERSION = "1.2.1";
+    
+    public String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     
     public String READING_DIR = "LTR";
     public String SCALING_MODE = "FIT_HEIGHT";
+    
+    public boolean limitPageQuality = false;
     
     public final static String PLUGIN_FOLDER = System.getProperty("user.home")
             +File.separator
@@ -62,6 +66,7 @@ public class AppConfig {
     }
     
     public final static String DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator;
+    public final static String COOKIES_FOLDER = DATA_FOLDER + "cookies" + File.separator;
     
     public static String MANGA_DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator + "manga";
     

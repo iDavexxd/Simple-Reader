@@ -3,7 +3,7 @@
 # ==========================================
 # CONFIGURACIÓN DEL PROYECTO
 # ==========================================
-APP_VERSION="1.1.0"
+APP_VERSION="1.2.0"
 APP_NAME="Simple Reader"
 APP_DESC="Lector de mangas básico"
 PKG_NAME="simplereader"
