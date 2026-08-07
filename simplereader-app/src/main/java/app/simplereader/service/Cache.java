@@ -15,7 +15,7 @@ public class Cache {
     private static Cache instance;
     private final com.github.benmanes.caffeine.cache.Cache<String, Image> sharedCache;
     private final SimpleLRUCache pagesLRU;
-    private final com.github.benmanes.caffeine.cache.Cache<String, Image> coverMenuCache;
+    private final com.github.benmanes.caffeine.cache.Cache<String, Image> hdCoverCache;
     
     private Cache(){
         // Configuramos el caché compartido de Caffeine.
@@ -38,7 +38,7 @@ public class Cache {
         pagesLRU = new SimpleLRUCache(10);
             
         // Caché para la imagen de portada en máxima calidad (ScnMangaMenu CoverMenu)
-        coverMenuCache = Caffeine.newBuilder()
+        hdCoverCache = Caffeine.newBuilder()
             .maximumSize(3)
             .executor(Runnable::run)
             .removalListener((String key, Image image, RemovalCause cause) -> {
@@ -56,6 +56,22 @@ public class Cache {
     
     public com.github.benmanes.caffeine.cache.Cache<String, Image> getSharedCache() {
         return sharedCache;
+    }
+    
+    public void invalidateCover(String url) {
+        if (url == null) return;
+        sharedCache.invalidate(url);
+        hdCoverCache.invalidate(url);
+        
+        if (url.startsWith("file:///")) {
+            String alt = "file:" + url.substring(7);
+            sharedCache.invalidate(alt);
+            hdCoverCache.invalidate(alt);
+        } else if (url.startsWith("file:/")) {
+            String alt = "file://" + url.substring(5);
+            sharedCache.invalidate(alt);
+            hdCoverCache.invalidate(alt);
+        }
     }
     
     public SimpleLRUCache getPagesLRU() {
@@ -111,7 +127,7 @@ public class Cache {
         }
     }
     
-    public com.github.benmanes.caffeine.cache.Cache<String, Image> getCoverMenuCache() {
-        return coverMenuCache;
+    public com.github.benmanes.caffeine.cache.Cache<String, Image> getHdCoverCache() {
+        return hdCoverCache;
     }
 }

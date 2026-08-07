@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import javax.imageio.ImageIO;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
@@ -42,9 +43,10 @@ public class ImageManager {
     
     public void loadCoverAsync(String url, boolean highQuality, Consumer<Image> callback) {
         if (url == null) return;
+        Logger.info("Loading cover image: " + url);
         
         com.github.benmanes.caffeine.cache.Cache<String, Image> targetCache = highQuality ? 
-            Cache.getInstance().getCoverMenuCache() : Cache.getInstance().getSharedCache();
+            Cache.getInstance().getHdCoverCache() : Cache.getInstance().getSharedCache();
             
         Image cached = targetCache.getIfPresent(url);
         if (cached != null) {
@@ -52,12 +54,14 @@ public class ImageManager {
             return;
         }
         
-        int LOAD_SIZE = highQuality ? 400 : 200;
+        int LOAD_SIZE = highQuality ? 0 : 200;
         
         if (url.toLowerCase().contains(".webp")) {
             loadCoverWithImageIO(url, targetCache, LOAD_SIZE, callback);
         } else {
-            Image nativeLoad = new Image(url, LOAD_SIZE, LOAD_SIZE, true, true, true);
+            Image nativeLoad = (LOAD_SIZE > 0) ? 
+                new Image(url, LOAD_SIZE, LOAD_SIZE, true, true, true) : 
+                new Image(url, true);
             if (nativeLoad.isError()) {
                 loadCoverWithImageIO(url, targetCache, LOAD_SIZE, callback);
             } else if (nativeLoad.getProgress() >= 1.0) {
@@ -98,15 +102,8 @@ public class ImageManager {
             try {
                 java.awt.image.BufferedImage bimg = null;
                 InputStream in1 = null;
-                okhttp3.Response response1 = null;
                 try {
-                    if (url.startsWith("file:")) {
-                        in1 = new java.net.URL(url).openStream();
-                    } else {
-                        response1 = app.simplereader.service.Http.getOkHttpResponse(url, null);
-                        in1 = response1.body().byteStream();
-                    }
-                    
+                    in1 = openCoverStream(url);
                     javax.imageio.stream.ImageInputStream iis = ImageIO.createImageInputStream(in1);
                     if (iis != null) {
                         java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(iis);
@@ -117,7 +114,7 @@ public class ImageManager {
                             int h = reader.getHeight(0);
                             javax.imageio.ImageReadParam param = reader.getDefaultReadParam();
                             
-                            if (w > loadSize || h > loadSize) {
+                            if (loadSize > 0 && (w > loadSize || h > loadSize)) {
                                 int scale = Math.max(w / loadSize, h / loadSize);
                                 if (scale < 1) scale = 1;
                                 param.setSourceSubsampling(scale, scale, 0, 0);
@@ -129,28 +126,20 @@ public class ImageManager {
                     }
                 } finally {
                     if (in1 != null) in1.close();
-                    if (response1 != null) response1.close();
                 }
                 
                 if (bimg == null) {
                     InputStream in2 = null;
-                    okhttp3.Response response2 = null;
                     try {
-                        if (url.startsWith("file:")) {
-                            in2 = new java.net.URL(url).openStream();
-                        } else {
-                            response2 = app.simplereader.service.Http.getOkHttpResponse(url, null);
-                            in2 = response2.body().byteStream();
-                        }
+                        in2 = openCoverStream(url);
                         bimg = ImageIO.read(in2);
                     } finally {
                         if (in2 != null) in2.close();
-                        if (response2 != null) response2.close();
                     }
                 }
                 
                 if (bimg != null) {
-                    if (bimg.getWidth() > loadSize || bimg.getHeight() > loadSize) {
+                    if (loadSize > 0 && (bimg.getWidth() > loadSize || bimg.getHeight() > loadSize)) {
                         int newWidth = bimg.getWidth();
                         int newHeight = bimg.getHeight();
                         if (newWidth > newHeight) {
@@ -187,7 +176,22 @@ public class ImageManager {
         });
     }
 
+    private InputStream openCoverStream(String url) throws Exception {
+        if (url.startsWith("file:")) {
+            return new java.net.URL(url).openStream();
+        } else if (url.startsWith("http://") || url.startsWith("https://")) {
+            okhttp3.Response response = app.simplereader.service.Http.getOkHttpResponse(url, null);
+            if (response.body() != null) {
+                return response.body().byteStream();
+            }
+            throw new IOException("Empty response body from: " + url);
+        } else {
+            return new java.io.FileInputStream(new File(url));
+        }
+    }
+
     public Image loadPage(String url, MangaSource source, int index, Consumer<Double> progressCallback) {
+        Logger.info("Loading page [" + index + "] image: " + url);
         if (url.startsWith("http")) {
             try (okhttp3.Response response = app.simplereader.service.Http.getOkHttpResponse(url, source)) {
                 if (!response.isSuccessful()) {
@@ -223,6 +227,12 @@ public class ImageManager {
                     
                     try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(buffer.toByteArray())) {
                         if (url.toLowerCase().contains(".webp")) {
+                            if (WebPDirectDecoder.isAvailable()) {
+                                int maxH = AppConfig.get().limitPageQuality ? 1080 : 0;
+                                Image directImg = WebPDirectDecoder.decode(buffer.toByteArray(), maxH);
+                                if (directImg != null) return directImg;
+                            }
+                            
                             BufferedImage bimg = ImageIO.read(bin);
                             if (bimg != null) {
                                 if (AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
@@ -255,6 +265,20 @@ public class ImageManager {
         } else {
             if (url.toLowerCase().contains(".webp")) {
                 try {
+                    if (WebPDirectDecoder.isAvailable()) {
+                        byte[] bytes;
+                        if (url.startsWith("file:")) {
+                            try (InputStream fileIn = new java.net.URL(url).openStream()) {
+                                bytes = fileIn.readAllBytes();
+                            }
+                        } else {
+                            bytes = java.nio.file.Files.readAllBytes(new File(url).toPath());
+                        }
+                        int maxH = AppConfig.get().limitPageQuality ? 1080 : 0;
+                        Image directImg = WebPDirectDecoder.decode(bytes, maxH);
+                        if (directImg != null) return directImg;
+                    }
+
                     BufferedImage bimg;
                     if (url.startsWith("file:")) {
                         bimg = ImageIO.read(new java.net.URL(url));
