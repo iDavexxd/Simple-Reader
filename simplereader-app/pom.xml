@@ -69,6 +69,12 @@
             <artifactId>caffeine</artifactId>
             <version>3.1.8</version>
         </dependency>
+        <dependency>
+            <groupId>dev.matrixlab</groupId>
+            <artifactId>webp4j</artifactId>
+            <version>1.4.0</version>
+            <type>pom.sha512</type>
+        </dependency>
     </dependencies>
 
     <build>
