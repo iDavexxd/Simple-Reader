@@ -401,7 +401,12 @@ public class ScnSourceSearch implements AppScene {
     
     private void doSearch() {
         String query = searchField.getText();
-        if (query.isBlank()) return;
+        if (query == null || query.isBlank()) return;
+        
+        if (query.contains(",")) {
+            doSearchByTags();
+            return;
+        }
         
         results.clear();
         searchField.setDisable(true);
@@ -417,7 +422,53 @@ public class ScnSourceSearch implements AppScene {
                 }
                 searchField.setDisable(false);
             });
-        }, networkExecutor);
+        }, networkExecutor).exceptionally(ex -> {
+            Logger.error("Error en búsqueda: " + ex.getMessage());
+            ex.printStackTrace();
+            javafx.application.Platform.runLater(() -> {
+                doHideLoadingPane();
+                searchField.setDisable(false);
+            });
+            return null;
+        });
+    }
+    
+    private void doSearchByTags() {
+        String text = searchField.getText();
+        if (text == null || text.isBlank()) return;
+        
+        String[] tags = java.util.Arrays.stream(text.split(","))
+                .map(String::trim)
+                .filter(tag -> !tag.isEmpty())
+                .toArray(String[]::new);
+                
+        if (tags.length == 0) return;
+        
+        results.clear();
+        searchField.setDisable(true);
+        doShowLoadingPane();
+        
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            Manga[] found = SourceManager.getInstance().searchMangaByTag(currentSource, tags);
+            
+            javafx.application.Platform.runLater(() -> {
+                doHideLoadingPane();
+                if (found != null) {
+                    results.addAll(found);
+                } else {
+                    Logger.error("Metodo no implementado.");
+                }
+                searchField.setDisable(false);
+            });
+        }, networkExecutor).exceptionally(ex -> {
+            Logger.error("Error en búsqueda por tags: " + ex.getMessage());
+            ex.printStackTrace();
+            javafx.application.Platform.runLater(() -> {
+                doHideLoadingPane();
+                searchField.setDisable(false);
+            });
+            return null;
+        });
     }
     
     @Override

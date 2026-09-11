@@ -140,6 +140,10 @@ public class SourceManager {
         return source.searchManga(query);
     }
     
+    public Manga[] searchMangaByTag(MangaSource source, String[] tags){
+        return source.getFilterManga(tags);
+    }
+    
     public void fetchMangaData(Manga manga) {
         MangaSource source = getSource(manga.getSourceID());
         if (source != null) {

@@ -20,9 +20,10 @@ public interface MangaSource {
     List<Chapter> getChapters(String mangaID);
     List<String> getPages(String MangaID,String chapterID);
     
-    default Manga[] getFilterManga(){
+    default Manga[] getFilterManga(String[] tags){
         return null;
     }
+    
     void fetchMangaData(Manga manga);
     
     

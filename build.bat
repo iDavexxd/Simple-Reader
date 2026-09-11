@@ -4,7 +4,7 @@ setlocal
 :: ==========================================
 :: CONFIGURACION DEL PROYECTO
 :: ==========================================
-set APP_VERSION=1.0.3
+set APP_VERSION=1.3.0
 set APP_NAME=Simple Reader
 set APP_DESC=Lector de mangas basico
 set FAT_JAR=simplereader-app-%APP_VERSION%-fat.jar
