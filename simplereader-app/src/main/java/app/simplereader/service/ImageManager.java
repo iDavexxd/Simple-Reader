@@ -314,4 +314,9 @@ public class ImageManager {
             }
         }
     }
+    
+    public Image loadPagev2(String url){
+        Image page = new Image(url, true);
+        return page;
+    }
 }

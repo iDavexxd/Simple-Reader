@@ -18,15 +18,16 @@ public class AppConfig {
     public int WIDTH = 1280;
     public int HEIGHT = 720;
     public static String APP_TITLE = "Simple Reader";
-    
+
     public static final String VERSION = "1.3.0";
     public String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-    
+
     public String READING_DIR = "LTR";
     public String SCALING_MODE = "FIT_HEIGHT";
-    
+    public int READING_MODE = 1;
+
     public boolean limitPageQuality = false;
-    
+
     public final static String PLUGIN_FOLDER = System.getProperty("user.home")
             +File.separator
             +"Documents"
@@ -34,8 +35,7 @@ public class AppConfig {
             +"SimpleReader"
             +File.separator
             +"plugins";
-                       
-    
+
     public final static String LOCAL_MANGA_FOLDER = System.getProperty("user.home")
             +File.separator
             +"Documents"
@@ -43,7 +43,7 @@ public class AppConfig {
             +"SimpleReader"
             +File.separator
             +"manga";
-    
+
     private static String getAppDataFolder() {
         String os = System.getProperty("os.name").toLowerCase();
         if (os.contains("win")) {
@@ -59,29 +59,29 @@ public class AppConfig {
             return System.getProperty("user.home") + File.separator + ".simplereader";
         }
     }
-    
+
     public final static String DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator;
     public final static String COOKIES_FOLDER = DATA_FOLDER + "cookies" + File.separator;
-    
+
     public static String MANGA_DATA_FOLDER = getAppDataFolder() + File.separator + "data" + File.separator + "manga";
-    
+
     public final static String USER_DATA_FOLDER = DATA_FOLDER + "user";
-    
-    
+
+
     public static AppConfig instance;
     private static final String CONFIG_FILE = getAppDataFolder() + File.separator + "config.json";
-    
+
     public static AppConfig get(){
         if (instance == null) {
             instance = load();
         }
         return instance;
     }
-    
+
     private static AppConfig load() {
         File file = new File(CONFIG_FILE);
         if (!file.getParentFile().exists()) {
-            file.getParentFile().mkdirs(); 
+            file.getParentFile().mkdirs();
         }
         if (file.exists()) {
             try (FileReader reader = new FileReader(file)) {
@@ -114,7 +114,7 @@ public class AppConfig {
         defaultConf.save();
         return defaultConf;
     }
-    
+
     public void save() {
         try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
             new GsonBuilder().setPrettyPrinting().create().toJson(this, writer);
@@ -122,6 +122,6 @@ public class AppConfig {
             System.err.println("Error guardando config.json");
         }
     }
-    
-    
+
+
 }

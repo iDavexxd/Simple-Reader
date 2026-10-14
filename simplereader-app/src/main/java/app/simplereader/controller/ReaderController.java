@@ -4,12 +4,9 @@ import app.simplereader.service.Logger;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
+import app.simplereader.service.Cache;
+import app.simplereader.service.ImageManager;
 import app.simplereader.views.ScnReader;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -18,10 +15,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javafx.application.Platform;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
-import javax.imageio.ImageIO;
+import javafx.scene.image.ImageView;
 
 /**
  *
@@ -37,6 +33,8 @@ public class ReaderController {
     private static ReaderController instance;
     private SceneController nav = SceneController.getInstance();
     private final LibraryController lib = LibraryController.getInstance();
+    private final ImageManager imgManager = ImageManager.getInstance();
+    private final Cache cache = Cache.getInstance();
     
     private Manga manga;
     private Chapter chapter;
@@ -49,7 +47,7 @@ public class ReaderController {
     private boolean programmaticNav = false;
     private boolean startAtLastPage = false;
     
-    // Se eliminó el LinkedHashMap local, ahora usamos la clase compartida app.simplereader.service.Cache
+    
     
     private final Set<Integer> loadingPages = ConcurrentHashMap.newKeySet();
     
@@ -195,7 +193,6 @@ public class ReaderController {
         }
         
         loadCurrentImage();
-        
         if (paginaComboBox != null) {
             updatingUI = true;
             paginaComboBox.setValue(currentPageIndex + 1);
@@ -236,6 +233,7 @@ public class ReaderController {
         loadCurrentImage();
     }
     
+    
     public void loadCurrentImage() {
         Image cached = app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(currentPageIndex));
         if (cached != null) {
@@ -255,117 +253,52 @@ public class ReaderController {
         
         String url = chapter.getPage(index);
         Chapter currentTaskChapter = this.chapter;
+        MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
         
-        // Check if the source requires custom headers for image loading
-        boolean isWebp = url.toLowerCase().contains(".webp");
-        java.util.Map<String, String> sourceHeaders = null;
-        app.simplereader.repository.MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-        if (src != null) {
-            sourceHeaders = src.getImageHeaders();
-        }
-        boolean needsHeaders = sourceHeaders != null && !sourceHeaders.isEmpty();
-        
-        if (!isWebp && url.startsWith("http") && !needsHeaders) {
-            // Use JavaFX native background loading with built-in progress tracking
-            Image img;
-            if (app.simplereader.model.AppConfig.get().limitPageQuality) {
-                img = new Image(url, 0, 720, true, true, true);
-            } else {
-                img = new Image(url, true);
+        java.util.function.Consumer<Double> progressCallback = progress -> {
+            if (!disposed && this.chapter == currentTaskChapter && index == currentPageIndex) {
+                view.setLoadingProgress(progress);
             }
+        };
+        
+        CompletableFuture.supplyAsync(() -> {
+            if (disposed || this.chapter != currentTaskChapter) return null;
+            return app.simplereader.service.ImageManager.getInstance().loadPage(url, src, index, progressCallback);
+        }, currentLoader).thenAccept(img -> {
+            if (disposed || this.chapter != currentTaskChapter) return;
             
-            img.progressProperty().addListener((obs, old, val) -> {
-                if (disposed || this.chapter != currentTaskChapter) return;
-                if (index == currentPageIndex) {
-                    view.setLoadingProgress(val.doubleValue());
-                }
-            });
-            
-            img.errorProperty().addListener((obs, old, isError) -> {
-                if (!isError || disposed || this.chapter != currentTaskChapter) return;
+            Platform.runLater(() -> {
+                if (disposed || this.chapter != currentTaskChapter) return; 
+                
                 loadingPages.remove(index);
-                String errorMsg = img.getException() != null ? img.getException().getMessage() : "desconocido";
-                Logger.error("Error cargando página " + index + ": " + errorMsg);
-                if (index == currentPageIndex) {
-                    view.showErrorOverlay();
-                }
-            });
-            
-            img.progressProperty().addListener((obs, old, val) -> {
-                if (val.doubleValue() >= 1.0 && !img.isError()) {
-                    if (disposed || this.chapter != currentTaskChapter) return;
-                    loadingPages.remove(index);
+                if (img != null && !img.isError()) {
                     app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
                     if (index == currentPageIndex) {
                         view.setImageViewImage(img);
                         view.fitImageToScreen();
                         resetZoom();
                     }
-                    Logger.info("Page " + index + " loaded (native bg).");
+                    Logger.info("Page " + index + " loaded.");
+                } else {
+                    String errMsg = (img != null && img.getException() != null) ? img.getException().getMessage() : "Desconocido";
+                    Logger.error("Error cargando página " + index + ": " + errMsg);
+                    if (index == currentPageIndex) {
+                        view.showErrorOverlay();
+                    }
                 }
             });
-        } else {
-            // Webp, local files, or sources with custom headers: use CompletableFuture with indeterminate progress
-            view.setLoadingProgress(-1);
-            
-            CompletableFuture.supplyAsync(() -> {
-                if (disposed || this.chapter != currentTaskChapter) return null;
-                return loadWebpOrNative(url, false, index);
-            }, currentLoader).thenAccept(img -> {
-                if (disposed || this.chapter != currentTaskChapter) return;
-                
-                Platform.runLater(() -> {
-                    if (disposed || this.chapter != currentTaskChapter) return; 
-                    
-                    loadingPages.remove(index);
-                    if (img != null && !img.isError()) {
-                        app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
-                        if (index == currentPageIndex) {
-                            view.setImageViewImage(img);
-                            view.fitImageToScreen();
-                            resetZoom();
-                        }
-                        Logger.info("Page " + index + " loaded (async).");
-                    } else {
-                        String errMsg = (img != null && img.getException() != null) ? img.getException().getMessage() : "Desconocido";
-                        Logger.error("Error cargando página " + index + ": " + errMsg);
-                        if (index == currentPageIndex) {
-                            view.showErrorOverlay();
-                        }
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                loadingPages.remove(index);
+                if (!disposed) {
+                    Logger.error("Error cargando página " + index + ": " + e.getMessage());
+                    if (index == currentPageIndex) {
+                        view.showErrorOverlay();
                     }
-                });
-            }).exceptionally(e -> {
-                Platform.runLater(() -> {
-                    loadingPages.remove(index);
-                    if (!disposed) {
-                        Logger.error("Error cargando página " + index + ": " + e.getMessage());
-                        if (index == currentPageIndex) {
-                            view.showErrorOverlay();
-                        }
-                    }
-                });
-                return null;
-            });
-        }
-    }
-    
-    private Image loadWebpOrNative(String url, boolean background, int index) {
-        app.simplereader.repository.MangaSource src = manga != null ? app.simplereader.controller.SourceManager.getInstance().getSource(manga.getSourceID()) : null;
-        java.util.function.Consumer<Double> progressCallback = null;
-        if (index == currentPageIndex) {
-            progressCallback = progress -> {
-                if (!disposed && index == currentPageIndex) {
-                    view.setLoadingProgress(progress);
                 }
-            };
-        }
-        // Llamamos al ImageManager para la lógica unificada
-        return app.simplereader.service.ImageManager.getInstance().loadPage(url, src, index, progressCallback);
-    }
-    
-    public Image getPage(int index) {
-        String url = chapter.getPage(index);
-        return app.simplereader.service.Cache.getInstance().getPagesLRU().get(url, k -> loadWebpOrNative(k, true, index));
+            });
+            return null;
+        });
     }
     
     public void preloadPage(int index, ExecutorService executor) {
@@ -374,13 +307,14 @@ public class ReaderController {
         if (!loadingPages.add(index)) return;
         
         Chapter currentTaskChapter = this.chapter;
+        MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
         
         CompletableFuture.supplyAsync(() -> {
             if (disposed || this.chapter != currentTaskChapter) return null;
             if (Math.abs(index - currentPageIndex) > 3) return null; // Cancela precargas si saltaste la página muy rápido
             
             String url = currentTaskChapter.getPage(index);
-            return loadWebpOrNative(url, false, index);
+            return app.simplereader.service.ImageManager.getInstance().loadPage(url, src, index, null);
         }, executor).thenAccept(img -> {
             if (disposed || this.chapter != currentTaskChapter) return;
             

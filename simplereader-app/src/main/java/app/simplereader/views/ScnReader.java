@@ -54,6 +54,8 @@ public class ScnReader implements AppScene {
     private Label pages;
     private StackPane pagePane;
     private ImageView visor;
+    private HBox HImages;
+    
     private ScrollPane scrollVisor;
     private Parent layout;
     private ComboBox<Integer> pagina;
@@ -61,6 +63,8 @@ public class ScnReader implements AppScene {
     private Parent lateralMenu;
     private Label chnameLabel;
     private Label mangaTitleLabel;
+    
+    
     
     private final StackPane FullScreenIcon = icons.getFullScreenIcon();
     private final StackPane ExitFullScreenIcon = icons.getExitFullScreenIcon();
@@ -74,6 +78,7 @@ public class ScnReader implements AppScene {
     private ProgressBar loadingProgressBar;
     private VBox errorOverlay;
     private VBox noPagesOverlay;
+    
     
     private ScnReader() {
             this.nav = SceneController.getInstance();
@@ -312,17 +317,16 @@ public class ScnReader implements AppScene {
         noPagesOverlay.setMouseTransparent(true);
         noPagesOverlay.setVisible(false);
                 
-        StackPane spane = new StackPane();
-        spane.getChildren().add(scrollVisor);
-        spane.getChildren().add(loadingOverlay);
-        spane.getChildren().add(errorOverlay);
-        spane.getChildren().add(noPagesOverlay);
+        StackPane NormalViewPane = new StackPane();
+        NormalViewPane.getChildren().add(scrollVisor);
+        NormalViewPane.getChildren().add(loadingOverlay);
+        NormalViewPane.getChildren().add(errorOverlay);
+        NormalViewPane.getChildren().add(noPagesOverlay);
         doConfigPagePane();
-        spane.getChildren().add(pagePane);
+        NormalViewPane.getChildren().add(pagePane);
         StackPane.setAlignment(pagePane, Pos.BOTTOM_RIGHT);
-        lateralMenu = getLateralMenu();
-        StackPane.setAlignment(lateralMenu, Pos.CENTER_LEFT);
-        spane.getChildren().add(lateralMenu);
+        
+        NormalViewPane.getStyleClass().add("reader");
         
         scrollVisor.widthProperty().addListener((obs, oldVal, newVal) -> fitImageToScreen());
         scrollVisor.heightProperty().addListener((obs, oldVal, newVal) -> fitImageToScreen());
@@ -332,7 +336,6 @@ public class ScnReader implements AppScene {
                 fitImageToScreen();
             }
         });
-        // Detección manual de clic (sin arrastre) sobre el scrollPane
         final double[] pressXY = new double[2];
         
         scrollVisor.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
@@ -384,9 +387,37 @@ public class ScnReader implements AppScene {
             controller.loadCurrentImage();
         }
         doUpdatePageLabel();
-        
-        spane.getStyleClass().add("reader");
-        return spane;
+        StackPane root = new StackPane();
+        lateralMenu = getLateralMenu();
+        StackPane.setAlignment(lateralMenu, Pos.CENTER_LEFT);
+
+        switch (AppConfig.get().READING_MODE) {
+            case 0 -> {
+                root.getChildren().add(NormalViewPane);
+            }
+            case 1 -> {
+                root.getChildren().add(HorizontalLineModePane());
+            }
+            default -> throw new AssertionError();
+        }
+        root.getChildren().add(lateralMenu);
+
+        root.getStyleClass().add("reader");
+        return root;
+    }
+    
+    private StackPane HorizontalLineModePane(){
+        HImages = new HBox();
+        Button next = new Button("Next");
+        Button back = new Button("Back");
+        HBox panel = new HBox(next,HImages,back);
+        StackPane.setAlignment(panel, Pos.CENTER);
+        StackPane root = new StackPane(panel);
+        return root;
+    }
+    
+    public HBox getImagesHbox(){
+        return HImages;
     }
     
     public void setPageLoadingProgress(Double progress){
