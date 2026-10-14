@@ -34,30 +34,25 @@ public class WebPDirectDecoder {
         if (webpData == null || webpData.length == 0) return null;
 
         try {
-            int width;
-            int height;
-
-            try {
-                int[] info = WebPCodec.getWebPInfo(webpData);
-                if (info != null && info.length >= 2) {
-                    width = info[0];
-                    height = info[1];
-                } else {
-                    BufferedImage bimg = WebPCodec.decodeImage(webpData);
-                    if (bimg == null) return null;
-                    width = bimg.getWidth();
-                    height = bimg.getHeight();
-                }
-            } catch (Exception e) {
-                BufferedImage bimg = WebPCodec.decodeImage(webpData);
-                if (bimg == null) return null;
-                width = bimg.getWidth();
-                height = bimg.getHeight();
-            }
-
             BufferedImage bimg = WebPCodec.decodeImage(webpData);
             if (bimg == null) return null;
+            return toDirectImage(bimg, maxHeight);
+        } catch (Exception e) {
+            Logger.error("Error decodificando WebP con webp4j: " + e.getMessage());
+            return null;
+        }
+    }
 
+    /**
+     * Convierte cualquier BufferedImage a una Image de JavaFX utilizando
+     * Direct ByteBuffer y PixelBuffer para minimizar memoria en el Heap (Off-Heap).
+     */
+    public static Image toDirectImage(BufferedImage bimg, int maxHeight) {
+        if (bimg == null) return null;
+
+        try {
+            int width = bimg.getWidth();
+            int height = bimg.getHeight();
             int targetWidth = width;
             int targetHeight = height;
 
@@ -98,9 +93,8 @@ public class WebPDirectDecoder {
             PixelBuffer<ByteBuffer> pixelBuffer = new PixelBuffer<>(targetWidth, targetHeight, directBuffer, pixelFormat);
 
             return new WritableImage(pixelBuffer);
-
         } catch (Exception e) {
-            Logger.error("Error decodificando WebP con webp4j: " + e.getMessage());
+            Logger.error("Error convirtiendo BufferedImage a PixelBuffer: " + e.getMessage());
             return null;
         }
     }

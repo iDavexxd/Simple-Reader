@@ -33,8 +33,14 @@ public class ReaderController {
     private static ReaderController instance;
     private SceneController nav = SceneController.getInstance();
     private final LibraryController lib = LibraryController.getInstance();
+
+    // =========================================================================
+    // [A MOVER A PageLoader] - Servicios de carga y caché
+    // =========================================================================
+    /*
     private final ImageManager imgManager = ImageManager.getInstance();
     private final Cache cache = Cache.getInstance();
+    */
     
     private Manga manga;
     private Chapter chapter;
@@ -46,9 +52,11 @@ public class ReaderController {
     private boolean updatingUI = false;
     private boolean programmaticNav = false;
     private boolean startAtLastPage = false;
-    
-    
-    
+
+    // =========================================================================
+    // [A MOVER A PageLoader] - Control de hilos y páginas en cola de descarga
+    // =========================================================================
+    /*
     private final Set<Integer> loadingPages = ConcurrentHashMap.newKeySet();
     
     // Ejecutor para la página actual (prioridad)
@@ -71,6 +79,7 @@ public class ReaderController {
         t.setDaemon(true);
         return t;
     });
+    */
     
     private ComboBox<Integer> paginaComboBox;
     private ComboBox<Chapter> chapterComboBox;
@@ -104,9 +113,11 @@ public class ReaderController {
     public void loadChapter(Chapter chapter, int index){
         disposed = false; // Reset the disposed flag so it can be reused
         
-        // Limpiar páginas del capítulo anterior para liberar RAM inmediatamente
+        // [A MOVER A PageLoader] Limpiar páginas del capítulo anterior para liberar RAM inmediatamente
+        /*
         app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
         loadingPages.clear();
+        */
         view.setImageViewImage(null); 
         
         this.chapter = chapter;
@@ -227,14 +238,23 @@ public class ReaderController {
     }
     
     public void reloadCurrentImage() {
+        // =====================================================================
+        // [A MOVER A PageLoader] - Recarga forzada de la imagen actual
+        // =====================================================================
+        /*
         app.simplereader.service.Cache.getInstance().getPagesLRU().invalidate(chapter.getPage(currentPageIndex));
         loadingPages.remove(currentPageIndex);
         view.setImageViewImage(null);
         loadCurrentImage();
+        */
     }
     
     
     public void loadCurrentImage() {
+        // =====================================================================
+        // [A MOVER A PageLoader] - Carga asíncrona de la imagen de la página actual
+        // =====================================================================
+        /*
         Image cached = app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(currentPageIndex));
         if (cached != null) {
             view.setImageViewImage(cached);
@@ -299,8 +319,13 @@ public class ReaderController {
             });
             return null;
         });
+        */
     }
     
+    // =========================================================================
+    // [A MOVER A PageLoader] - Métodos de precarga hacia adelante y hacia atrás
+    // =========================================================================
+    /*
     public void preloadPage(int index, ExecutorService executor) {
         if (index < 0 || index >= totalPages()) return;
         if (app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(index)) != null) return;
@@ -349,6 +374,7 @@ public class ReaderController {
         preloadPage(currentPageIndex - 1, preloaderBackward);
         preloadPage(currentPageIndex - 2, preloaderBackward);
     }
+    */
     
     public void resetZoom() {
         if (view != null && view.getVisor() != null) {
@@ -390,8 +416,13 @@ public class ReaderController {
     
     public void cleanupResources() {
         disposed = true; 
+        // =====================================================================
+        // [A MOVER A PageLoader] - Limpieza de caché y estado al cerrar
+        // =====================================================================
+        /*
         loadingPages.clear();
         app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
+        */
         if (view != null) view.setImageViewImage(null);
         lib.saveLibrary();
         
@@ -402,8 +433,13 @@ public class ReaderController {
     public void saveAndCleanup() {
         disposed = true;
         
+        // =====================================================================
+        // [A MOVER A PageLoader] - Limpieza de caché y estado al cerrar
+        // =====================================================================
+        /*
         loadingPages.clear();
         app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
+        */
         if (view != null) view.setImageViewImage(null);
         
         lib.saveLibrary();

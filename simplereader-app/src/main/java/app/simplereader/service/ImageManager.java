@@ -7,7 +7,6 @@ import app.simplereader.model.AppConfig;
 import app.simplereader.repository.MangaSource;
 import java.io.File;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.imageio.ImageIO;
@@ -190,27 +189,57 @@ public class ImageManager {
         }
     }
 
+    /**
+     * Carga y decodifica cualquier imagen (HTTP o local; WebP, JPG, PNG, etc.)
+     * utilizando el pipeline optimizado de PixelBuffer (Off-Heap) para minimizar consumo de RAM.
+     */
+    public Image loadImage(String url, MangaSource source, Consumer<Double> progressCallback) {
+        if (url == null || url.isBlank()) return null;
+        try {
+            byte[] data = fetchImageBytes(url, source, progressCallback);
+            if (data == null || data.length == 0) return null;
+            return decodeImage(data, url);
+        } catch (Exception e) {
+            Logger.error("Error cargando imagen (" + url + "): " + e.getMessage());
+            return null;
+        }
+    }
+
+    public Image loadImage(String url) {
+        return loadImage(url, null, null);
+    }
+
+    /**
+     * Mantenido por compatibilidad hacia atrás. Delega a loadImage.
+     */
     public Image loadPage(String url, MangaSource source, int index, Consumer<Double> progressCallback) {
-        Logger.info("Loading page [" + index + "] image: " + url);
-        if (url.startsWith("http")) {
+        return loadImage(url, source, progressCallback);
+    }
+
+    /**
+     * Obtiene los bytes de una imagen ya sea desde HTTP (OkHttp con reporte de progreso)
+     * o desde el almacenamiento local / archivo.
+     */
+    private byte[] fetchImageBytes(String url, MangaSource source, Consumer<Double> progressCallback) throws Exception {
+        if (url.startsWith("http://") || url.startsWith("https://")) {
             try (okhttp3.Response response = app.simplereader.service.Http.getOkHttpResponse(url, source)) {
                 if (!response.isSuccessful()) {
-                    throw new java.io.IOException("HTTP " + response.code());
+                    throw new IOException("HTTP " + response.code());
                 }
-                
-                long totalBytes = response.body().contentLength();
+
+                long totalBytes = response.body() != null ? response.body().contentLength() : -1;
                 try (InputStream in = response.body().byteStream();
                      java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
-                     
+
                     byte[] chunk = new byte[8192];
                     long bytesRead = 0;
                     int n;
                     long lastUpdate = 0;
-                    
+
                     while ((n = in.read(chunk)) != -1) {
                         buffer.write(chunk, 0, n);
                         bytesRead += n;
-                        
+
                         if (totalBytes > 0 && progressCallback != null) {
                             long now = System.currentTimeMillis();
                             if (now - lastUpdate > 50) {
@@ -220,103 +249,59 @@ public class ImageManager {
                             }
                         }
                     }
-                    
+
                     if (totalBytes > 0 && progressCallback != null) {
                         Platform.runLater(() -> progressCallback.accept(1.0));
                     }
-                    
-                    try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(buffer.toByteArray())) {
-                        if (url.toLowerCase().contains(".webp")) {
-                            if (WebPDirectDecoder.isAvailable()) {
-                                int maxH = AppConfig.get().limitPageQuality ? 1080 : 0;
-                                Image directImg = WebPDirectDecoder.decode(buffer.toByteArray(), maxH);
-                                if (directImg != null) return directImg;
-                            }
-                            
-                            BufferedImage bimg = ImageIO.read(bin);
-                            if (bimg != null) {
-                                if (AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
-                                    int newHeight = 1080;
-                                    int newWidth = (int) (bimg.getWidth() * (1080.0 / bimg.getHeight()));
-                                    java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                                    java.awt.Graphics2D g2d = scaled.createGraphics();
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                                    g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
-                                    g2d.dispose();
-                                    bimg.flush();
-                                    bimg = scaled;
-                                }
-                                Image fxImg = SwingFXUtils.toFXImage(bimg, null);
-                                bimg.flush();
-                                return fxImg;
-                            }
-                        } else {
-                            if (AppConfig.get().limitPageQuality) {
-                                return new Image(bin, 0, 1080, true, true);
-                            }
-                            return new Image(bin);
-                        }
-                    }
+                    return buffer.toByteArray();
                 }
-            } catch (Exception e) {
-                throw new RuntimeException("Error loading page: " + e.getMessage(), e);
             }
-            return null;
+        } else if (url.startsWith("file:")) {
+            try (InputStream fileIn = new java.net.URL(url).openStream()) {
+                return fileIn.readAllBytes();
+            }
         } else {
-            if (url.toLowerCase().contains(".webp")) {
-                try {
-                    if (WebPDirectDecoder.isAvailable()) {
-                        byte[] bytes;
-                        if (url.startsWith("file:")) {
-                            try (InputStream fileIn = new java.net.URL(url).openStream()) {
-                                bytes = fileIn.readAllBytes();
-                            }
-                        } else {
-                            bytes = java.nio.file.Files.readAllBytes(new File(url).toPath());
-                        }
-                        int maxH = AppConfig.get().limitPageQuality ? 1080 : 0;
-                        Image directImg = WebPDirectDecoder.decode(bytes, maxH);
-                        if (directImg != null) return directImg;
-                    }
-
-                    BufferedImage bimg;
-                    if (url.startsWith("file:")) {
-                        bimg = ImageIO.read(new java.net.URL(url));
-                    } else {
-                        bimg = ImageIO.read(new File(url));
-                    }
-                    
-                    if (bimg != null) {
-                        if (AppConfig.get().limitPageQuality && bimg.getHeight() > 1080) {
-                            int newHeight = 1080;
-                            int newWidth = (int) (bimg.getWidth() * (1080.0 / bimg.getHeight()));
-                            java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(newWidth, newHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                            java.awt.Graphics2D g2d = scaled.createGraphics();
-                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                            g2d.drawImage(bimg, 0, 0, newWidth, newHeight, null);
-                            g2d.dispose();
-                            bimg.flush();
-                            bimg = scaled;
-                        }
-                        Image fxImg = SwingFXUtils.toFXImage(bimg, null);
-                        bimg.flush();
-                        return fxImg;
-                    }
-                } catch (Exception e) {
-                    Logger.error("Error decoding local webp. Using native fallback.");
-                }
-                return new Image(url, false);
-            } else {
-                if (AppConfig.get().limitPageQuality) {
-                    return new Image(url, 0, 720, true, true, false);
-                }
-                return new Image(url, false);
-            }
+            return java.nio.file.Files.readAllBytes(new File(url).toPath());
         }
     }
-    
-    public Image loadPagev2(String url){
-        Image page = new Image(url, true);
-        return page;
+
+    /**
+     * Decodifica bytes de cualquier formato soportado a una Image de JavaFX.
+     * Utiliza PixelBuffer y ByteBuffer off-heap tanto para WebP como para JPG y PNG.
+     * @param data
+     */
+    public Image decodeImage(byte[] data, String url) {
+        if (data == null || data.length == 0) return null;
+        int maxH = AppConfig.get().limitPageQuality ? 1080 : 0;
+
+        // 1. Si es WebP y el decodificador nativo está disponible, usamos WebPDirectDecoder
+        if (url != null && url.toLowerCase().contains(".webp")) {
+            if (WebPDirectDecoder.isAvailable()) {
+                Image directImg = WebPDirectDecoder.decode(data, maxH);
+                if (directImg != null) return directImg;
+            }
+        }
+
+        // 2. Para JPG, PNG (o WebP como fallback): Decodificar con ImageIO y convertir a PixelBuffer (Off-Heap)
+        try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(data)) {
+            BufferedImage bimg = ImageIO.read(bin);
+            if (bimg != null) {
+                Image directImg = WebPDirectDecoder.toDirectImage(bimg, maxH);
+                if (directImg != null) return directImg;
+            }
+        } catch (Exception e) {
+            Logger.error("Error decodificando imagen con ImageIO: " + e.getMessage());
+        }
+
+        // 3. Fallback nativo de JavaFX si ImageIO o WebPCodec fallan
+        try (java.io.ByteArrayInputStream bin = new java.io.ByteArrayInputStream(data)) {
+            if (maxH > 0) {
+                return new Image(bin, 0, maxH, true, true);
+            }
+            return new Image(bin);
+        } catch (Exception e) {
+            Logger.error("Fallo fallback nativo de Image: " + e.getMessage());
+            return null;
+        }
     }
 }
