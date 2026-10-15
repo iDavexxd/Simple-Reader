@@ -24,7 +24,7 @@ public class AppConfig {
 
     public String READING_DIR = "LTR";
     public String SCALING_MODE = "FIT_HEIGHT";
-    public int READING_MODE = 1;
+    public int READING_MODE = 0;
 
     public boolean limitPageQuality = false;
 

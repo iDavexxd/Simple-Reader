@@ -6,6 +6,7 @@ import app.simplereader.model.Manga;
 import app.simplereader.repository.MangaSource;
 import app.simplereader.service.Cache;
 import app.simplereader.service.ImageManager;
+import app.simplereader.service.PageLoader;
 import app.simplereader.views.ScnReader;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +34,8 @@ public class ReaderController {
     private static ReaderController instance;
     private SceneController nav = SceneController.getInstance();
     private final LibraryController lib = LibraryController.getInstance();
-
+    private final SourceManager sourceManager = SourceManager.getInstance();
+    private final PageLoader pageLoader = PageLoader.getInstance();
     // =========================================================================
     // [A MOVER A PageLoader] - Servicios de carga y caché
     // =========================================================================
@@ -110,14 +112,17 @@ public class ReaderController {
         this.chapterNameLabel = chnameLabel;
     }
     
+    List<String> getPages(){
+        return null;
+    }
+    
     public void loadChapter(Chapter chapter, int index){
         disposed = false; // Reset the disposed flag so it can be reused
         
-        // [A MOVER A PageLoader] Limpiar páginas del capítulo anterior para liberar RAM inmediatamente
-        /*
-        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
-        loadingPages.clear();
-        */
+        pageLoader.clear();
+        pageLoader.setSource(sourceManager.getSource(manga.getSourceID()));
+        pageLoader.setImageUrlList(sourceManager.getSource(manga.getSourceID()).getPages(manga.getMangaID(), chapter.getChapterID()));
+        
         view.setImageViewImage(null); 
         
         this.chapter = chapter;
@@ -238,144 +243,27 @@ public class ReaderController {
     }
     
     public void reloadCurrentImage() {
-        // =====================================================================
-        // [A MOVER A PageLoader] - Recarga forzada de la imagen actual
-        // =====================================================================
-        /*
-        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidate(chapter.getPage(currentPageIndex));
-        loadingPages.remove(currentPageIndex);
         view.setImageViewImage(null);
+        Cache.getInstance().getPagesLRU().invalidate(chapter.getPage(currentPageIndex));
         loadCurrentImage();
-        */
     }
     
     
     public void loadCurrentImage() {
-        // =====================================================================
-        // [A MOVER A PageLoader] - Carga asíncrona de la imagen de la página actual
-        // =====================================================================
-        /*
-        Image cached = app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(currentPageIndex));
-        if (cached != null) {
-            view.setImageViewImage(cached);
-            view.fitImageToScreen();
-            resetZoom();
-            preloadAroundCurrent();
-            Logger.info("Page " + currentPageIndex + " loaded (cache).");
-            return;
-        }
-        
-        int index = currentPageIndex; 
-        if (!loadingPages.add(index)) return;
-        
-        view.setLoadingProgress(0);
-        preloadAroundCurrent();
-        
-        String url = chapter.getPage(index);
-        Chapter currentTaskChapter = this.chapter;
-        MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-        
-        java.util.function.Consumer<Double> progressCallback = progress -> {
-            if (!disposed && this.chapter == currentTaskChapter && index == currentPageIndex) {
-                view.setLoadingProgress(progress);
-            }
-        };
-        
-        CompletableFuture.supplyAsync(() -> {
-            if (disposed || this.chapter != currentTaskChapter) return null;
-            return app.simplereader.service.ImageManager.getInstance().loadPage(url, src, index, progressCallback);
-        }, currentLoader).thenAccept(img -> {
-            if (disposed || this.chapter != currentTaskChapter) return;
-            
-            Platform.runLater(() -> {
-                if (disposed || this.chapter != currentTaskChapter) return; 
-                
-                loadingPages.remove(index);
-                if (img != null && !img.isError()) {
-                    app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
-                    if (index == currentPageIndex) {
-                        view.setImageViewImage(img);
-                        view.fitImageToScreen();
-                        resetZoom();
-                    }
-                    Logger.info("Page " + index + " loaded.");
-                } else {
-                    String errMsg = (img != null && img.getException() != null) ? img.getException().getMessage() : "Desconocido";
-                    Logger.error("Error cargando página " + index + ": " + errMsg);
-                    if (index == currentPageIndex) {
-                        view.showErrorOverlay();
-                    }
-                }
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                loadingPages.remove(index);
-                if (!disposed) {
-                    Logger.error("Error cargando página " + index + ": " + e.getMessage());
-                    if (index == currentPageIndex) {
-                        view.showErrorOverlay();
-                    }
-                }
-            });
-            return null;
-        });
-        */
-    }
-    
-    // =========================================================================
-    // [A MOVER A PageLoader] - Métodos de precarga hacia adelante y hacia atrás
-    // =========================================================================
-    /*
-    public void preloadPage(int index, ExecutorService executor) {
-        if (index < 0 || index >= totalPages()) return;
-        if (app.simplereader.service.Cache.getInstance().getPagesLRU().getIfPresent(chapter.getPage(index)) != null) return;
-        if (!loadingPages.add(index)) return;
-        
-        Chapter currentTaskChapter = this.chapter;
-        MangaSource src = SourceManager.getInstance().getSource(manga.getSourceID());
-        
-        CompletableFuture.supplyAsync(() -> {
-            if (disposed || this.chapter != currentTaskChapter) return null;
-            if (Math.abs(index - currentPageIndex) > 3) return null; // Cancela precargas si saltaste la página muy rápido
-            
-            String url = currentTaskChapter.getPage(index);
-            return app.simplereader.service.ImageManager.getInstance().loadPage(url, src, index, null);
-        }, executor).thenAccept(img -> {
-            if (disposed || this.chapter != currentTaskChapter) return;
-            
+        view.setImageViewImage(null); // Muestra el overlay de carga
+
+        pageLoader.getImage(currentPageIndex, img -> {
             if (img != null && !img.isError()) {
-                app.simplereader.service.Cache.getInstance().getPagesLRU().put(currentTaskChapter.getPage(index), img);
-                Logger.info("Preloaded page: " + index);
+                view.setImageViewImage(img);
+                view.fitImageToScreen();
+                resetZoom();
+            } else {
+                view.showErrorOverlay();
             }
-            loadingPages.remove(index);
-            
-            if (index == currentPageIndex && img != null && !img.isError()) {
-                Platform.runLater(() -> {
-                    if (disposed) return;
-                    view.setImageViewImage(img);
-                    view.fitImageToScreen();
-                    resetZoom();
-                });
-            }
-        }).exceptionally(e -> {
-            Logger.error("Error precargando página " + index);
-            loadingPages.remove(index);
-            return null;
         });
     }
     
-    public void preloadAroundCurrent() {
-        // Hacia adelante (usando su propio hilo)
-        preloadPage(currentPageIndex + 1, preloaderForward);
-        preloadPage(currentPageIndex + 2, preloaderForward);
-        preloadPage(currentPageIndex + 3, preloaderForward);
         
-        // Hacia atrás (usando su propio hilo)
-        preloadPage(currentPageIndex - 1, preloaderBackward);
-        preloadPage(currentPageIndex - 2, preloaderBackward);
-    }
-    */
-    
     public void resetZoom() {
         if (view != null && view.getVisor() != null) {
             view.getVisor().setScaleX(1.0);
@@ -415,37 +303,11 @@ public class ReaderController {
     }
     
     public void cleanupResources() {
-        disposed = true; 
-        // =====================================================================
-        // [A MOVER A PageLoader] - Limpieza de caché y estado al cerrar
-        // =====================================================================
-        /*
-        loadingPages.clear();
-        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
-        */
-        if (view != null) view.setImageViewImage(null);
-        lib.saveLibrary();
-        
-        // Sugerir fuertemente al GC que limpie la memoria off-heap de las imágenes de JavaFX
-        System.gc();
+        pageLoader.clear();
     }
     
     public void saveAndCleanup() {
-        disposed = true;
-        
-        // =====================================================================
-        // [A MOVER A PageLoader] - Limpieza de caché y estado al cerrar
-        // =====================================================================
-        /*
-        loadingPages.clear();
-        app.simplereader.service.Cache.getInstance().getPagesLRU().invalidateAll();
-        */
-        if (view != null) view.setImageViewImage(null);
-        
-        lib.saveLibrary();
-        
-        // Al ser Singleton, ya no destruimos el preloader ni los lazos con la UI
-        System.gc();
+        pageLoader.clear();
     }
     
     public Manga getManga() {

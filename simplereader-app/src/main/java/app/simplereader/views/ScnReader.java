@@ -111,9 +111,7 @@ public class ScnReader implements AppScene {
 
         controller.init(manga, chapter, chapterIndex);
                                           
-        if (myScene != null) {                                                                                   
-            controller.loadChapter(chapter, chapterIndex);                                                       
-        }
+        controller.loadChapter(chapter, chapterIndex);
 
         Logger.info("Loaded " + chapter.getTitle() + " " + chapterIndex);                                        
     }   
