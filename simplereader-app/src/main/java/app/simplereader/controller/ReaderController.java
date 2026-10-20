@@ -9,40 +9,21 @@ import app.simplereader.service.ImageManager;
 import app.simplereader.service.PageLoader;
 import app.simplereader.views.ScnReader;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import javafx.application.Platform;
 import javafx.scene.control.ComboBox;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
+
 
 /**
  *
  * @author david
  */
 public class ReaderController {
-    // 1. Quitamos 'final' para poder destruirlo en el cleanup
     private ScnReader view;
-    
-    // 2. Agregamos flag volátil para que los hilos sepan cuándo detenerse
-    private volatile boolean disposed = false; 
     
     private static ReaderController instance;
     private SceneController nav = SceneController.getInstance();
-    private final LibraryController lib = LibraryController.getInstance();
     private final SourceManager sourceManager = SourceManager.getInstance();
     private final PageLoader pageLoader = PageLoader.getInstance();
-    // =========================================================================
-    // [A MOVER A PageLoader] - Servicios de carga y caché
-    // =========================================================================
-    /*
-    private final ImageManager imgManager = ImageManager.getInstance();
-    private final Cache cache = Cache.getInstance();
-    */
     
     private Manga manga;
     private Chapter chapter;
@@ -55,34 +36,6 @@ public class ReaderController {
     private boolean programmaticNav = false;
     private boolean startAtLastPage = false;
 
-    // =========================================================================
-    // [A MOVER A PageLoader] - Control de hilos y páginas en cola de descarga
-    // =========================================================================
-    /*
-    private final Set<Integer> loadingPages = ConcurrentHashMap.newKeySet();
-    
-    // Ejecutor para la página actual (prioridad)
-    private final ExecutorService currentLoader = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "current-loader");
-        t.setDaemon(true);
-        return t;
-    });
-
-    // Ejecutor para precargar hacia adelante (máx 1 a la vez para ahorrar RAM)
-    private final ExecutorService preloaderForward = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "preloader-fw");
-        t.setDaemon(true);
-        return t;
-    });
-    
-    // Ejecutor para precargar hacia atrás
-    private final ExecutorService preloaderBackward = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "preloader-bw");
-        t.setDaemon(true);
-        return t;
-    });
-    */
-    
     private ComboBox<Integer> paginaComboBox;
     private ComboBox<Chapter> chapterComboBox;
     private javafx.scene.control.Label chapterNameLabel;
@@ -111,13 +64,9 @@ public class ReaderController {
         this.chapterComboBox = caps;
         this.chapterNameLabel = chnameLabel;
     }
-    
-    List<String> getPages(){
-        return null;
-    }
+       
     
     public void loadChapter(Chapter chapter, int index){
-        disposed = false; // Reset the disposed flag so it can be reused
         
         pageLoader.clear();
         pageLoader.setSource(sourceManager.getSource(manga.getSourceID()));
@@ -229,7 +178,8 @@ public class ReaderController {
             app.simplereader.controller.MangaMenuController.getInstance().openChapter(next);
         }
     }
-     public void previousChapter() {
+    
+    public void previousChapter() {
         List<Chapter> chapters = manga.getChapters();
         if (chapters == null) return;
         

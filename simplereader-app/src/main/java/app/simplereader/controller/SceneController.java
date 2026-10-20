@@ -44,7 +44,6 @@ public class SceneController {
             Logger.error("No se pudo cargar el archivo css: "+e.getMessage());
         }
         
-        // Crear la única Scene con un root temporal
         StackPane initialRoot = new StackPane();
         this.scene = new Scene(initialRoot, AppConfig.get().WIDTH, AppConfig.get().HEIGHT);
         this.scene.getStylesheets().add(css);
@@ -63,8 +62,8 @@ public class SceneController {
     public void goTo(AppScene s){
         ActualSceneName = s.getName();
         
-        stage.setTitle(AppConfig.get().APP_TITLE + " - " + ActualSceneName);
-        scene.setRoot(s.getScene()); // Solo cambiamos el root, no la Scene
+        stage.setTitle(AppConfig.APP_TITLE + " - " + ActualSceneName);
+        scene.setRoot(s.getScene());
         
         // --- INICIO DE BÚSQUEDA PROFUNDA EN EL HISTORIAL ---
         int existingIndex = -1;
