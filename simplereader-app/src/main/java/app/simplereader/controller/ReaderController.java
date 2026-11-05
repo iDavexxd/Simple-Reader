@@ -1,11 +1,8 @@
 package app.simplereader.controller;
 
-import app.simplereader.service.Logger;
 import app.simplereader.model.Chapter;
 import app.simplereader.model.Manga;
-import app.simplereader.repository.MangaSource;
 import app.simplereader.service.Cache;
-import app.simplereader.service.ImageManager;
 import app.simplereader.service.PageLoader;
 import app.simplereader.views.ScnReader;
 import java.util.List;
@@ -200,7 +197,7 @@ public class ReaderController {
     
     
     public void loadCurrentImage() {
-        view.setImageViewImage(null); // Muestra el overlay de carga
+        view.setImageViewImage(null);
 
         pageLoader.getImage(currentPageIndex, img -> {
             if (img != null && !img.isError()) {
